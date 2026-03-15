@@ -42,6 +42,30 @@
 Preeclampsia is a hypertensive disorder in pregnant women that accounts for 2-8\% of pregnancy complications, over 50,000 maternal deaths, and over 500,000 fetal deaths worldwide annually \cite{nbk570611}. According to the World Health Organization, 95\% of deaths occur in low and middle-income countries, and in the United States the financial toll of managing preeclampsia is more than \$2 billion \cite{pmc12364110}. Earlier diagnosis and treatment, especially before the onset of symptoms and complications, can reduce the cost burden and loss of life currently caused by preeclampsia.
 
   \section{Problem Definition}
+Current preeclampsia risk estimation relies on known risk factors, however these do not definitively guarantee development of preeclampsia. Treatment protocols initiate based on complications emerging after 20th week of pregnancy \cite{pmc12364110}. Blanket screening is impractical but the need for definitive evidence delays crucial treatment. Routinely collected data such as ECG waveforms also demand expert anlysis, and onset and severity of conditions is often unclear thus still leading to significant morbidity and mortality \cite{pmc12364110}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.48\linewidth]{557737215_122141418656891576_230113301145304171_n.jpg}\hfill
+  \includegraphics[width=0.48\linewidth]{c851b6_fcc62bdd5da74d328afd9dd27e40b2f0-1.jpeg}
+  \caption{ECG 12 Leads}
+\end{figure}
+
+The problem is a lack of scalable, cost effective risk estimation using available data such as 12-Lead ECG. Machine learning offers such in theory, but accuracy is essential to avoid false negatives. Models demand obscene amounts of data, and annotated data demands equivalent expert man-hours. Literature reviews indicate the majority of publications around 63\% utilize classic machine learning algorithms, favoured for their efficiency and ease of implementation, whilst 23\% utilize deep learning, with the remaining percentage as overlap \cite{pmc12364110}. None mention the use of transformers for preeclampsia specifically.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\columnwidth]{12911_2023_2233_Fig1_HTML.png}
+  \caption{ECG 12 Waveforms}
+\end{figure}
+
+  \section{Solution Outline}
+
+The transformer architecture has shown great promise in other areas of medical multivariate timeseries classification, using ECG waveforms to classify cardiovascular diseases with accuracies around 98-99\% \cite{zhao2023transformingecg}. There appears to be a lack of literature for application of transformers for preeclampsia risk estimation from ECG waveform data specifically, thus we aim to do so \cite{zhao2023transformingecg}.
+
+The nature of one-dimensional waveform obscures certain features especially regarding frequency distribution, hence we intend to apply time-frequency transforms such as Wavelet or Stockwell that show rich multidimensional representations of one-dimensional data for initial feature extraction by the neural network \cite{kim2025cnntransformer}. The literature has shown the transformer is often paired with 1D or 2D convolutional neural networks for better extraction of local features, whilst the transformer performs in detecting long range dependencies \cite{zhao2023transformingecg}. Transormers + CNN's may be able to detect and discover features that are otherwise overlooked, leveraging the emergent deep learning properties transformers have shown in other fields.
+
+We will focus on explainability of predictions through visualization tools such as Grad-CAM, and dimensionality reduction through analysis such as PCA to identify which components and features are actually contributing to prediction, and where such is coming from \cite{zhao2023transformingecg}. Explainability will be essential for integration into existing clinical workflows to augment expert analysis. Alongside explainability, we will explore model compression of input dimensions and parameter size for deployment on compute constrained edge devices for greater accessibility.
 
  Early diagnosis is essential but solely relying on the onset of symptoms that warrant testing and treatment is insufficient. Analysis of readily available data such as ECG waveforms demands expert man-hours rationed by warrant so as to not waste resources on false positives.
 
