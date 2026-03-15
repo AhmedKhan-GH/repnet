@@ -67,13 +67,14 @@ The nature of one-dimensional waveform obscures certain features especially rega
 
 We will focus on explainability of predictions through visualization tools such as Grad-CAM, and dimensionality reduction through analysis such as PCA to identify which components and features are actually contributing to prediction, and where such is coming from \cite{zhao2023transformingecg}. Explainability will be essential for integration into existing clinical workflows to augment expert analysis. Alongside explainability, we will explore model compression of input dimensions and parameter size for deployment on compute constrained edge devices for greater accessibility.
 
- Early diagnosis is essential but solely relying on the onset of symptoms that warrant testing and treatment is insufficient. Analysis of readily available data such as ECG waveforms demands expert man-hours rationed by warrant so as to not waste resources on false positives.
+  \section{Deliverables and Success Criteria}
 
-  \section{Outline of Your Solution}
+We will benchmark our model on existing public datasets such as Nightingale and MIT-BIH, applying data preprocessing and augmentation steps from popular papers. We will also create a classical machine learning model with Random Forest trained on featurizations from Neurokit as a baseline for how much better a fully deep learning model can get. Both will also feature classification reports offered by machine learning libraries. Given the peformance of other transformer based arythmia classifiers one ECG waveform, we believe this will do well.
 
- The goal of this project is to develop a machine learning model that can predict the risk of preeclampsia from raw ECG waveforms to warrant testing and treatment for before onset of symptoms, and to create a system to augment clinical workflows in the identification of indicative waveform features. Furthermore, our goal is to analyze the model's findings of which ECG leads are relevant through dimensionality reduction, and perform model compression that enables effective deployment in edge devices for the given privacy protections and compute constraints of medical practice.
 
-  \section{Deliverables and Success Criteria/Metrics}
+The model will be accompanied by a purpose built immediate mode C++ desktop utility named Caliper, built from scratch for real-time deep learning and inference visualization using ImGUI and ImPLOT. It will use machine learning library Libtorch (Pytorch C++) and graphics visualization layer OpenGL, both cross platform GPU accelerated with CUDA on Windows or MPS on MacOS, with efficient data processing library Arrow for large scale datasets. It will be used eventually for visualized diagnosis and feature inference as well as augmented annotation and correction.
+
+We will present a live demonstration on the floor of the UC Davis Senior Design Showcase in June 2026, with an interactive demo enabling interested, faculty, potential investors, or students in engineering or medicine to interact with the tools and get a sense for the diagnostic workflow. And the project will be accompanied with a pitch deck presentation and comprehensive technical report.
 
   \section{Project Plan}
 
