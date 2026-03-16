@@ -71,12 +71,11 @@ We will focus on explainability of predictions through visualization tools such 
 
   \section{Deliverables and Success Criteria}
 
-We will benchmark our model on existing public datasets such as Nightingale and MIT-BIH, applying data preprocessing and augmentation steps from popular papers. We will also create a classical machine learning model with Random Forest trained on featurizations from Neurokit as a baseline for how much better a fully deep learning model can get. Both will also feature classification reports offered by machine learning libraries. Given the peformance of other transformer based arythmia classifiers one ECG waveform, we believe this will do well.
+We will create a deep learning model with CNN + Transformer and other unsupervised methods to increase feature richness We will also create a classical machine learning model with Random Forest trained on featurizations from Neurokit as a baseline. We will benchmark our models on existing public datasets such as Nightingale and MIT-BIH, measuring classification report metrics including UROC, AUCPR, Accuracy, F1-Score, Precision, and Recall.
 
+The model will be accompanied by a purpose-built immediate mode C++ desktop utility named Caliper, built from scratch for real-time deep learning and inference visualization using ImGUI and ImPLOT. It will use Libtorch (Pytorch C++) and graphics visualization OpenGL, both cross-platform GPU accelerated with CUDA on Windows or MPS on MacOS. We will implement efficient data processing with Arrow for efficient retrieval and processing of data. Caliper will be used eventually for visualized diagnosis and feature inference as well as augmented annotation and correction.
 
-The model will be accompanied by a purpose built immediate mode C++ desktop utility named Caliper, built from scratch for real-time deep learning and inference visualization using ImGUI and ImPLOT. It will use machine learning library Libtorch (Pytorch C++) and graphics visualization layer OpenGL, both cross platform GPU accelerated with CUDA on Windows or MPS on MacOS, with efficient data processing library Arrow for large scale datasets. It will be used eventually for visualized diagnosis and feature inference as well as augmented annotation and correction.
-
-We will present a live demonstration on the floor of the UC Davis Senior Design Showcase in June 2026, with an interactive demo enabling interested, faculty, potential investors, or students in engineering or medicine to interact with the tools and get a sense for the diagnostic workflow. And the project will be accompanied with a pitch deck presentation and comprehensive technical report.
+We will present a live demonstration of our models dubbed Precog and its associated tool Caliper on the floor of the UC Davis Senior Design Showcase in June 2026, with an interactive demo enabling interested faculty, investors, clinicians, or students to interact with the tools and get a sense for the diagnostic workflow. The project will be accompanied with a slide deck presentation and comprehensive technical report.
 
   \section{Project Plan}
 
