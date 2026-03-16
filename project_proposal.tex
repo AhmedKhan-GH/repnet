@@ -79,6 +79,59 @@ We will present a live demonstration of our models dubbed Precog and its associa
 
   \section{Project Plan}
 
+\subsection{Phase 0}
+For onboarding into the research project, we will reproduce the results of Joshi et al.~\cite{joshi2025linkingecgecho}. Their workflow consists of:
+\subsubsection{Preprocessing}
+Let \(D\in\mathbb{R}^{3751\times 12\times T}\) be 3751 ECG waveforms (12 leads each), with labels \(y\in\{0,1\}^{3751}\) for binary preeclampsia classification (\(1=\) preeclampsia, \(0=\) non-preeclampsia).
+\[
+u:\mathcal{X}\to\mathcal{X}_{\mathrm{bal}},\quad
+h:\mathcal{X}_{\mathrm{bal}}\to\mathcal{X}_{\mathrm{hp}},\quad
+p:\mathcal{X}_{\mathrm{hp}}\to\mathcal{R},\quad
+d:\mathcal{R}\to\mathcal{S},
+\]
+where \(u\) is random majority undersampling, \(h\) is baseline wander high-pass filtering, \(p=\texttt{ecg\_peaks()}\), \(d=\texttt{ecg\_delineate()}\), and \(\mathcal{S}\) is the featurized heartbeat representation.
+\[
+\mathcal{S}=(d\circ p\circ h\circ u)(D).
+\]
+
+\subsubsection{Featurization}
+
+Let $\mathcal{O}$ be the original feature set with $|\mathcal{O}|=10$:
+\{P, PR Segment, PR Interval, PP Interval, RR Interval, QRS Duration, QT Duration, ST Duration, ST-T Duration, TP Interval\}.
+
+Let $\mathcal{E}$ be the extended feature set with $|\mathcal{E}|=6$:
+\{ST Elevation, ST Depression, Avg Amp Diff, Med Amp Diff, Max Amp Diff, Min Amp Diff\}.
+
+Let $\mathcal{L}$ be the lead set with $|\mathcal{L}|=12$:
+\{I, II, III, aVR, aVF, V1, V2, V3, V4, V5, V6\}.
+
+The total extracted feature index set from $\mathcal{S}$ is $\mathcal{F}=(\mathcal{O}\cup\mathcal{E})\times\mathcal{L}$.
+Therefore, $|\mathcal{F}|=(|\mathcal{O}|+|\mathcal{E}|)|\mathcal{L}|=(10+6)\cdot 12=192$.
+
+Define the extraction map $\phi:\mathcal{S}\to\mathbb{R}^{192}$.
+Each $s\in\mathcal{S}$ is mapped to a 192-dimensional feature vector indexed by $(f,\ell)\in\mathcal{F}$.
+
+Define the Random Forest classifier $f_{\mathrm{RF}}:\mathbb{R}^{192}\to\{0,1\}$, with $y_i=f_{\mathrm{RF}}(\phi(s_i))$ for each $s_i\in\mathcal{S}$.
+The model is evaluated using either a default scikit-learn Random Forest or an Optuna-tuned Random Forest (20 trials, TPE sampler).
+
+\subsection{Phase 1}
+  Working in parallel, we will build two model architectures.
+
+  \subsubsection{Classical Machine Learning}
+On our classical machine learning workflow, we will use Neurokit and manual featurization to extract \{Pmax, Pmin, P-wave dispersion, QT Dispersion, Tp-e interval, Tp-e/QT, TP-e/QTc, ST-T abnormalities, Frontal QRS-T angle, QRS Axis, T axis\} and train a classical machine learning model such as Random Forest and performing statistical analysis such as $\chi^2$.
+
+\subsubsection{Modern Deep Learning}
+Using Pytorch, we will implement a novel Transformer + Convolutional Neural Network architecture improving on existing research, continuously exploring literature and integrating validated findings. Research and validation will first occur in Python for the sake of automated scripts and hyperparameter tuning. We may use techniques such as undersampling, oversampling, or SMOTE to correct for class imbalance issues if they arise.
+
+  \subsection{Phase 2}
+The most successful iteration of the model architecture in Python will be reprogrammed from scratch in C++ and integrated into Caliper, with the aim of modularity such that future models and training architectures can be hot-swapped thereafter. Software engineering best practices and UI/UX principles will be employed to make a production grade clinical workflow improving on existing products.
+
+  \subsection{Phase 3}
+We will perform dimensionality reduction through methods such as Principal Component Analysis, to identify the reduced set of ECG leads responsible for providing the relevant diagnostic signals. The rationale being effectiveness under equipment constraint as 12 Lead ECG's though standard are at the upper end of the cost spectrum, and we aim to make an accessible system that can utilize signals captured from substandard settings and situations to assist in regions where the morbidity rate from Preeclampsia is highest due to healthcare resource constraints.
+
+  \subsection{Phase 4}
+We will perform model compression techniques through methods such as pruning and quantization to test deployment of the compressed model on compute constrained edge devices. The aim being remote accessibility rather than restricted to powerful compute or cloud compute infrastructure, especially given data privacy regulations and that raw immediate data is restricted from leaving the clinical premises.
+
   \section{Schedule with Key Milestones}
 
   \section{Resource Allocation and Requirements}
