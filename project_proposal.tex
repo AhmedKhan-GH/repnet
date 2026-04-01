@@ -92,7 +92,7 @@ We will present a live demonstration of our models dubbed Precog and its associa
 \subsection{Phase 0}
 For onboarding into the research project, we will reproduce the results of Joshi et al.~\cite{joshi2025linkingecgecho}. Their workflow consists of:
 \subsubsection{Preprocessing}
-Let \(D\in\mathbb{R}^{3751\times 12\times T}\) be 3751 ECG waveforms (12 leads each), with labels \(y\in\{0,1\}^{3751}\) for binary preeclampsia classification (\(1=\) preeclampsia, \(0=\) non-preeclampsia).
+Let \(D\in\mathbb{R}^{3751\times 12\times 5000}\) be 3751 ECG waveforms (12 leads each), with labels \(y\in\{0,1\}^{3751}\) for binary preeclampsia classification (\(1=\) preeclampsia, \(0=\) non-preeclampsia).
 \[
 u:\mathcal{X}\to\mathcal{X}_{\mathrm{bal}},\quad
 h:\mathcal{X}_{\mathrm{bal}}\to\mathcal{X}_{\mathrm{hp}},\quad
