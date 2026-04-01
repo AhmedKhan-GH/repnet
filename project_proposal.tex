@@ -37,6 +37,16 @@
 %%
 %% This command processes the author and affiliation and title
 %% information and builds the first part of the formatted document.
+\begin{teaserfigure}
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{c}
+\url{https://github.com/AhmedKhan-GH/precog_docs}
+\ \textbar\
+\url{https://github.com/AhmedKhan-GH/precog_code}\\[0.2em]
+\url{https://docs.google.com/document/d/1VK5gyEvkwuphR05Q0mGYK6_0hERxOEkci-yeKpYLqYA/edit?usp=sharing}
+\end{tabular}}
+\end{teaserfigure}
 \maketitle
 \section{Motivation, Background, and Context}
 Preeclampsia is a hypertensive disorder in pregnant women that accounts for 2-8\% of pregnancy complications, over 50,000 maternal deaths, and over 500,000 fetal deaths worldwide annually \cite{nbk570611}. According to the World Health Organization, 95\% of deaths occur in low and middle-income countries, and in the United States the financial toll of managing preeclampsia is more than \$2 billion \cite{pmc12364110}. Earlier diagnosis and treatment, especially before the onset of symptoms and complications, can reduce the cost burden and loss of life currently caused by preeclampsia.
@@ -111,8 +121,31 @@ Therefore, $|\mathcal{F}|=(|\mathcal{O}|+|\mathcal{E}|)|\mathcal{L}|=(10+6)\cdot
 Define the extraction map $\phi:\mathcal{S}\to\mathbb{R}^{192}$.
 Each $s\in\mathcal{S}$ is mapped to a 192-dimensional feature vector indexed by $(f,\ell)\in\mathcal{F}$.
 
+\subsubsection{Random Forest}
 Define the Random Forest classifier $f_{\mathrm{RF}}:\mathbb{R}^{192}\to\{0,1\}$, with $y_i=f_{\mathrm{RF}}(\phi(s_i))$ for each $s_i\in\mathcal{S}$.
 The model is evaluated using either a default scikit-learn Random Forest or an Optuna-tuned Random Forest (20 trials, TPE sampler).
+
+\subsubsection{1-D Conv. Neural Net}
+Define the Convolutional Neural Network classifier $f_{\mathrm{CNN}}:\mathbb{R}^{5000 \times 12}\to\{0,1\}$, with
+$y_i=f_{\mathrm{CNN}}(x_i)$ for each ECG input $x_i\in\mathbb{R}^{5000 \times 12}$.
+Each block uses $Conv1D(k, s=1, f) \to ReLU \to AvgPool1D(s=2, pool=2)$.
+
+\begin{itemize}
+\item Block 1: $k=9, f=64$, output $2500 \times 64$
+\item Block 2: $k=9, f=80$, output $1250 \times 80$
+\item Block 3: $k=5, f=128$, output $625 \times 128$
+\item Block 4: $k=13, f=48$, output $312 \times 48$
+\item Block 5: $k=3, f=80$, output $156 \times 80$
+\item Block 6: $k=5, f=64$, output $78 \times 64$
+\item Block 7: $k=13, f=112$, output $39 \times 112$
+\item Block 8: $k=9, f=48$, output $19 \times 48$
+\item Block 9: $k=7, f=80$, output $9 \times 80$
+\item Block 10: $k=11, f=16$, output $4 \times 16$
+\item Block 11: $k=13, f=16$, output $2 \times 16$
+\end{itemize}
+
+The classification head is \\
+$Flatten \to Dropout(0.7779) \to Dense(35) \to Dense(1)$.
 
 \subsection{Phase 1}
   Working in parallel, we will build two model architectures.
