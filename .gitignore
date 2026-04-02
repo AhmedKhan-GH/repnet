@@ -1,4 +1,11 @@
 .idea
 out
-assignments
-references
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.pdf
+*.synctex.gz
+.latexmkrc
+.env
