@@ -8,7 +8,7 @@
 \pagestyle{plain}
 \begin{document}
 
-\title{Preeclampsia Risk Estimation Project Proposal}
+\title{Risk Estimating Preeclampsia Project Proposal}
 
 \author{Ahmed Khan}
 \email{aekhan@ucdavis.edu}
@@ -41,9 +41,7 @@
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{c}
-\url{https://github.com/AhmedKhan-GH/precog_docs}
-\ \textbar\ 
-\url{https://github.com/AhmedKhan-GH/precog_code}\\[0.2em]
+\url{https://github.com/AhmedKhan-GH/repnet}\\[0.2em]
 \url{https://docs.google.com/document/d/1VK5gyEvkwuphR05Q0mGYK6_0hERxOEkci-yeKpYLqYA/edit?usp=sharing}
 \end{tabular}}
 \end{teaserfigure}
@@ -137,19 +135,17 @@ Define the Convolutional Neural Network classifier $f_{\mathrm{CNN}}:\mathbb{R}^
 $y_i=f_{\mathrm{CNN}}(x_i)$ for each ECG input $x_i\in\mathbb{R}^{5000 \times 12}$.
 Each block uses $Conv1D(k, s=1, f) \to ReLU \to AvgPool1D(s=2, pool=2)$.
 
-\begin{itemize}
-\item Block 1: $k=9, f=64$, output $2500 \times 64$
-\item Block 2: $k=9, f=80$, output $1250 \times 80$
-\item Block 3: $k=5, f=128$, output $625 \times 128$
-\item Block 4: $k=13, f=48$, output $312 \times 48$
-\item Block 5: $k=3, f=80$, output $156 \times 80$
-\item Block 6: $k=5, f=64$, output $78 \times 64$
-\item Block 7: $k=13, f=112$, output $39 \times 112$
-\item Block 8: $k=9, f=48$, output $19 \times 48$
-\item Block 9: $k=7, f=80$, output $9 \times 80$
-\item Block 10: $k=11, f=16$, output $4 \times 16$
-\item Block 11: $k=13, f=16$, output $2 \times 16$
-\end{itemize}
+Block 1: $k=9, f=64$, output $2500 \times 64$;
+Block 2: $k=9, f=80$, output $1250 \times 80$;
+Block 3: $k=5, f=128$, output $625 \times 128$;
+Block 4: $k=13, f=48$, output $312 \times 48$;
+Block 5: $k=3, f=80$, output $156 \times 80$;
+Block 6: $k=5, f=64$, output $78 \times 64$;
+Block 7: $k=13, f=112$, output $39 \times 112$;
+Block 8: $k=9, f=48$, output $19 \times 48$;
+Block 9: $k=7, f=80$, output $9 \times 80$;
+Block 10: $k=11, f=16$, output $4 \times 16$;
+Block 11: $k=13, f=16$, output $2 \times 16$.
 
 The classification head is \\
 $Flatten \to Dropout(0.7779) \to Dense(35) \to Dense(1)$.
@@ -199,7 +195,7 @@ Demo preparation & May 25--May 31 \\
 \end{table}
 
   \section{Resource Allocation and Requirements}
-GPU compute is more readily available through our personal gaming machines and thus we do not need to rely on cloud computing, which will perhaps be beneficial given data privacy regulations. We have an RTX 4070, RTX 3090 desktop GPU's and an RTX ADA 500 laptop GPU at our disposal. The desktop GPU's can be dedicated to running large batch jobs in paralellel for fine tuning of hyperparameters and validating different model architectures, whilst the laptop GPU is readily available to do with small-scale experimental configurations on-the-move.
+GPU compute is more readily available through our personal gaming machines and thus we do not need to rely on cloud computing, which will perhaps be beneficial given data privacy regulations. We have an RTX 4070, RTX 3090 desktop GPU's which can be dedicated to running large hyperparameter tuning jobs with optuna, validating different model architectures.
 
 The Nightingale dataset is publicly available and has been provided, however with the UC Davis Health dataset we have yet to encounter or experiment with it, we are uncertain of its size, format, except that it consists  of 1161 data points with 1000 normal cases and 161 preeclampsia cases. Once we are provided it we need to ensure all regulatory guidelines are followed through hard-coded assurances within our continuous integration pipelines such that data can never leave secure channels or permitted devices.
 
@@ -207,5 +203,5 @@ Division of labor will be as follows: Selena and Lawrencedel will work on the Cl
 
 
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{proposal/sources}
+\bibliography{proposal_references}
 \end{document}
