@@ -1,6 +1,9 @@
 
 \documentclass[sigconf,nonacm]{acmart}
 \usepackage{graphicx}
+\usepackage{rotating}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc}
 
 \settopmatter{printacmref=false, printfolios=false}
 \setcopyright{none}
@@ -8,7 +11,7 @@
 \pagestyle{plain}
 \begin{document}
 
-\title{Risk Estimating Preeclampsia Project Proposal}
+\title{RepNet Progress Report - April 14, 2026}
 
 \author{Ahmed Khan}
 \email{aekhan@ucdavis.edu}
@@ -37,171 +40,393 @@
 %%
 %% This command processes the author and affiliation and title
 %% information and builds the first part of the formatted document.
-\begin{teaserfigure}
-\centering
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{c}
-\url{https://github.com/AhmedKhan-GH/repnet}\\[0.2em]
-\url{https://docs.google.com/document/d/1VK5gyEvkwuphR05Q0mGYK6_0hERxOEkci-yeKpYLqYA/edit?usp=sharing}
-\end{tabular}}
-\end{teaserfigure}
 \maketitle
 
-\section{Motivation, Background, and Context}
-Preeclampsia is a hypertensive disorder in pregnant women that accounts for 2-8\% of pregnancy complications, over 50,000 maternal deaths, and over 500,000 fetal deaths worldwide annually \cite{nbk570611}. According to the World Health Organization, 95\% of deaths occur in low and middle-income countries, and in the United States the financial toll of managing preeclampsia is more than \$2 billion \cite{pmc12364110}. Earlier diagnosis and treatment, especially before the onset of symptoms and complications, can reduce the cost burden and loss of life currently caused by preeclampsia.
+\section{Introduction}
+Risk Estimation of Preeclampsia Network (RepNet) is our research in improving the classification of 12-Lead electrocardiogram (ECG) waveforms for estimation of preeclampsia. We aim to do this via a transformer based convolutional neural network (CNN) trained on a proprietary UC Davis Health (UCDH) dataset. We aim to augment dataset imbalance using a transformer based generative adversarial network (GAN). We will also explore the retraining of existing ECG Large Foundation Models (LFM) as well as benchmarking against their performance versus our specific architecture. We aim to bolster clinical interpretability through saliency mapping of the neural network's attention mechanism. And lastly we aim to train a random forrest (RF) classifier and visualize manually extracted ECG features from the RF classifier alongside the attention mapping and saliency of deep learning to augment clinical workflows by providing explainability to clinicians.
 
-  \section{Problem Definition}
-Current preeclampsia risk estimation relies on known risk factors, however these do not definitively guarantee development of preeclampsia. Treatment protocols initiate based on complications emerging after 20th week of pregnancy \cite{pmc12364110}. Blanket screening is impractical but the need for definitive evidence delays crucial treatment. Routinely collected data such as ECG waveforms also demand expert analysis, and onset and severity of conditions is often unclear thus still leading to significant morbidity and mortality \cite{pmc12364110}.
 
+\section{Review of the Literature}
+
+We performed a review of the literature by first querying ChatGPT, which performed broad internet searches over academic archives such as Pubmed, Google Scholar, etc. We queried it for ranking the best papers across specific fields we intend to study, such as the state of the art of machine learning (ML) models for preeclampsia or deep learning for the entire field of ECG classification. Papers were evaluated based on their bredth, rigor, and relevance to a novel research project. After this review of literature reviews, we intend to select the most relevant original studies each mention for our actual deep dive into model architecture and methods whilst doing development and validation, and such will be reported in Progress Report 2. See appendix A for the list of reviewed literature for Progress Report 1.
+
+\subsection{Preeclampsia ML / DL Literature Reviews}
+
+We sought a comprehensive review over the field machine learning and deep learning research into preeclampsia, to see what work had been done to solve this problem in the past. We selected Özcan et al. as it both a broad overview and review of specific papers and the trade offs of their models. Ozcan included 35 papers published from 2018 to 2023 [cite]. It serves as a good primer into the state of the art. We also selected a statistical meta-analysis by Liu et al that goes much deeper into comparison of model performance [cite].
+
+(table showing distribution of model types)
+
+None of the models presented in Özcan et al or Liu et al were trained to classify ECG waveforms using machine learning, they were all various methods of learning from other features such as electronic health record (EHR) data and risk factors [double cite]. To our knowledge there is only one relevant previous work, Butler et al which showcases a 1-D CNN they call ECG-AI [cite]. There is also an older study by Euliano et al which is on 3-Lead instead of 12-Lead ECG and they perform linear descriminant analysis (LDA), a classical ML approach [cite].
+
+By extension, the reviews do not showcase any Random Forest or Decision Trees to classify ECG Waveforms of preeclampsia, though many RF models exist using other features such as EHR data. We further confirm this by an extended-thinking ChatGPT query, asking it to return all ECG Waveform ML papers besides Butler et al and it comes up blank. This indicates that the field of both classical ML and modern DL on ECG waveforms of preeeclampsia is an untapped research field that is ripe for contribution.
+
+\subsection{ECG Classification ML / DL Lit. Reviews}
+
+In the general field of ECG Waveform classification, we selected the literature review by Boulif et al as a broad scope primer that covers both ML and DL methods, and then Prakash et al as a deep systematic review that covers much more research process and model architecture [ double cite ].
+
+Since we are focusing on Deep Learning such as CNN enhanced by attention mechanisms, we selected we selected Y. Ansari et al. for its deep systematic analysis of DL model architectures, and M. Ansari et al. for its comprehensive survey of transformers and LLMs specifically [ double cite ].
+
+\subsection{ECG Classification Large Foundation Models}
+
+Large Foundation Models hold promise for their training on millions of ECG waveforms, which far exceed any purpose-built dataset we can have access to. We selected ECG-FM since it is an "open" model, the authors giving free license as well as providing benchmarking resources [cite]. There is a larger model ECG-Founder but this appears to be a commercial-grade model rather than a research-grade one, and is perhaps beyond the scope of this project and hence we are electing not to use it [cite]
+
+\subsubsection{General Overview}
+Han et al. stands apart from the rest as a review of foundation models for electrocardiograms, moving beyond transformers, llms, into large trained models that are then fine tuned for specific applications
+\subsubsection{Leading ECG Large Foundation Models}
+We will experiment with Large Foundation Models, notably ECG-FM and ECG-Founder, and how they compare
+
+\begin{itemize}
+\item Li \href{https://github.com/PKUDigitalHealth/ECGFounder}{https://github.com/PKUDigitalHealth/ECGFounder}
+\end{itemize}
+
+\subsection{Specific Techniques}
+
+Lastly we review specific techniques, an introduction to the actual practice of preprocessing and data augmentation that enable models to perofmr.
+
+\subsubsection{ECG Features of Preeclampsia}
+
+A particular citation in Ozcan et al. pointed to an old paper that was an overview of ECG features of preeclampsia, and QT interval is noted as highly relevant for preeclampsia
+
+- Abodashy
+
+- Angeli
+
+\subsubsection{Preprocessing and Decision Trees on ECG Waveforms}
+Jia an overview of the data preprocessing techniques to be used for all our models, Satija provides methods for ECG signal quality assessment, and Park et al. decision tree on ecg waveform paper
+
+- Jia
+
+- Satija
+
+- Park et al.
+
+
+\subsection{Data Augmentation}
+overvew of ECG data augmentatioon by Rahman, and transformer GAN xia et al
+
+
+\subsection{Other Assigned Literature sans Butler et al.}
+We were provided literature in this capstone assignment that falls into two camps
+\subsubsection{Machine Learning for Preeclampsia}
+Xue
+Attia
+\subsubsection{Dimensionality Reduction in Leads}
+Joshi
+Butler
+\subsubsection{Decision Tree Classification}
+Furthermore we were provided a repository of relevant literature, and one that stood out was Musa et al as they performed Principal Component Analysis, a form of dimensionality reduction in linear algebra, on a Decision Tree Classifier for Preeclampsia. which we feel is relevant for our lead reduction and random forest model
+
+\section{Butler et al. ECG-AI Architecture and Weights}
+We have obtained the model dimensions and weights of the ECG-AI model mentioned in Butler et al. from GitHub, it can serve as a benchmark against our own model, both in the performance of their model weights, and the performance of their model architecture trained on our dataset.
+
+Furthermore, the architecture serves as a starting point where we can experiment with transfer learning in freezing in retraining different layers, append, pre-pend, replace, or shim layers to achieve new functions such as attention, all in the aim of even better performance.
+
+However, the datasets utilized by this model remain proprietary, though we have reached out to the associated institutions with a request to access the datasets, one of the emails has bounced and we are waiting for a response from the other.
+
+\subsection{Model Architecture}
+
+The Butler et al.\ ECG-AI model is a 1-D residual convolutional neural network that accepts 12-lead ECG signals of length 2250 samples. The architecture comprises six residual blocks organized into three stages of progressively increasing filter width (16, 32, 64), each followed by max-pooling and dropout for regularization. A final flatten and dense softmax layer produces a two-class output. Figure~\ref{fig:butler-arch} summarizes the architecture.
+
+% --- Figure 1: High-level ResBlock summary ---
 \begin{figure}[h]
-  \centering
-  \includegraphics[width=0.48\linewidth]{557737215_122141418656891576_230113301145304171_n}\hfill
-  \includegraphics[width=0.48\linewidth]{c851b6_fcc62bdd5da74d328afd9dd27e40b2f0-1}
-  \caption{ECG 12 Leads}
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    block/.style={draw, rounded corners, minimum height=0.55cm, minimum width=4.5cm,
+                  font=\scriptsize\sffamily, align=center, thick},
+    stage16/.style={block, fill=blue!15},
+    stage32/.style={block, fill=orange!20},
+    stage64/.style={block, fill=red!15},
+    io/.style={block, fill=green!15},
+    arrow/.style={-{Stealth[length=2pt]}, thick},
+    stagelabel/.style={font=\tiny\sffamily\bfseries, text=gray},
+]
+
+\node[io] (input) {Input: $2250\times12$};
+\node[stage16, below=of input] (rb1) {ResBlock $16\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage16, below=of rb1] (rb2) {ResBlock $16\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage32, below=0.6cm of rb2] (rb3) {ResBlock $32\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage32, below=of rb3] (rb4) {ResBlock $32\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage64, below=0.6cm of rb4] (rb5) {ResBlock $64\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage64, below=of rb5] (rb6) {ResBlock $64\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[io, below=0.6cm of rb6] (flat) {Flatten $\to$ Dense(2) $\to$ Softmax};
+
+\foreach \a/\b in {input/rb1, rb1/rb2, rb2/rb3, rb3/rb4, rb4/rb5, rb5/rb6, rb6/flat}{
+    \draw[arrow] (\a) -- (\b);
+}
+
+\begin{scope}[on background layer]
+    \node[fit=(rb1)(rb2), inner sep=5pt, draw=blue!40, fill=blue!5, rounded corners, dashed] (s1) {};
+    \node[stagelabel, right=3pt of s1] {Stage 1 -- 16 filters};
+    \node[fit=(rb3)(rb4), inner sep=5pt, draw=orange!50, fill=orange!5, rounded corners, dashed] (s2) {};
+    \node[stagelabel, right=3pt of s2] {Stage 2 -- 32 filters};
+    \node[fit=(rb5)(rb6), inner sep=5pt, draw=red!40, fill=red!5, rounded corners, dashed] (s3) {};
+    \node[stagelabel, right=3pt of s3] {Stage 3 -- 64 filters};
+\end{scope}
+
+\end{tikzpicture}
+\caption{High-level view of the Butler et al.\ ECG-AI architecture showing six residual blocks across three filter-width stages. See Appendix~B for the decomposed layer-by-layer model architecture.}
+\label{fig:butler-arch}
 \end{figure}
 
-The problem is a lack of scalable and cost effective risk estimation using available data such as 12-Lead ECG. Machine learning offers such in theory, but accuracy is essential to avoid false negatives. Models demand data and annotated data demands equivalent expert man-hours. Literature reviews indicate the majority of publications around 63\% utilize classic machine learning algorithms which are favoured for their efficiency and ease of implementation, whilst 23\% utilize deep learning, with the remaining percentage as overlap \cite{pmc12364110}. None mention the use of transformers for preeclampsia specifically.
-
+% --- Figure 2: ResBlock internal structure ---
 \begin{figure}[h]
-  \centering
-  \includegraphics[width=\columnwidth]{12911_2023_2233_Fig1_HTML}
-  \caption{ECG 12 Waveforms}
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    block/.style={draw, rounded corners=2pt, minimum height=0.55cm, minimum width=3.8cm,
+                  font=\scriptsize\sffamily, align=center, thick},
+    conv/.style={block, fill=blue!12},
+    bn/.style={block, fill=yellow!15},
+    act/.style={block, fill=green!12},
+    addn/.style={block, fill=purple!12},
+    arrow/.style={-{Stealth[length=2pt]}, thick},
+    skiparrow/.style={-{Stealth[length=2pt]}, thick, dashed, gray},
+]
+
+\node[block, fill=gray!10] (input) {Input};
+\node[conv, below=of input] (c1) {Conv1D $n$, k=3};
+\node[bn, below=of c1] (b1) {BatchNorm};
+\node[act, below=of b1] (a1) {LeakyReLU};
+\node[conv, below=of a1] (c2) {Conv1D $n$, k=3};
+\node[bn, below=of c2] (b2) {BatchNorm};
+\node[addn, below=of b2] (add) {Add};
+\node[act, below=of add] (a2) {LeakyReLU};
+\node[block, fill=gray!10, below=of a2] (output) {Output};
+
+% Sequential arrows
+\foreach \a/\b in {input/c1, c1/b1, b1/a1, a1/c2, c2/b2, b2/add, add/a2, a2/output}{
+    \draw[arrow] (\a) -- (\b);
+}
+
+% Skip connection on the right
+\draw[skiparrow] (input.east) -- ++(0.55,0) |- (add.east);
+
+% Label the skip
+\node[font=\tiny\sffamily, text=gray, right=0.6cm of a1] {skip};
+
+\end{tikzpicture}
+\caption{Internal structure of a ResBlock. The skip connection bypasses two Conv1D--BatchNorm--LeakyReLU pairs. A $1\times1$ projection is applied on the skip path at stage boundaries to match filter dimensions.}
+\label{fig:resblock}
 \end{figure}
 
-  \section{Solution Outline}
+\appendix
+\clearpage
+\onecolumn
+\section{Summary of Reviewed Literature}
 
-\subsection{Transformer Architecture}
-The transformer architecture has shown great promise in other areas of medical multivariate timeseries classification, using ECG waveforms to classify cardiovascular diseases with accuracies around 98-99\% \cite{zhao2023transformingecg}. There appears to be a lack of literature for application of transformers for preeclampsia risk estimation from ECG waveform data specifically, thus we aim to do so \cite{zhao2023transformingecg}.
-The nature of one-dimensional waveform obscures certain features regarding frequency distribution, we intend to apply time-frequency transforms such as Wavelet or Stockwell that show rich multidimensional representations of one-dimensional data for initial feature extraction by the neural network \cite{kim2025cnntransformer}. Transformers are often paired with 1D or 2D convolutional neural networks for better extraction of local features that can feed into attention maps for long term dependencies.
-\cite{zhao2023transformingecg}. Transformers + CNN's may be able to detect and discover features that are otherwise overlooked, leveraging the emergent deep learning properties transformers have shown in other fields.
-We will focus on explainability of predictions through visualization tools such as Grad-CAM, and dimensionality reduction through analysis such as PCA to identify which components and features are actually contributing to prediction, and where such is coming from \cite{zhao2023transformingecg}.
-\subsection{Feature Extraction}
-
-Feature extraction through signal processing methods is mature and well understood in the field of ECG waveforms, the benefit of which cannot be understated or dispensed with. There is institutional and professional understanding, as well as tools and literature towards the extraction and intrpretation of these features. New workflows must incorporate existing foundations.
-
-Classical machine learning methods such as Random Forest reflect these existing workflows, and they are highly interpretable and explainable. Explainability will be essential for integration into existing clinical workflows to augment expert analysis. A long term responsibility of machine learning in healthcare is to not abandon the human skill in or the reasoning around why a patient has been assigned a certain diagnosis.
-
-Alongside explainability, we will explore model compression of input dimensions and parameter size for deployment on compute constrained edge devices for greater accessibility in compute constrained and data regulated environments.
-
-
-  \section{Deliverables and Success Criteria}
-
-We will create a deep learning model with CNN + Transformer and other unsupervised methods to increase feature richness We will also create a classical machine learning model with Random Forest trained on featurizations from Neurokit as a baseline. We will benchmark our models on existing public datasets such as Nightingale and MIT-BIH, measuring classification report metrics including UROC, AUCPR, Accuracy, F1-Score, Precision, and Recall.
-
-The model will be accompanied by a purpose-built immediate mode C++ desktop utility named Caliper, built from scratch for real-time deep learning and inference visualization using ImGUI and ImPLOT. It will use Libtorch (Pytorch C++) and graphics visualization OpenGL, both cross-platform GPU accelerated with CUDA on Windows or MPS on MacOS. We will implement efficient data processing with Arrow for efficient retrieval and processing of data. Caliper will be used eventually for visualized diagnosis and feature inference as well as augmented annotation and correction.
-
-We will present a live demonstration of our models dubbed Precog and its associated tool Caliper on the floor of the UC Davis Senior Design Showcase in June 2026, with an interactive demo enabling interested faculty, investors, clinicians, or students to interact with the tools and get a sense for the diagnostic workflow. The project will be accompanied with a slide deck presentation and comprehensive technical report.
-
-  \section{Project Plan}
-
-\subsection{Phase 0}
-For onboarding into the research project, we will reproduce the results of Joshi et al.~\cite{joshi2025linkingecgecho}. Their workflow consists of:
-\subsubsection{Preprocessing}
-Let \(D\in\mathbb{R}^{3751\times 12\times 5000}\) be 3751 ECG waveforms (12 leads each), with labels \(y\in\{0,1\}^{3751}\) for binary preeclampsia classification (\(1=\) preeclampsia, \(0=\) non-preeclampsia).
-\[
-u:\mathcal{X}\to\mathcal{X}_{\mathrm{bal}},\quad
-h:\mathcal{X}_{\mathrm{bal}}\to\mathcal{X}_{\mathrm{hp}},\quad
-p:\mathcal{X}_{\mathrm{hp}}\to\mathcal{R},\quad
-d:\mathcal{R}\to\mathcal{S},
-\]
-where \(u\) is random majority undersampling, \(h\) is baseline wander high-pass filtering, \(p=\texttt{ecg\_peaks()}\), \(d=\texttt{ecg\_delineate()}\), and \(\mathcal{S}\) is the featurized heartbeat representation.
-\[
-\mathcal{S}=(d\circ p\circ h\circ u)(D).
-\]
-
-\subsubsection{Featurization}
-
-Let $\mathcal{O}$ be the original feature set with $|\mathcal{O}|=10$:
-\{P, PR Segment, PR Interval, PP Interval, RR Interval, QRS Duration, QT Duration, ST Duration, ST-T Duration, TP Interval\}.
-
-Let $\mathcal{E}$ be the extended feature set with $|\mathcal{E}|=6$:
-\{ST Elevation, ST Depression, Avg Amp Diff, Med Amp Diff, Max Amp Diff, Min Amp Diff\}.
-
-Let $\mathcal{L}$ be the lead set with $|\mathcal{L}|=12$:
-\{I, II, III, aVR, aVF, V1, V2, V3, V4, V5, V6\}.
-
-The total extracted feature index set from $\mathcal{S}$ is $\mathcal{F}=(\mathcal{O}\cup\mathcal{E})\times\mathcal{L}$.
-Therefore, $|\mathcal{F}|=(|\mathcal{O}|+|\mathcal{E}|)|\mathcal{L}|=(10+6)\cdot 12=192$.
-
-Define the extraction map $\phi:\mathcal{S}\to\mathbb{R}^{192}$.
-Each $s\in\mathcal{S}$ is mapped to a 192-dimensional feature vector indexed by $(f,\ell)\in\mathcal{F}$.
-
-\subsubsection{Random Forest}
-Define the Random Forest classifier $f_{\mathrm{RF}}:\mathbb{R}^{192}\to\{0,1\}$, with $y_i=f_{\mathrm{RF}}(\phi(s_i))$ for each $s_i\in\mathcal{S}$.
-The model is evaluated using either a default scikit-learn Random Forest or an Optuna-tuned Random Forest (20 trials, TPE sampler).
-
-\subsubsection{1-D Conv. Neural Net}
-Define the Convolutional Neural Network classifier $f_{\mathrm{CNN}}:\mathbb{R}^{5000 \times 12}\to\{0,1\}$, with
-$y_i=f_{\mathrm{CNN}}(x_i)$ for each ECG input $x_i\in\mathbb{R}^{5000 \times 12}$.
-Each block uses $Conv1D(k, s=1, f) \to ReLU \to AvgPool1D(s=2, pool=2)$.
-
-Block 1: $k=9, f=64$, output $2500 \times 64$;
-Block 2: $k=9, f=80$, output $1250 \times 80$;
-Block 3: $k=5, f=128$, output $625 \times 128$;
-Block 4: $k=13, f=48$, output $312 \times 48$;
-Block 5: $k=3, f=80$, output $156 \times 80$;
-Block 6: $k=5, f=64$, output $78 \times 64$;
-Block 7: $k=13, f=112$, output $39 \times 112$;
-Block 8: $k=9, f=48$, output $19 \times 48$;
-Block 9: $k=7, f=80$, output $9 \times 80$;
-Block 10: $k=11, f=16$, output $4 \times 16$;
-Block 11: $k=13, f=16$, output $2 \times 16$.
-
-The classification head is \\
-$Flatten \to Dropout(0.7779) \to Dense(35) \to Dense(1)$.
-
-\subsection{Phase 1}
-  Working in parallel, we will build two model architectures.
-
-  \subsubsection{Classical Machine Learning}
-On our classical machine learning workflow, we will use Neurokit and manual featurization to extract \{Pmax, Pmin, P-wave dispersion, QT Dispersion, Tp-e interval, Tp-e/QT, TP-e/QTc, ST-T abnormalities, Frontal QRS-T angle, QRS Axis, T axis\} and train a classical machine learning model such as Random Forest and performing statistical analysis such as $\chi^2$.
-
-\subsubsection{Modern Deep Learning}
-Using Pytorch, we will implement a novel Transformer + Convolutional Neural Network architecture improving on existing research, continuously exploring literature and integrating validated findings. Research and validation will first occur in Python for the sake of automated scripts and hyperparameter tuning. We may use techniques such as undersampling, oversampling, or SMOTE to correct for class imbalance issues if they arise.
-
-  \subsection{Phase 2}
-The most successful iteration of the model architecture in Python will be reprogrammed from scratch in C++ and integrated into Caliper, with the aim of modularity such that future models and training architectures can be hot-swapped thereafter. Software engineering best practices and UI/UX principles will be employed to make a production grade clinical workflow improving on existing products.
-
-  \subsection{Phase 3}
-We will perform dimensionality reduction through methods such as Principal Component Analysis, to identify the reduced set of ECG leads responsible for providing the relevant diagnostic signals. The rationale being effectiveness under equipment constraint as 12 Lead ECG's though standard are at the upper end of the cost spectrum, and we aim to make an accessible system that can utilize signals captured from substandard settings and situations to assist in regions where the morbidity rate from Preeclampsia is highest due to healthcare resource constraints.
-
-  \subsection{Phase 4}
-We will perform model compression techniques through methods such as pruning and quantization to test deployment of the compressed model on compute constrained edge devices. The aim being remote accessibility rather than restricted to powerful compute or cloud compute infrastructure, especially given data privacy regulations and that raw immediate data is restricted from leaving the clinical premises.
-
-  \section{Schedule with Key Milestones}
-
-\begin{table}[H]
-\caption{Proposed Project Timeline}
-\label{tab:timeline}
+\begin{table*}[h]
+\caption{Summary of Reviewed Literature}
+\label{tab:literature}
 \small
 \centering
-\begin{tabular}{p{0.70\columnwidth}p{0.24\columnwidth}}
+\begin{tabular}{p{0.28\textwidth}p{0.14\textwidth}p{0.48\textwidth}}
 \toprule
-\textbf{Proposed Activity} & \textbf{Proposed Period} \\
+\textbf{Paper} & \textbf{Type} & \textbf{Purpose} \\
 \midrule
-Reproduce results from Joshi et al.\ \cite{joshi2025linkingecgecho} & Mar 2--Mar 29 \\
-UCDH echo data preprocessing & Mar 30--Apr 5 \\
-Feature extraction and feature analysis on data (4/7) & Apr 6--Apr 12 \\
-Feature extraction and feature analysis on data (3/7) & Apr 13--Apr 19 \\
-KS testing featurization on RF model & Apr 20--Apr 26 \\
-Frequency-domain featurization & Apr 27--May 3 \\
-Test for reducing required electrodes for preeclampsia detection & May 4--May 10 \\
-Test model with Prof.\ Jeong's wearable device & May 11--May 17 \\
-Model comparison & May 18--May 24 \\
-Slides and report & May 25--May 31 \\
-Demo preparation & May 25--May 31 \\
+\multicolumn{3}{l}{\textit{Preeclampsia - General ML/DL Reviews}} \\
+Özcan et al. & Review & General overview of ML models in preeclampsia \\
+Liu et al. & Review & \\
+\midrule
+\multicolumn{3}{l}{\textit{ECG Classification - General ML/DL Reviews}} \\
+Boulif et al. & Review & Broad overview of ECG classification methods \\
+Prakash et al. & Review & Systematic review of ML and DL for ECG beat classification \\
+\midrule
+\multicolumn{3}{l}{\textit{ECG Classification - DL and Transformers}} \\
+Y. Ansari et al. & Review & Overview of DL architectures for ECG (2017-2023) \\
+M. Ansari et al. & Review & Survey of transformers and LLMs for ECG processing \\
+\midrule
+\multicolumn{3}{l}{\textit{ECG Classification - Large Foundation Models}} \\
+Han et al. & Review & Review of large foundation models for ECG \\
+McKeen et al. & Original & ECG-FM open source foundation model \\
+\midrule
+\multicolumn{3}{l}{\textit{Preeclampsia - ECG Feature Extraction Studies}} \\
+Abodashy et al. & Original & ECG features of preeclampsia \\
+Angeli et al. & Original & QT interval relevance for preeclampsia \\
+\midrule
+\multicolumn{3}{l}{\textit{ECG Classification - Preprocessing Reviews}} \\
+Jia et al. & Review & Overview of ECG preprocessing techniques \\
+Satija et al. & Review & ECG signal quality assessment \\
+\midrule
+\multicolumn{3}{l}{\textit{Preeclampsia - Decision Tree Approach}} \\
+Park et al. & Original & Decision tree methods on ECG waveforms \\
+Musa et al. & Original & PCA on decision tree classifier for preeclampsia \\
+\midrule
+\multicolumn{3}{l}{\textit{ECG Classification - Data Augmentation}} \\
+Rahman et al. & Review & Overview of ECG data augmentation \\
+Xia et al. & Original & Transformer GAN for data augmentation \\
+\midrule
+\multicolumn{3}{l}{\textit{Assigned Literature from Project Assignment}} \\
+Butler et al. & Original & 1-D CNN for preeclampsia ECG classification \\
+Xue et al. & Original & ML methods for preeclampsia prediction \\
+Attia et al. & Original & ML applications in ECG analysis \\
+Joshi et al. & Original & Lead reduction in ECG analysis \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
-  \section{Resource Allocation and Requirements}
-GPU compute is more readily available through our personal gaming machines and thus we do not need to rely on cloud computing, which will perhaps be beneficial given data privacy regulations. We have an RTX 4070, RTX 3090 desktop GPU's which can be dedicated to running large hyperparameter tuning jobs with optuna, validating different model architectures.
+\clearpage
+\section{Butler et al. Full Layer-by-Layer Architecture}
+\vspace{1em}
+\noindent\centering
+\resizebox{!}{0.75\textheight}{%
+\begin{tikzpicture}[
+    node distance=0.15cm,
+    layer/.style={draw, rounded corners=2pt, minimum height=0.38cm, minimum width=1.8cm,
+                  font=\tiny\sffamily, align=center, thick},
+    conv/.style={layer, fill=blue!12},
+    bn/.style={layer, fill=yellow!15},
+    act/.style={layer, fill=green!12},
+    add/.style={layer, fill=purple!12},
+    pool/.style={layer, fill=gray!15},
+    drop/.style={layer, fill=red!8},
+    head/.style={layer, fill=green!20},
+    io/.style={layer, fill=teal!15},
+    proj/.style={layer, fill=orange!15},
+    arrow/.style={-{Stealth[length=1.5pt]}, semithick},
+    skiparrow/.style={-{Stealth[length=1.5pt]}, semithick, dashed, gray},
+    stagelabel/.style={font=\tiny\sffamily\bfseries, text=gray},
+]
 
-The Nightingale dataset is publicly available and has been provided, however with the UC Davis Health dataset we have yet to encounter or experiment with it, we are uncertain of its size, format, except that it consists  of 1161 data points with 1000 normal cases and 161 preeclampsia cases. Once we are provided it we need to ensure all regulatory guidelines are followed through hard-coded assurances within our continuous integration pipelines such that data can never leave secure channels or permitted devices.
+% ---- Column 1: Blocks 1-2 (16 filters) ----
+\node[io] (in) {Input $2250\times12$};
 
-Division of labor will be as follows: Selena and Lawrencedel will work on the Classical Machine Learning model and associated featurizations whilst Ahmed will work on the Deep Learning Model with collaborative use of compute. After the completion of those phases the combination of featurization and inference into visualization will be collaborative. Then finally Lawrencedel and Selena will take charge of Principal Component Analysis on the input data and the feature embedding space, whilst Ahmed will take charge of model compression and validation on edge devices.
+% Block 1
+\node[conv, below=0.3cm of in] (c0) {Conv1D 16, k=3};
+\node[bn, below=of c0] (b0) {BatchNorm};
+\node[act, below=of b0] (a0) {LeakyReLU};
+\node[conv, below=of a0] (c1) {Conv1D 16, k=3};
+\node[bn, below=of c1] (b1) {BatchNorm};
+\node[act, below=of b1] (a1) {LeakyReLU};
+\node[conv, below=of a1] (c2) {Conv1D 16, k=3};
+\node[bn, below=of c2] (b2) {BatchNorm};
+\node[add, below=of b2] (add0) {Add};
+\node[act, below=of add0] (a2) {LeakyReLU};
+\node[pool, below=of a2] (mp0) {MaxPool1D};
+\node[drop, below=of mp0] (d0) {Dropout 0.1};
 
+% Block 2
+\node[conv, below=0.45cm of d0] (c3) {Conv1D 16, k=3};
+\node[bn, below=of c3] (b3) {BatchNorm};
+\node[act, below=of b3] (a3) {LeakyReLU};
+\node[conv, below=of a3] (c4) {Conv1D 16, k=3};
+\node[bn, below=of c4] (b4) {BatchNorm};
+\node[add, below=of b4] (add1) {Add};
+\node[act, below=of add1] (a4) {LeakyReLU};
+\node[pool, below=of a4] (mp1) {MaxPool1D};
+\node[drop, below=of mp1] (d1) {Dropout 0.1};
 
-\bibliographystyle{ACM-Reference-Format}
-\bibliography{proposal_references}
+% ---- Column 2: Blocks 3-4 (32 filters) ----
+\node[conv, right=2.5cm of in] (c5) {Conv1D 32, k=3};
+\node[bn, below=of c5] (b5) {BatchNorm};
+\node[act, below=of b5] (a5) {LeakyReLU};
+\node[conv, below=of a5] (c6) {Conv1D 32, k=3};
+\node[proj, below=of c6] (c7) {Conv1D 32, k=1};
+\node[bn, below=of c7] (b6) {BatchNorm};
+\node[add, below=of b6] (add2) {Add};
+\node[act, below=of add2] (a6) {LeakyReLU};
+\node[pool, below=of a6] (mp2) {MaxPool1D};
+\node[drop, below=of mp2] (d2) {Dropout 0.1};
+
+% Block 4
+\node[conv, below=0.45cm of d2] (c8) {Conv1D 32, k=3};
+\node[bn, below=of c8] (b7) {BatchNorm};
+\node[act, below=of b7] (a7) {LeakyReLU};
+\node[conv, below=of a7] (c9) {Conv1D 32, k=3};
+\node[bn, below=of c9] (b8) {BatchNorm};
+\node[add, below=of b8] (add3) {Add};
+\node[act, below=of add3] (a8) {LeakyReLU};
+\node[pool, below=of a8] (mp3) {MaxPool1D};
+\node[drop, below=of mp3] (d3) {Dropout 0.1};
+
+% ---- Column 3: Blocks 5-6 (64 filters) ----
+\node[conv, right=2.5cm of c5] (c10) {Conv1D 64, k=3};
+\node[bn, below=of c10] (b9) {BatchNorm};
+\node[act, below=of b9] (a9) {LeakyReLU};
+\node[conv, below=of a9] (c11) {Conv1D 64, k=3};
+\node[proj, below=of c11] (c12) {Conv1D 64, k=1};
+\node[bn, below=of c12] (b10) {BatchNorm};
+\node[add, below=of b10] (add4) {Add};
+\node[act, below=of add4] (a10) {LeakyReLU};
+\node[pool, below=of a10] (mp4) {MaxPool1D};
+\node[drop, below=of mp4] (d4) {Dropout 0.1};
+
+% Block 6
+\node[conv, below=0.45cm of d4] (c13) {Conv1D 64, k=3};
+\node[bn, below=of c13] (b11) {BatchNorm};
+\node[act, below=of b11] (a11) {LeakyReLU};
+\node[conv, below=of a11] (c14) {Conv1D 64, k=3};
+\node[bn, below=of c14] (b12) {BatchNorm};
+\node[add, below=of b12] (add5) {Add};
+\node[act, below=of add5] (a12) {LeakyReLU};
+\node[pool, below=of a12] (mp5) {MaxPool1D};
+\node[drop, below=of mp5] (d5) {Dropout 0.1};
+
+% Classification head — separate from stages
+\node[head, below=0.45cm of d5] (flat) {Flatten};
+\node[head, below=of flat] (dense) {Dense(2)};
+\node[head, below=of dense] (softmax) {Softmax};
+
+% ---- Sequential arrows within columns ----
+% Col 1
+\foreach \a/\b in {in/c0, c0/b0, b0/a0, a0/c1, c1/b1, b1/a1, a1/c2, c2/b2, b2/add0, add0/a2, a2/mp0, mp0/d0,
+                    d0/c3, c3/b3, b3/a3, a3/c4, c4/b4, b4/add1, add1/a4, a4/mp1, mp1/d1}{
+    \draw[arrow] (\a) -- (\b);
+}
+% Col 2
+\foreach \a/\b in {c5/b5, b5/a5, a5/c6, c6/c7, c7/b6, b6/add2, add2/a6, a6/mp2, mp2/d2,
+                    d2/c8, c8/b7, b7/a7, a7/c9, c9/b8, b8/add3, add3/a8, a8/mp3, mp3/d3}{
+    \draw[arrow] (\a) -- (\b);
+}
+% Col 3 + head
+\foreach \a/\b in {c10/b9, b9/a9, a9/c11, c11/c12, c12/b10, b10/add4, add4/a10, a10/mp4, mp4/d4,
+                    d4/c13, c13/b11, b11/a11, a11/c14, c14/b12, b12/add5, add5/a12, a12/mp5, mp5/d5,
+                    d5/flat, flat/dense, dense/softmax}{
+    \draw[arrow] (\a) -- (\b);
+}
+
+% Cross-column arrows — rectangular path between columns
+\coordinate (mid12) at ($(d1.east)!0.5!(c5.west)$);
+\coordinate (mid23) at ($(d3.east)!0.5!(c10.west)$);
+\draw[arrow] (d1.east) -- (mid12 |- d1.east) |- (c5.west);
+\draw[arrow] (d3.east) -- (mid23 |- d3.east) |- (c10.west);
+
+% Skip connections (dashed) — routed to the right of each column
+\draw[skiparrow] (a0.east) -- ++(0.35,0) |- (add0.east);
+\draw[skiparrow] (d0.east) -- ++(0.35,0) |- (add1.east);
+\draw[skiparrow] (c5.east) -- ++(0.35,0) |- (add2.east);
+\draw[skiparrow] (d2.east) -- ++(0.35,0) |- (add3.east);
+\draw[skiparrow] (c10.east) -- ++(0.35,0) |- (add4.east);
+\draw[skiparrow] (d4.east) -- ++(0.35,0) |- (add5.east);
+
+% Stage labels at top
+\begin{scope}[on background layer]
+    % Stage 1 — two res blocks
+    \node[fit=(c0)(d0), inner sep=4pt, draw=blue!40, fill=blue!5, rounded corners, dashed] (s1a) {};
+    \node[stagelabel, left=2pt of s1a] {Block 1};
+    \node[fit=(c3)(d1), inner sep=4pt, draw=blue!40, fill=blue!5, rounded corners, dashed] (s1b) {};
+    \node[stagelabel, left=2pt of s1b] {Block 2};
+    % Stage 2 — two res blocks
+    \node[fit=(c5)(d2), inner sep=4pt, draw=orange!50, fill=orange!5, rounded corners, dashed] (s2a) {};
+    \node[stagelabel, left=2pt of s2a] {Block 3};
+    \node[fit=(c8)(d3), inner sep=4pt, draw=orange!50, fill=orange!5, rounded corners, dashed] (s2b) {};
+    \node[stagelabel, left=2pt of s2b] {Block 4};
+    % Stage 3 — two res blocks
+    \node[fit=(c10)(d4), inner sep=4pt, draw=red!40, fill=red!5, rounded corners, dashed] (s3a) {};
+    \node[stagelabel, left=2pt of s3a] {Block 5};
+    \node[fit=(c13)(d5), inner sep=4pt, draw=red!40, fill=red!5, rounded corners, dashed] (s3b) {};
+    \node[stagelabel, left=2pt of s3b] {Block 6};
+    % Stage group labels — all at same vertical position
+    \node[stagelabel, above=3pt of s2a] (s2label) {Stage 2 -- 32 filters};
+    \node[stagelabel, above=3pt of s3a] {Stage 3 -- 64 filters};
+    \node[stagelabel] at (s1a.north |- s2label) {Stage 1 -- 16 filters};
+    \node[fit=(flat)(softmax), inner sep=5pt, draw=green!50, fill=green!3, rounded corners, dashed] (sh) {};
+    \node[stagelabel, right=3pt of sh] {Head};
+\end{scope}
+
+\end{tikzpicture}%
+}
+\captionof{figure}{Complete layer-by-layer architecture of the Butler et al.\ ECG-AI model, expanded from Figure~\ref{fig:butler-arch}. The network comprises six residual blocks across three stages of increasing filter width: Stage~1 (16 filters), Stage~2 (32 filters), and Stage~3 (64 filters). Each layer is shown individually --- Conv1D (blue), BatchNorm (yellow), LeakyReLU (green), Add (purple), MaxPool1D (gray), and Dropout (red). Dashed gray arrows indicate residual skip connections that bypass the convolutional layers within each block. Orange blocks denote $1\times1$ projection convolutions at Blocks~3 and~5, where the skip path requires dimensionality matching due to the increase in filter count. The classification head (Flatten, Dense, Softmax) follows after Stage~3.}
+\label{fig:butler-detail}
+
 \end{document}
