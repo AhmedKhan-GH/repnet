@@ -24,27 +24,46 @@ except Exception as e:
 zot = zotero.Zotero(group_id, 'group', api_key)
 
 # Fetch items (excluding attachments and notes)
-items = zot.top(limit=100)
+items = zot.everything(zot.top())
 
 # Filter to only show actual papers/books (not attachments/notes)
 papers = [item for item in items if item['data'].get('itemType') not in ['attachment', 'note']]
 
 print(f"\nFound {len(papers)} papers in group library (out of {len(items)} total items)")
 
-# Get BibTeX for all items
-print("\nGenerating BibTeX...")
+import sys
 from bibtexparser.bwriter import BibTexWriter
-from bibtexparser.bibdatabase import BibDatabase
 
-bibtex_db = zot.items(format='bibtex')
 writer = BibTexWriter()
-bibtex_str = writer.write(bibtex_db)
 
-# Save to file
-with open('references.bib', 'w', encoding='utf-8') as f:
-    f.write(bibtex_str)
+# If author name passed as argument, search and export BibTeX for that author
+if len(sys.argv) > 1:
+    search_name = sys.argv[1].lower()
+    print(f"\nSearching for author: {search_name}")
+    for item in papers:
+        data = item['data']
+        creators = data.get('creators', [])
+        authors_lower = [c.get('lastName', '').lower() for c in creators if 'lastName' in c]
+        if any(search_name in a for a in authors_lower):
+            title = data.get('title', 'No title')
+            print(f"\nFound: {title}")
+            db = zot.item(item['key'], format='bibtex')
+            print(writer.write(db))
+    sys.exit(0)
 
-print(f"✓ BibTeX saved to references.bib")
+# Export all BibTeX to project_references.bib (per-item to avoid commented entries)
+print("\nGenerating BibTeX (per-item export)...")
+all_bibtex = []
+for item in papers:
+    db = zot.item(item['key'], format='bibtex')
+    bib_str = writer.write(db).strip()
+    if bib_str and not bib_str.startswith('@comment'):
+        all_bibtex.append(bib_str)
+
+with open('project_references.bib', 'w', encoding='utf-8') as f:
+    f.write('\n\n'.join(all_bibtex) + '\n')
+
+print(f"BibTeX saved to project_references.bib ({len(all_bibtex)} entries)")
 
 print("\nPapers:")
 for i, item in enumerate(papers, 1):
