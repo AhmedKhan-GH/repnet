@@ -347,7 +347,7 @@ Development of the basic framework has been sucessful, with CUDA augmentation on
 
 For this research project specifically, we will have  ECG waveforms be displayed and show the translation of convolutional kernels and the attention map highlighting regions of interest for classification, and alongside that have the random forest classifier and its extraction of manual features be indicated so that there is explainability for the classification. We can showcase that a clinician can point to a heatmap and also state that a certain heartbeat feature has deviated from a healthy range.
 
-Though caliper can implement training, it is not intended for this project as our workflow needs to be universally deployable in Python, with libraries that are not available in C++. But for much more intensive and performant projects caliper could be utilized. We intend to use Caliper to demonstrate our model's features at our tabling in the Davis Senior Design Showcase in June 2026, providing attendees with an opportunity to interact with our research.
+Though caliper can implement training, it is not intended for this project as our workflow needs to be universally deployable in Python, with libraries that are not available in C++. But for much more intensive and performant projects caliper could be utilized. We intend to use Caliper to demonstrate our model's features at our tabling in the Davis Senior Design Showcase in June 2026, providing attendees with an opportunity to interact with our research. An example of what the Caliper interface could look like is shown in Appendix~\ref{fig:caliper-interface}.
 
 \section{Conclusion}
 We have completed a comprehensive review of the literature spanning preeclampsia ML, ECG classification, transformer architectures, foundation models, data augmentation, and model efficiency. We have identified that ECG waveform classification for preeclampsia is a largely untapped field with only one prior deep learning study by Butler et al. We have obtained and decomposed the Butler et al. ECG-AI model architecture which will serve as our baseline.
@@ -595,5 +595,14 @@ Attia et al.~\cite{attia_automated_2022} & Original & ML applications in ECG ana
 }
 \captionof{figure}{Complete layer-by-layer architecture of the Butler et al.\ ECG-AI model, expanded from Figure~\ref{fig:butler-arch}. The network comprises six residual blocks across three stages of increasing filter width: Stage~1 (16 filters), Stage~2 (32 filters), and Stage~3 (64 filters). Each layer is shown individually --- Conv1D (blue), BatchNorm (yellow), LeakyReLU (green), Add (purple), MaxPool1D (gray), and Dropout (red). Dashed gray arrows indicate residual skip connections that bypass the convolutional layers within each block. Orange blocks denote $1\times1$ projection convolutions at Blocks~3 and~5, where the skip path requires dimensionality matching due to the increase in filter count. The classification head (Flatten, Dense, Softmax) follows after Stage~3.}
 \label{fig:butler-detail}
+
+\clearpage
+\section{Caliper Visualization Interface}
+\begin{figure}[h]
+\centering
+\includegraphics[angle=-90,width=0.70\textwidth]{caliper_interface.png}
+\caption{An example vibe-coded interface showcasing the various waveform displays and options available in the Caliper visualization tool.}
+\label{fig:caliper-interface}
+\end{figure}
 
 \end{document}
