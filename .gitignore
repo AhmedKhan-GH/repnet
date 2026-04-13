@@ -9,3 +9,5 @@ out
 *.synctex.gz
 .latexmkrc
 .env
+
+data
