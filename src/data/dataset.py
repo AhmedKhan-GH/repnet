@@ -16,7 +16,7 @@ SD_LEAD_ORDER = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", 
 
 SD_LABEL_POS = "Preeclampsia or Other Hypertensive Disorders of Pregnancy"
 SD_LABEL_NEG = "Normal_All"
-SD_N_SAMPLES = 2500   # crop all recordings to 2500 samples (5 s @ 500 Hz)
+SD_N_SAMPLES = 2500   # crop all recordings to 2500 samples (10 s @ 250 Hz)
 
 
 
@@ -33,20 +33,15 @@ def _ecg_quality_mask(X: np.ndarray) -> np.ndarray:
 
 
 def load_seniordesign(
-    data_dir: str | Path = "data/seniordesign_upload_balanced",
+    data_dir: str | Path = "data/seniordesign_upload",
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Load the Senior Design balanced preeclampsia dataset.
+    """Load the full Senior Design preeclampsia dataset.
 
     Directory structure expected:
         data_dir/
-            metadata_balanced.csv   (columns include ECGTestID, PatLabel)
+            metadata.csv          (columns include ECGTestID, PatLabel)
             ekg_data/
-                {ECGTestID}.csv     (columns = lead names, rows = timepoints)
-
-    Each waveform CSV has lead columns in SD_LEAD_ORDER.
-    Recordings longer than SD_N_SAMPLES (2500) are cropped; shorter ones are skipped.
-    Quality filtering discards broken ECGs (NaN, flat lines, excessive zeros,
-    extreme amplitude outliers).
+                {ECGTestID}.csv   (columns = lead names, rows = timepoints)
 
     Returns:
         X: np.ndarray of shape (N, 12, 2500), dtype float32
@@ -55,7 +50,7 @@ def load_seniordesign(
     data_dir = Path(data_dir)
     ekg_dir = data_dir / "ekg_data"
 
-    meta = pd.read_csv(data_dir / "metadata_balanced.csv")
+    meta = pd.read_csv(data_dir / "metadata.csv")
     available = {
         int(f.stem) for f in ekg_dir.iterdir() if f.suffix == ".csv"
     }
@@ -85,16 +80,56 @@ def load_seniordesign(
     X = np.stack(X_list)               # (N, 12, 2500)
     y = np.array(y_list, dtype=np.int64)
 
-    # Quality filtering — discard broken ECGs
+    # Quality filtering — NaN/Inf check
     qmask = _ecg_quality_mask(X)
     X = X[qmask]
     y = y[qmask]
 
     logger.info(
-        "Loaded Senior Design: X=%s, y=%s (pos=%d, neg=%d, pos rate=%.1f%%)",
+        "Loaded: X=%s, y=%s (pos=%d, neg=%d, pos rate=%.1f%%)",
         X.shape, y.shape, (y == 1).sum(), (y == 0).sum(), 100 * y.mean(),
     )
     return X, y
+
+
+def majority_undersample(
+    X: np.ndarray,
+    y: np.ndarray,
+    ratio: float = 1.0,
+    seed: int = 42,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Downsample the majority class to achieve the target ratio.
+
+    ratio=1.0 means equal classes (1:1).
+    ratio=2.0 means 2 majority per 1 minority.
+
+    Applied per-fold on training data only — never on val/test.
+    """
+    rng = np.random.default_rng(seed)
+    n_pos = int((y == 1).sum())
+    n_neg = int((y == 0).sum())
+
+    if n_pos >= n_neg:
+        # Majority is positive — undersample positives
+        target_maj = int(n_neg * ratio)
+        maj_idx = np.where(y == 1)[0]
+        min_idx = np.where(y == 0)[0]
+    else:
+        # Majority is negative — undersample negatives
+        target_maj = int(n_pos * ratio)
+        maj_idx = np.where(y == 0)[0]
+        min_idx = np.where(y == 1)[0]
+
+    target_maj = min(target_maj, len(maj_idx))  # can't upsample
+    keep_maj = rng.choice(maj_idx, size=target_maj, replace=False)
+    keep = np.sort(np.concatenate([min_idx, keep_maj]))
+
+    logger.info(
+        "Undersampled: %d → %d (pos=%d, neg=%d)",
+        len(y), len(keep),
+        int((y[keep] == 1).sum()), int((y[keep] == 0).sum()),
+    )
+    return X[keep], y[keep]
 
 
 def generate_synthetic_ecg(
