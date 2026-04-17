@@ -124,7 +124,7 @@ def main():
     parser = argparse.ArgumentParser(description="Optuna: RepNet Hybrid lr+dropout search")
     parser.add_argument("--n-trials", type=int, default=20)
     parser.add_argument("--n-folds", type=int, default=5)
-    parser.add_argument("--data-dir", type=str, default="data/seniordesign_upload_balanced")
+    parser.add_argument("--data-dir", type=str, default="data/seniordesign_upload")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 

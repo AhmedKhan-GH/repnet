@@ -10,7 +10,7 @@ Evaluation protocol:
 
 Usage:
     python -m src.train_cv
-    python -m src.train_cv --data-dir "data/seniordesign_upload_balanced"
+    python -m src.train_cv --data-dir "data/seniordesign_upload"
     python -m src.train_cv --n-folds 5 --epochs 50
 """
 
@@ -187,7 +187,7 @@ def print_results(name: str, cv_aurocs: list[float],
 
 def main():
     parser = argparse.ArgumentParser(description="RepNet Baseline 5-fold CV evaluation")
-    parser.add_argument("--data-dir", default="data/seniordesign_upload_balanced")
+    parser.add_argument("--data-dir", default="data/seniordesign_upload")
     parser.add_argument("--n-folds", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=50)
     args = parser.parse_args()
