@@ -238,6 +238,53 @@ def main():
 
     # Print to console
     print(summary)
+
+    # Generate Optuna visualization plots
+    try:
+        from optuna.visualization import (
+            plot_contour,
+            plot_optimization_history,
+            plot_param_importances,
+            plot_slice,
+        )
+
+        plot_contour(study, params=["lr", "dropout"]).write_html(
+            str(run_dir / "contour_lr_dropout.html"))
+        plot_optimization_history(study).write_html(
+            str(run_dir / "optimization_history.html"))
+        plot_param_importances(study).write_html(
+            str(run_dir / "param_importances.html"))
+        plot_slice(study, params=["lr", "dropout"]).write_html(
+            str(run_dir / "slice_lr_dropout.html"))
+        logger.info("Saved plots to %s", run_dir)
+    except Exception as e:
+        logger.warning("Could not generate plots: %s", e)
+
+    # Save training curves for best retrained model
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        epochs_axis = list(range(1, len(model.history["train_loss"]) + 1))
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Train Loss", "Val AUROC"))
+        fig.add_trace(
+            go.Scatter(x=epochs_axis, y=model.history["train_loss"], name="Train Loss"),
+            row=1, col=1,
+        )
+        fig.add_trace(
+            go.Scatter(x=epochs_axis, y=model.history["val_auroc"], name="Val AUROC"),
+            row=1, col=2,
+        )
+        fig.update_layout(
+            title=f"Best model training curves (lr={study.best_params['lr']:.5f}, "
+                  f"dropout={study.best_params['dropout']:.3f})",
+            xaxis_title="Epoch", xaxis2_title="Epoch",
+        )
+        fig.write_html(str(run_dir / "training_curves.html"))
+        logger.info("Saved training curves to %s", run_dir / "training_curves.html")
+    except Exception as e:
+        logger.warning("Could not save training curves: %s", e)
+
     print(f"\nResults saved to: {run_dir}/")
 
 
