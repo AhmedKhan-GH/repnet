@@ -13,8 +13,6 @@ out
 /data
 
 # Training run artifacts
-*.html
 __pycache__/
 *.py[cod]
 .DS_Store
-optuna/

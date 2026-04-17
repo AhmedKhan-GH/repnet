@@ -1,0 +1,9 @@
+bibtexparser
+numpy
+optuna
+pandas
+python-dotenv
+pyzotero
+scikit-learn
+scipy
+torch

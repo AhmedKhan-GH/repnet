@@ -1,0 +1,55 @@
+============================================================
+OPTIMIZATION COMPLETE — Stage 1: lr + dropout
+============================================================
+Best trial: #12
+Best CV AUROC: 0.8018
+Best lr:      0.000876
+Best dropout: 0.0636
+
+============================================================
+HOLDOUT TEST
+============================================================
+  AUROC: 0.7873
+
+  Threshold = 0.50:
+              precision    recall  f1-score   support
+
+       No PE       0.79      0.61      0.69        36
+          PE       0.70      0.84      0.76        38
+
+    accuracy                           0.73        74
+   macro avg       0.74      0.73      0.72        74
+weighted avg       0.74      0.73      0.73        74
+
+  Threshold = 0.786 (Youden's J):
+              precision    recall  f1-score   support
+
+       No PE       0.75      0.75      0.75        36
+          PE       0.76      0.76      0.76        38
+
+    accuracy                           0.76        74
+   macro avg       0.76      0.76      0.76        74
+weighted avg       0.76      0.76      0.76        74
+
+
+All trials:
+  #  0 | lr=0.000433 dropout=0.3828 | AUROC=0.7432
+  #  1 | lr=0.001752 dropout=0.2595 | AUROC=0.7708
+  #  2 | lr=0.000184 dropout=0.1046 | AUROC=0.7818
+  #  3 | lr=0.000126 dropout=0.3532 | AUROC=0.7423
+  #  4 | lr=0.001050 dropout=0.2978 | AUROC=0.7393
+  #  5 | lr=0.000108 dropout=0.3895 | AUROC=0.7216
+  #  6 | lr=0.002596 dropout=0.1243 | AUROC=0.7726
+  #  7 | lr=0.000204 dropout=0.1142 | AUROC=0.7986
+  #  8 | lr=0.000329 dropout=0.2337 | AUROC=0.7805
+  #  9 | lr=0.000542 dropout=0.1519 | AUROC=0.7715
+  # 10 | lr=0.000225 dropout=0.0521 | AUROC=0.7871
+  # 11 | lr=0.000246 dropout=0.0519 | AUROC=0.7823
+  # 12 | lr=0.000876 dropout=0.0636 | AUROC=0.8018
+  # 13 | lr=0.000965 dropout=0.1824 | AUROC=0.7543
+  # 14 | lr=0.004063 dropout=0.0939 | AUROC=0.7503
+  # 15 | lr=0.000782 dropout=0.1881 | AUROC=0.7630
+  # 16 | lr=0.001565 dropout=0.0852 | AUROC=0.7823
+  # 17 | lr=0.000402 dropout=0.1566 | AUROC=0.7708
+  # 18 | lr=0.000548 dropout=0.1358 | AUROC=0.7651
+  # 19 | lr=0.001268 dropout=0.1921 | AUROC=0.7510

@@ -1,0 +1,34 @@
+{
+  "best_trial": 12,
+  "best_cv_auroc": 0.8018390804597703,
+  "best_params": {
+    "lr": 0.0008756917546352803,
+    "dropout": 0.06355381998641418
+  },
+  "fixed_params": {
+    "stage_filters": [
+      32,
+      64
+    ],
+    "wide_kernel": 7,
+    "narrow_kernel": 5,
+    "n_heads": 4,
+    "batch_size": 64,
+    "epochs": 50,
+    "loss_fn": "weighted"
+  },
+  "full_params": {
+    "stage_filters": [
+      32,
+      64
+    ],
+    "wide_kernel": 7,
+    "narrow_kernel": 5,
+    "n_heads": 4,
+    "batch_size": 64,
+    "epochs": 50,
+    "loss_fn": "weighted",
+    "lr": 0.0008756917546352803,
+    "dropout": 0.06355381998641418
+  }
+}
