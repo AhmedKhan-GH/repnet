@@ -1,4 +1,4 @@
-"""Optuna hyperparameter optimization for RepNet Hybrid.
+"""Optuna hyperparameter optimization for RepNet Baseline.
 
 Stage 1: Learning rate + dropout search.
 All other params fixed at EDA-informed defaults.
@@ -9,7 +9,7 @@ Evaluation:
   - Concatenative augmentation on train folds only
   - Each trial reports mean AUROC across folds
 
-Outputs (saved to optuna/YYYY-MM-DD_HH-MM-SS/):
+Outputs (saved to optuna_baseline/YYYY-MM-DD_HH-MM-SS/):
   - study.db          — Optuna SQLite study (resume-able)
   - results.log       — full log of all trials
   - best_model.pt     — best model weights
@@ -17,8 +17,8 @@ Outputs (saved to optuna/YYYY-MM-DD_HH-MM-SS/):
   - summary.txt       — final report
 
 Usage:
-    python -m src.optimize --n-trials 20
-    python -m src.optimize --n-trials 30 --n-folds 5
+    python -m src.optimize_baseline --n-trials 20
+    python -m src.optimize_baseline --n-trials 30 --n-folds 5
 """
 
 import argparse
@@ -34,7 +34,7 @@ from optuna.samplers import TPESampler
 from sklearn.metrics import classification_report, roc_auc_score, roc_curve
 
 from src.data.dataset import kfold_cv_indices, load_seniordesign, split_holdout
-from src.models.repnet_hybrid import RepNetHybridModel
+from src.models.repnet_baseline import RepNetBaselineModel
 from src.preprocessing.filters import BaselineWanderFilter, NotchFilter
 from src.preprocessing.normalization import ZScoreNormalization
 from src.preprocessing.augmentation import GaussianNoise, AmplitudeScaling, RandomTimeShift
@@ -74,12 +74,11 @@ def augment_train(X: np.ndarray, y: np.ndarray,
     return X_out[idx], y_out[idx]
 
 
-# Fixed architecture params (EDA-informed)
+# Fixed architecture params (EDA-informed, same as Hybrid for fair comparison)
 FIXED_PARAMS = dict(
     stage_filters=(32, 64),
     wide_kernel=7,
     narrow_kernel=5,
-    n_heads=4,
     batch_size=64,
     epochs=50,
     loss_fn="weighted",
@@ -92,7 +91,7 @@ def objective(
     y_dev: np.ndarray,
     folds: list[tuple[np.ndarray, np.ndarray]],
 ) -> float:
-    # Stage 1: only search lr + dropout
+    # Stage 1: only search lr + dropout (same search space as Hybrid)
     lr = trial.suggest_float("lr", 1e-4, 5e-3, log=True)
     dropout = trial.suggest_float("dropout", 0.05, 0.4)
 
@@ -105,7 +104,7 @@ def objective(
 
         X_tr, y_tr = augment_train(X_tr, y_tr, seed=SEED + fold_idx)
 
-        model = RepNetHybridModel(**params)
+        model = RepNetBaselineModel(**params)
         model.fit(X_tr, y_tr, X_val, y_val)
         auroc = model.score(X_val, y_val)
         fold_aurocs.append(auroc)
@@ -121,15 +120,15 @@ def objective(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Optuna: RepNet Hybrid lr+dropout search")
+    parser = argparse.ArgumentParser(description="Optuna: RepNet Baseline lr+dropout search")
     parser.add_argument("--n-trials", type=int, default=20)
     parser.add_argument("--n-folds", type=int, default=5)
-    parser.add_argument("--data-dir", type=str, default="data/seniordesign_upload")
+    parser.add_argument("--data-dir", type=str, default="data/seniordesign_upload_balanced")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     # Create dated output directory
-    run_dir = Path("optuna") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_dir = Path("optuna_baseline") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir.mkdir(parents=True, exist_ok=True)
 
     # Set up logging to both console and file
@@ -158,7 +157,7 @@ def main():
     # Run search with SQLite storage for resume-ability
     storage = f"sqlite:///{run_dir / 'study.db'}"
     study = optuna.create_study(
-        study_name="hybrid_lr_dropout",
+        study_name="baseline_lr_dropout",
         direction="maximize",
         sampler=TPESampler(seed=args.seed),
         storage=storage,
@@ -190,7 +189,7 @@ def main():
     )
     X_tr, y_tr = augment_train(X_tr, y_tr, seed=args.seed)
 
-    model = RepNetHybridModel(**best_params_full)
+    model = RepNetBaselineModel(**best_params_full)
     model.fit(X_tr, y_tr, X_es, y_es)
 
     # Save model weights
@@ -206,7 +205,7 @@ def main():
     # Build summary
     lines = []
     lines.append(f"{'='*60}")
-    lines.append("OPTIMIZATION COMPLETE — Stage 1: lr + dropout")
+    lines.append("OPTIMIZATION COMPLETE — RepNet Baseline: lr + dropout")
     lines.append(f"{'='*60}")
     lines.append(f"Best trial: #{study.best_trial.number}")
     lines.append(f"Best CV AUROC: {study.best_value:.4f}")
@@ -244,18 +243,21 @@ def main():
         from optuna.visualization import (
             plot_contour,
             plot_optimization_history,
+            plot_parallel_coordinate,
             plot_param_importances,
             plot_slice,
         )
 
         plot_contour(study, params=["lr", "dropout"]).write_html(
-            str(run_dir / "contour_lr_dropout.html"))
+            str(run_dir / "contour_plot.html"))
         plot_optimization_history(study).write_html(
             str(run_dir / "optimization_history.html"))
+        plot_parallel_coordinate(study, params=["lr", "dropout"]).write_html(
+            str(run_dir / "parallel_coordinate.html"))
         plot_param_importances(study).write_html(
             str(run_dir / "param_importances.html"))
         plot_slice(study, params=["lr", "dropout"]).write_html(
-            str(run_dir / "slice_lr_dropout.html"))
+            str(run_dir / "slice_plot.html"))
         logger.info("Saved plots to %s", run_dir)
     except Exception as e:
         logger.warning("Could not generate plots: %s", e)
@@ -282,6 +284,15 @@ def main():
         )
         fig.write_html(str(run_dir / "training_curves.html"))
         logger.info("Saved training curves to %s", run_dir / "training_curves.html")
+
+        # Save raw training history as JSON
+        with open(run_dir / "training_history.json", "w") as f:
+            json.dump({
+                "epochs": epochs_axis,
+                "train_loss": model.history["train_loss"],
+                "val_auroc": model.history["val_auroc"],
+            }, f, indent=2)
+        logger.info("Saved training history to %s", run_dir / "training_history.json")
     except Exception as e:
         logger.warning("Could not save training curves: %s", e)
 
