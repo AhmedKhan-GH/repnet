@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -14,6 +16,8 @@ class PreprocessingStep(ABC):
 
     # Override to True in steps that change sample count (undersampling, SMOTE)
     is_resampling = False
+    # Override to True in steps that should only run on training data (augmentation)
+    is_augmentation = False
 
     def __init__(self):
         self.enabled = True
@@ -65,11 +69,19 @@ class PreprocessingPipeline:
             step.suggest_params(trial)
 
     def transform(self, X: np.ndarray, y: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray | None]:
-        """Apply signal transforms only (filters, normalization). Skips resampling."""
+        """Apply signal transforms only (filters, normalization). Skips resampling and augmentation."""
         result = X.copy()
         for step in self.steps:
-            if step.enabled and not step.is_resampling:
+            if step.enabled and not step.is_resampling and not step.is_augmentation:
                 result, _ = step.transform(result)
+        return result, y
+
+    def augment(self, X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Apply augmentation steps only. Call per-fold on train data after resampling."""
+        result = X.copy()
+        for step in self.steps:
+            if step.enabled and step.is_augmentation:
+                result, y = step.transform(result, y)
         return result, y
 
     def resample(self, X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

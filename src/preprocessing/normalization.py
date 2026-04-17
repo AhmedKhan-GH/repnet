@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import optuna
 
@@ -20,11 +22,10 @@ class ZScoreNormalization(PreprocessingStep):
         return "zscore"
 
     def suggest_params(self, trial: optuna.Trial) -> None:
-        super().suggest_params(trial)
-        if self.enabled:
-            self.per_lead = trial.suggest_categorical(
-                f"prep_{self.name}_per_lead", [True, False]
-            )
+        # Z-score normalization is always enabled — no on/off toggle
+        self.per_lead = trial.suggest_categorical(
+            f"prep_{self.name}_per_lead", [True, False]
+        )
 
     def transform(self, X: np.ndarray, y: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray | None]:
         if self.per_lead:
