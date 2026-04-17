@@ -1,19 +1,18 @@
-"""Simple 4-block 1D Residual CNN — project baseline for comparison with ECG-AI.
+"""Per-lead 1D Residual CNN — project baseline for comparison with RepNet Hybrid.
 
-Architecture (channels-first: batch, channels, time):
+Architecture (per-lead convolutions with simple fusion):
 
-  Block 1 (12 → 32, k=7): Conv→BN→ReLU→Conv→BN, proj skip, Add→ReLU→MaxPool(2)→Dropout
-  Block 2 (32 → 32, k=7): Conv→BN→ReLU→Conv→BN, identity skip, Add→ReLU→MaxPool(2)→Dropout
-  Block 3 (32 → 64, k=5): Conv→BN→ReLU→Conv→BN, proj skip, Add→ReLU→MaxPool(2)→Dropout
-  Block 4 (64 → 64, k=5): Conv→BN→ReLU→Conv→BN, identity skip, Add→ReLU→MaxPool(2)→Dropout
+  Per-lead processing (12 independent streams):
+    Block 1 (1 → F1, k=7): Conv→BN→ReLU→Conv→BN, proj skip, Add→ReLU→MaxPool(2)→Dropout
+    Block 2 (F1 → F2, k=5): Conv→BN→ReLU→Conv→BN, proj skip, Add→ReLU→MaxPool(2)→Dropout
 
-  GlobalAveragePool → Dropout → Linear(n_classes)
+  Fusion: Concatenate 12 leads → Conv1D(12*F2→F2, k=1) → GAP → Dropout → Linear(2)
 
 Design choices motivated by EDA:
-  - Wider kernels (7, 5) capture low-frequency (2 Hz) discriminative content found in PSD analysis
-  - Global average pooling instead of flatten — better generalisation on small dataset (369 samples)
-  - 4 blocks vs ECG-AI's 6 — lighter model for direct comparison
-  - Standard ReLU (not LeakyReLU) to keep it architecturally distinct from ECG-AI
+  - Per-lead convolutions preserve lead identity (Step 11: Frobenius norm 1.026 → 1D conv per lead sufficient)
+  - Wider kernels (7, 5) capture low-frequency (1 Hz) discriminative content (Step 8: PSD peak)
+  - Simple concatenation fusion (no attention) — baseline for comparison with Hybrid's attention mechanism
+  - Global average pooling — better generalisation on small dataset (369 samples)
 """
 
 import logging
@@ -46,11 +45,11 @@ class FocalLoss(nn.Module):
 logger = logging.getLogger(__name__)
 
 
-class ResBlock1D(nn.Module):
-    """Standard 2-conv residual block for 1D signals.
+class PerLeadConvBlock(nn.Module):
+    """Apply the same Conv1D block independently to each of 12 leads.
 
-    Uses a 1x1 projection skip when in_channels != out_channels.
-    No stride — downsampling is handled by the following MaxPool.
+    Input:  (batch, n_leads, C_in, T)
+    Output: (batch, n_leads, C_out, T//2)
     """
 
     def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 7,
@@ -74,19 +73,25 @@ class ResBlock1D(nn.Module):
             self.skip = nn.Identity()
 
     def forward(self, x):
-        residual = self.skip(x)
-        x = self.act(self.bn1(self.conv1(x)))
-        x = self.bn2(self.conv2(x))
-        x = self.act(x + residual)
-        x = self.dropout(self.pool(x))
-        return x
+        # x: (batch, n_leads, C, T)
+        B, L, C, T = x.shape
+        # Merge batch and leads for efficient conv
+        x_flat = x.reshape(B * L, C, T)
+        residual = self.skip(x_flat)
+        out = self.act(self.bn1(self.conv1(x_flat)))
+        out = self.bn2(self.conv2(out))
+        out = self.act(out + residual)
+        out = self.dropout(self.pool(out))
+        # Unflatten
+        _, C_out, T_out = out.shape
+        return out.reshape(B, L, C_out, T_out)
 
 
 class RepNet(nn.Module):
-    """Configurable 1D ResNet baseline with global average pooling head.
+    """Per-lead CNN baseline with simple concatenation fusion.
 
-    n_blocks=3: 12→32(k=7), 32→64(k=5), 64→64(k=5)  — ~72K params
-    n_blocks=4: 12→32(k=7), 32→32(k=7), 32→64(k=5), 64→64(k=5)  — ~100K params
+    Preserves lead identity throughout — each lead processed independently,
+    then fused via concatenation (no attention, unlike RepNetHybrid).
     """
 
     def __init__(
@@ -97,32 +102,39 @@ class RepNet(nn.Module):
         narrow_kernel: int = 5,
         dropout: float = 0.1,
         n_classes: int = 2,
-        n_blocks: int = 4,
     ):
         super().__init__()
         f1, f2 = stage_filters
-        if n_blocks == 3:
-            # 3-block: one wide, then two narrow
-            blocks = [
-                ResBlock1D(n_leads, f1, wide_kernel, dropout),
-                ResBlock1D(f1, f2, narrow_kernel, dropout),
-                ResBlock1D(f2, f2, narrow_kernel, dropout),
-            ]
-        else:
-            # 4-block: two wide, then two narrow
-            blocks = [
-                ResBlock1D(n_leads, f1, wide_kernel, dropout),
-                ResBlock1D(f1, f1, wide_kernel, dropout),
-                ResBlock1D(f1, f2, narrow_kernel, dropout),
-                ResBlock1D(f2, f2, narrow_kernel, dropout),
-            ]
-        self.blocks = nn.Sequential(*blocks)
+
+        # Per-lead conv stages
+        self.conv1 = PerLeadConvBlock(1, f1, wide_kernel, dropout)
+        self.conv2 = PerLeadConvBlock(f1, f2, narrow_kernel, dropout)
+
+        # Fusion: concatenate leads → pointwise conv → GAP
+        self.fuse = nn.Sequential(
+            nn.Conv1d(n_leads * f2, f2, kernel_size=1),
+            nn.BatchNorm1d(f2),
+            nn.ReLU(inplace=True),
+        )
         self.gap = nn.AdaptiveAvgPool1d(1)
         self.head_drop = nn.Dropout(dropout)
         self.fc = nn.Linear(f2, n_classes)
 
     def forward(self, x):
-        x = self.blocks(x)
+        # x: (batch, 12, 2500) — channels-first ECG
+        B, L, T = x.shape
+
+        # Reshape to (batch, n_leads, 1, T) — each lead is a single-channel signal
+        x = x.unsqueeze(2)  # (B, 12, 1, T)
+
+        # Per-lead convolutions
+        x = self.conv1(x)    # (B, 12, F1, T//2)
+        x = self.conv2(x)    # (B, 12, F2, T//4)
+
+        # Fuse: reshape (B, 12, F2, T') → (B, 12*F2, T') → conv → GAP
+        B, L, F, T_out = x.shape
+        x = x.reshape(B, L * F, T_out)
+        x = self.fuse(x)
         x = self.gap(x).squeeze(-1)
         return self.fc(self.head_drop(x))
 
@@ -132,12 +144,11 @@ class RepNetBaselineModel(BaseModel):
     """Optuna-compatible wrapper around the RepNet 1D ResNet baseline."""
 
     def __init__(self, stage_filters=(32, 64), wide_kernel=7, narrow_kernel=5,
-                 dropout=0.1, n_blocks=4, lr=1e-3, batch_size=32, epochs=50,
+                 dropout=0.1, lr=1e-3, batch_size=32, epochs=50,
                  loss_fn="weighted", focal_gamma=2.0, focal_alpha=0.25,
                  **kwargs):
         self.net_params = dict(
             stage_filters=stage_filters,
-            n_blocks=n_blocks,
             wide_kernel=wide_kernel,
             narrow_kernel=narrow_kernel,
             dropout=dropout,
@@ -165,7 +176,6 @@ class RepNetBaselineModel(BaseModel):
         )
         params = {
             "stage_filters": (f1, f2),
-            "n_blocks": trial.suggest_categorical("repnet_n_blocks", [3, 4]),
             "wide_kernel": trial.suggest_categorical("repnet_wide_kernel", [5, 7, 9]),
             "narrow_kernel": trial.suggest_categorical("repnet_narrow_kernel", [3, 5]),
             "dropout": trial.suggest_float("repnet_dropout", 0.05, 0.4),

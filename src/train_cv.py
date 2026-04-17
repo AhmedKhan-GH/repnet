@@ -21,6 +21,7 @@ import numpy as np
 from sklearn.metrics import classification_report, roc_auc_score
 
 from src.data.dataset import kfold_cv_indices, load_seniordesign, split_holdout
+from src.models.repnet_baseline import RepNetBaselineModel
 from src.models.repnet_hybrid import RepNetHybridModel
 from src.preprocessing.filters import NotchFilter, BaselineWanderFilter
 from src.preprocessing.normalization import ZScoreNormalization
@@ -32,6 +33,16 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Fixed hyperparameters (EDA-informed choices)
 # ---------------------------------------------------------------------------
+REPNET_BASELINE_PARAMS = dict(
+    stage_filters=(32, 64),
+    wide_kernel=7,
+    narrow_kernel=5,
+    dropout=0.15,
+    lr=5e-4,
+    batch_size=64,
+    loss_fn="weighted",
+)
+
 REPNET_HYBRID_PARAMS = dict(
     stage_filters=(32, 64),
     wide_kernel=7,
@@ -214,6 +225,7 @@ def main():
     folds = kfold_cv_indices(y_dev, n_folds=args.n_folds, seed=SEED)
 
     models = [
+        ("RepNet Baseline",   RepNetBaselineModel,    REPNET_BASELINE_PARAMS),
         ("RepNet Hybrid",     RepNetHybridModel,      REPNET_HYBRID_PARAMS),
     ]
 
