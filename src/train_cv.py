@@ -21,11 +21,7 @@ import numpy as np
 from sklearn.metrics import classification_report, roc_auc_score
 
 from src.data.dataset import kfold_cv_indices, load_seniordesign, split_holdout
-from src.models.repnet_baseline import RepNetBaselineModel
-from src.models.repnet_attention import RepNetAttentionModel
 from src.models.repnet_hybrid import RepNetHybridModel
-from src.models.repnet_efficient import RepNetEfficientModel
-from src.models.repnet_transformer import RepNetTransformerModel
 from src.preprocessing.filters import NotchFilter, BaselineWanderFilter
 from src.preprocessing.normalization import ZScoreNormalization
 from src.preprocessing.augmentation import GaussianNoise, AmplitudeScaling, RandomTimeShift
@@ -36,58 +32,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Fixed hyperparameters (EDA-informed choices)
 # ---------------------------------------------------------------------------
-REPNET_PARAMS = dict(
-    stage_filters=(32, 64),
-    n_blocks=3,              # lighter model for 369 samples
-    wide_kernel=7,           # EDA: discriminative content at 2 Hz → wide context
-    narrow_kernel=5,
-    dropout=0.15,
-    lr=5e-4,
-    batch_size=64,
-    loss_fn="weighted",
-)
-
-REPNET_ATTN_PARAMS = dict(
-    stage_filters=(32, 64),
-    n_blocks=3,
-    wide_kernel=7,
-    narrow_kernel=5,
-    dropout=0.15,
-    se_reduction=4,          # SE bottleneck ratio (Hu et al. default)
-    lr=5e-4,
-    batch_size=64,
-    loss_fn="weighted",
-)
-
 REPNET_HYBRID_PARAMS = dict(
     stage_filters=(32, 64),
     wide_kernel=7,
     narrow_kernel=5,
     dropout=0.15,
     n_heads=4,               # cross-lead attention heads
-    lr=5e-4,
-    batch_size=64,
-    loss_fn="weighted",
-)
-
-REPNET_EFFICIENT_PARAMS = dict(
-    stage_filters=(32, 64),
-    n_blocks=3,
-    wide_kernel=7,
-    narrow_kernel=5,
-    dropout=0.15,
-    lr=5e-4,
-    batch_size=64,
-    loss_fn="weighted",
-)
-
-REPNET_TRANSFORMER_PARAMS = dict(
-    embed_dim=64,
-    encoder_kernel=7,
-    n_patches=10,            # 12 leads × 10 patches = 120 tokens
-    n_heads=4,
-    n_layers=2,
-    dropout=0.15,
     lr=5e-4,
     batch_size=64,
     loss_fn="weighted",
@@ -156,7 +106,7 @@ def augment_train(X: np.ndarray, y: np.ndarray,
 # ---------------------------------------------------------------------------
 
 def run_cv(params: dict, X_dev: np.ndarray, y_dev: np.ndarray,
-           folds, epochs: int, model_cls=RepNetBaselineModel) -> list[float]:
+           folds, epochs: int, model_cls=RepNetHybridModel) -> list[float]:
     """Run k-fold CV, return per-fold validation AUROCs."""
     aurocs = []
     for fold_idx, (train_idx, val_idx) in enumerate(folds):
@@ -181,7 +131,7 @@ def run_cv(params: dict, X_dev: np.ndarray, y_dev: np.ndarray,
 
 
 def train_final(params: dict, X_dev: np.ndarray, y_dev: np.ndarray,
-                epochs: int, seed: int = SEED, model_cls=RepNetBaselineModel):
+                epochs: int, seed: int = SEED, model_cls=RepNetHybridModel):
     """Retrain on full dev set for final test evaluation.
 
     Stratified 90/10 split BEFORE augmentation to avoid leakage.
@@ -264,11 +214,7 @@ def main():
     folds = kfold_cv_indices(y_dev, n_folds=args.n_folds, seed=SEED)
 
     models = [
-        ("RepNet Baseline",   RepNetBaselineModel,   REPNET_PARAMS),
-        ("RepNet Attention",  RepNetAttentionModel,   REPNET_ATTN_PARAMS),
         ("RepNet Hybrid",     RepNetHybridModel,      REPNET_HYBRID_PARAMS),
-        ("RepNet Efficient",  RepNetEfficientModel,   REPNET_EFFICIENT_PARAMS),
-        ("RepNet Transformer", RepNetTransformerModel, REPNET_TRANSFORMER_PARAMS),
     ]
 
     results = {}

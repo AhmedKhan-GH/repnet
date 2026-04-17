@@ -28,7 +28,23 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from .base import BaseModel, register_model
-from .repnet_baseline import FocalLoss
+
+
+class FocalLoss(nn.Module):
+    """Focal Loss for class-imbalanced binary classification.
+
+    Lin et al. (2017): FL(p_t) = -alpha_t * (1 - p_t)^gamma * log(p_t)
+    """
+
+    def __init__(self, alpha: float = 0.25, gamma: float = 2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        ce = nn.functional.cross_entropy(logits, targets, reduction="none")
+        pt = torch.exp(-ce)
+        return (self.alpha * (1 - pt) ** self.gamma * ce).mean()
 
 logger = logging.getLogger(__name__)
 
@@ -255,9 +271,17 @@ class RepNetHybridModel(BaseModel):
         )
         criterion = self._build_criterion(y_train)
 
-        Xt = torch.tensor(X_train, dtype=torch.float32).to(self.device)
-        yt = torch.tensor(y_train, dtype=torch.long).to(self.device)
-        train_dl = DataLoader(TensorDataset(Xt, yt), batch_size=self.batch_size, shuffle=True)
+        # Keep data on CPU, use pinned memory for faster H2D transfer
+        Xt = torch.tensor(X_train, dtype=torch.float32)
+        yt = torch.tensor(y_train, dtype=torch.long)
+        train_dl = DataLoader(
+            TensorDataset(Xt, yt),
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=2,
+            pin_memory=torch.cuda.is_available(),
+            persistent_workers=True if torch.cuda.is_available() else False,
+        )
         Xv = torch.tensor(X_val, dtype=torch.float32).to(self.device)
 
         self.history = {"train_loss": [], "val_auroc": []}
@@ -270,6 +294,7 @@ class RepNetHybridModel(BaseModel):
             self.model.train()
             epoch_loss, n_batches = 0.0, 0
             for xb, yb in train_dl:
+                xb, yb = xb.to(self.device, non_blocking=True), yb.to(self.device, non_blocking=True)
                 optimizer.zero_grad(set_to_none=True)
                 loss = criterion(self.model(xb), yb)
                 loss.backward()
@@ -312,9 +337,15 @@ class RepNetHybridModel(BaseModel):
     @torch.no_grad()
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         self.model.eval()
-        Xt = torch.tensor(X, dtype=torch.float32).to(self.device)
-        dl = DataLoader(TensorDataset(Xt), batch_size=self.batch_size)
+        Xt = torch.tensor(X, dtype=torch.float32)
+        dl = DataLoader(
+            TensorDataset(Xt),
+            batch_size=self.batch_size,
+            num_workers=2,
+            pin_memory=torch.cuda.is_available(),
+        )
         probs = []
         for (xb,) in dl:
+            xb = xb.to(self.device, non_blocking=True)
             probs.append(torch.softmax(self.model(xb), dim=1)[:, 1].cpu().numpy())
         return np.concatenate(probs)
