@@ -1,25 +1,23 @@
-"""RepNet Hybrid — CNN-Transformer with per-lead convolutions and cross-lead attention.
+"""RepNet CrossLead-Temporal — CNN with both temporal and cross-lead attention.
 
 Architecture:
   1. Per-lead CNN: 12 independent Conv1D streams preserve lead identity
-  2. Cross-lead attention: between conv stages, leads attend to each other
-  3. Fusion: concatenate lead representations → final conv → GAP → classifier
+  2. Temporal attention: each lead attends to its own temporal context
+  3. Cross-lead attention: leads attend to each other (spatial)
+  4. Fusion: concatenate lead representations → final conv → GAP → classifier
 
-  Stage 1: 12x Conv1D(1→F1, k=7) → CrossLeadAttention(12 tokens, dim=F1)
-  Stage 2: 12x Conv1D(F1→F2, k=5) → CrossLeadAttention(12 tokens, dim=F2)
+  Stage 1: 12x Conv1D(1→F1, k=7) → TemporalAttention → CrossLeadAttention
+  Stage 2: 12x Conv1D(F1→F2, k=5) → TemporalAttention → CrossLeadAttention
   Fuse:    Concatenate 12 leads → Conv1D(12*F2→F_out, k=1) → GAP → Dropout → Linear(2)
 
-EDA justification:
-  - Lead discriminability CV=2.236 (Step 9): leads contribute very unequally → attention
-    should learn per-patient lead weighting
-  - Cross-lead correlation Frobenius norm=1.028 (Step 11): modest cross-lead differences
-    exist — attention can capture these without 2D conv
-  - PSD peak at 2 Hz (Step 8): wide kernels in per-lead conv streams
-  - Temporal width ~full strip (Step 10): MaxPool stacking builds receptive field
+Design rationale:
+  - Temporal attention: captures long-range dependencies within each lead (P-wave to T-wave)
+  - Cross-lead attention: learns which leads are most informative for each patient
+  - Most expressive model: captures both temporal and spatial patterns
+  - Highest parameter count: may overfit on small datasets
 """
 
 import logging
-import math
 
 import numpy as np
 import optuna
@@ -91,6 +89,40 @@ class PerLeadConvBlock(nn.Module):
         return out.reshape(B, L, C_out, T_out)
 
 
+class TemporalSelfAttention(nn.Module):
+    """Multi-head self-attention along the temporal dimension for each lead.
+
+    Each lead independently attends to its own temporal sequence.
+    Captures long-range temporal dependencies (e.g., P-wave to T-wave).
+
+    Input:  (batch, n_leads, C, T)
+    Output: (batch, n_leads, C, T) — same shape, temporally-weighted
+    """
+
+    def __init__(self, embed_dim: int, n_heads: int = 4, dropout: float = 0.1):
+        super().__init__()
+        self.attn = nn.MultiheadAttention(
+            embed_dim=embed_dim, num_heads=n_heads,
+            dropout=dropout, batch_first=True,
+        )
+        self.norm = nn.LayerNorm(embed_dim)
+
+    def forward(self, x):
+        # x: (batch, n_leads, C, T)
+        B, L, C, T = x.shape
+
+        # Reshape: treat each lead independently, time as sequence
+        # (B, L, C, T) → (B*L, T, C) - each lead is a separate sequence
+        x_seq = x.permute(0, 1, 3, 2).reshape(B * L, T, C)
+
+        # Self-attention over temporal dimension
+        attn_out, _ = self.attn(x_seq, x_seq, x_seq)
+        attn_out = self.norm(x_seq + attn_out)  # residual + layer norm
+
+        # Reshape back to (B, L, C, T)
+        return attn_out.reshape(B, L, T, C).permute(0, 1, 3, 2)
+
+
 class CrossLeadAttention(nn.Module):
     """Multi-head self-attention across 12 lead representations.
 
@@ -133,11 +165,11 @@ class CrossLeadAttention(nn.Module):
         return x * gate_weights.unsqueeze(-1)  # broadcast over T
 
 
-class RepNetHybrid(nn.Module):
-    """CNN-Transformer hybrid with per-lead convolutions and cross-lead attention.
+class RepNetCrossLeadTemporal(nn.Module):
+    """CNN with both temporal self-attention and cross-lead attention.
 
-    Preserves lead identity throughout — attention operates on actual leads,
-    not mixed feature channels.
+    Most expressive model — captures both temporal dependencies within
+    each lead and spatial relationships across leads.
     """
 
     def __init__(
@@ -153,13 +185,15 @@ class RepNetHybrid(nn.Module):
         super().__init__()
         f1, f2 = stage_filters
 
-        # Stage 1: per-lead conv + cross-lead attention
+        # Stage 1: per-lead conv + temporal attention + cross-lead attention
         self.conv1 = PerLeadConvBlock(1, f1, wide_kernel, dropout)
-        self.attn1 = CrossLeadAttention(f1, n_heads, dropout)
+        self.temporal_attn1 = TemporalSelfAttention(f1, n_heads, dropout)
+        self.crosslead_attn1 = CrossLeadAttention(f1, n_heads, dropout)
 
-        # Stage 2: per-lead conv + cross-lead attention
+        # Stage 2: per-lead conv + temporal attention + cross-lead attention
         self.conv2 = PerLeadConvBlock(f1, f2, narrow_kernel, dropout)
-        self.attn2 = CrossLeadAttention(f2, n_heads, dropout)
+        self.temporal_attn2 = TemporalSelfAttention(f2, n_heads, dropout)
+        self.crosslead_attn2 = CrossLeadAttention(f2, n_heads, dropout)
 
         # Fusion: concatenate leads → pointwise conv → GAP
         self.fuse = nn.Sequential(
@@ -178,13 +212,15 @@ class RepNetHybrid(nn.Module):
         # Reshape to (batch, n_leads, 1, T) — each lead is a single-channel signal
         x = x.unsqueeze(2)  # (B, 12, 1, T)
 
-        # Stage 1
-        x = self.conv1(x)    # (B, 12, F1, T//2)
-        x = self.attn1(x)    # (B, 12, F1, T//2)
+        # Stage 1: conv → temporal attn → cross-lead attn
+        x = self.conv1(x)              # (B, 12, F1, T//2)
+        x = self.temporal_attn1(x)     # (B, 12, F1, T//2)
+        x = self.crosslead_attn1(x)    # (B, 12, F1, T//2)
 
-        # Stage 2
-        x = self.conv2(x)    # (B, 12, F2, T//4)
-        x = self.attn2(x)    # (B, 12, F2, T//4)
+        # Stage 2: conv → temporal attn → cross-lead attn
+        x = self.conv2(x)              # (B, 12, F2, T//4)
+        x = self.temporal_attn2(x)     # (B, 12, F2, T//4)
+        x = self.crosslead_attn2(x)    # (B, 12, F2, T//4)
 
         # Fuse: reshape (B, 12, F2, T') → (B, 12*F2, T') → conv → GAP
         B, L, F, T_out = x.shape
@@ -194,9 +230,9 @@ class RepNetHybrid(nn.Module):
         return self.fc(self.head_drop(x))
 
 
-@register_model("repnet_hybrid")
-class RepNetHybridModel(BaseModel):
-    """Optuna-compatible wrapper around RepNet Hybrid."""
+@register_model("repnet_crosslead_temporal")
+class RepNetCrossLeadTemporalModel(BaseModel):
+    """Optuna-compatible wrapper around RepNet CrossLead-Temporal."""
 
     def __init__(self, stage_filters=(32, 64), wide_kernel=7, narrow_kernel=5,
                  dropout=0.1, n_heads=4,
@@ -222,29 +258,29 @@ class RepNetHybridModel(BaseModel):
             else "cpu"
         )
         self.model = None
-        logger.info("RepNetHybrid using device: %s", self.device)
+        logger.info("RepNetCrossLeadTemporal using device: %s", self.device)
 
     @staticmethod
     def suggest_params(trial: optuna.Trial) -> dict:
-        f1 = trial.suggest_categorical("hybrid_stage1_filters", [16, 32])
-        f2 = trial.suggest_categorical("hybrid_stage2_filters", [32, 64])
+        f1 = trial.suggest_categorical("clt_stage1_filters", [16, 32])
+        f2 = trial.suggest_categorical("clt_stage2_filters", [32, 64])
         loss_fn = trial.suggest_categorical(
-            "hybrid_loss_fn", ["cross_entropy", "weighted", "focal"]
+            "clt_loss_fn", ["cross_entropy", "weighted", "focal"]
         )
         params = {
             "stage_filters": (f1, f2),
-            "wide_kernel": trial.suggest_categorical("hybrid_wide_kernel", [5, 7, 9]),
-            "narrow_kernel": trial.suggest_categorical("hybrid_narrow_kernel", [3, 5]),
-            "dropout": trial.suggest_float("hybrid_dropout", 0.05, 0.4),
-            "n_heads": trial.suggest_categorical("hybrid_n_heads", [2, 4]),
-            "lr": trial.suggest_float("hybrid_lr", 1e-4, 5e-3, log=True),
-            "batch_size": trial.suggest_categorical("hybrid_batch_size", [32, 64]),
-            "epochs": trial.suggest_int("hybrid_epochs", 10, 50),
+            "wide_kernel": trial.suggest_categorical("clt_wide_kernel", [5, 7, 9]),
+            "narrow_kernel": trial.suggest_categorical("clt_narrow_kernel", [3, 5]),
+            "dropout": trial.suggest_float("clt_dropout", 0.05, 0.4),
+            "n_heads": trial.suggest_categorical("clt_n_heads", [2, 4]),
+            "lr": trial.suggest_float("clt_lr", 1e-4, 5e-3, log=True),
+            "batch_size": trial.suggest_categorical("clt_batch_size", [32, 64]),
+            "epochs": trial.suggest_int("clt_epochs", 10, 50),
             "loss_fn": loss_fn,
         }
         if loss_fn == "focal":
-            params["focal_gamma"] = trial.suggest_float("hybrid_focal_gamma", 0.5, 5.0)
-            params["focal_alpha"] = trial.suggest_float("hybrid_focal_alpha", 0.1, 0.9)
+            params["focal_gamma"] = trial.suggest_float("clt_focal_gamma", 0.5, 5.0)
+            params["focal_alpha"] = trial.suggest_float("clt_focal_alpha", 0.1, 0.9)
         return params
 
     def _build_criterion(self, y_train: np.ndarray):
@@ -260,7 +296,7 @@ class RepNetHybridModel(BaseModel):
         return nn.CrossEntropyLoss()
 
     def fit(self, X_train, y_train, X_val, y_val):
-        self.model = RepNetHybrid(**self.net_params).to(self.device)
+        self.model = RepNetCrossLeadTemporal(**self.net_params).to(self.device)
 
         optimizer = torch.optim.Adam(
             self.model.parameters(),

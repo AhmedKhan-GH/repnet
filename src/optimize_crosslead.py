@@ -1,4 +1,4 @@
-"""Optuna hyperparameter optimization for RepNet Hybrid.
+"""Optuna hyperparameter optimization for RepNet CrossLead.
 
 Stage 1: Learning rate + dropout search.
 All other params fixed at EDA-informed defaults.
@@ -9,7 +9,7 @@ Evaluation:
   - Concatenative augmentation on train folds only
   - Each trial reports mean AUROC across folds
 
-Outputs (saved to optuna_hybrid/YYYY-MM-DD_HH-MM-SS/):
+Outputs (saved to optuna_crosslead/YYYY-MM-DD_HH-MM-SS/):
   - study.db          — Optuna SQLite study (resume-able)
   - results.log       — full log of all trials
   - best_model.pt     — best model weights
@@ -17,8 +17,8 @@ Outputs (saved to optuna_hybrid/YYYY-MM-DD_HH-MM-SS/):
   - summary.txt       — final report
 
 Usage:
-    python -m src.optimize_hybrid --n-trials 20
-    python -m src.optimize_hybrid --n-trials 30 --n-folds 5
+    python -m src.optimize_crosslead --n-trials 20
+    python -m src.optimize_crosslead --n-trials 30 --n-folds 5
 """
 
 import argparse
@@ -34,7 +34,7 @@ from optuna.samplers import TPESampler
 from sklearn.metrics import classification_report, roc_auc_score, roc_curve
 
 from src.data.dataset import kfold_cv_indices, load_seniordesign, split_holdout
-from src.models.repnet_hybrid import RepNetHybridModel
+from src.models.repnet_crosslead import RepNetCrossLeadModel
 from src.preprocessing.filters import BaselineWanderFilter, NotchFilter
 from src.preprocessing.normalization import ZScoreNormalization
 from src.preprocessing.augmentation import GaussianNoise, AmplitudeScaling, RandomTimeShift
@@ -105,7 +105,7 @@ def objective(
 
         X_tr, y_tr = augment_train(X_tr, y_tr, seed=SEED + fold_idx)
 
-        model = RepNetHybridModel(**params)
+        model = RepNetCrossLeadModel(**params)
         model.fit(X_tr, y_tr, X_val, y_val)
         auroc = model.score(X_val, y_val)
         fold_aurocs.append(auroc)
@@ -121,7 +121,7 @@ def objective(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Optuna: RepNet Hybrid lr+dropout search")
+    parser = argparse.ArgumentParser(description="Optuna: RepNet CrossLead lr+dropout search")
     parser.add_argument("--n-trials", type=int, default=20)
     parser.add_argument("--n-folds", type=int, default=5)
     parser.add_argument("--data-dir", type=str, default="data/seniordesign_upload_balanced")
@@ -129,7 +129,7 @@ def main():
     args = parser.parse_args()
 
     # Create dated output directory
-    run_dir = Path("optuna_hybrid") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_dir = Path("optuna_crosslead") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir.mkdir(parents=True, exist_ok=True)
 
     # Set up logging to both console and file
@@ -158,7 +158,7 @@ def main():
     # Run search with SQLite storage for resume-ability
     storage = f"sqlite:///{run_dir / 'study.db'}"
     study = optuna.create_study(
-        study_name="hybrid_lr_dropout",
+        study_name="crosslead_lr_dropout",
         direction="maximize",
         sampler=TPESampler(seed=args.seed),
         storage=storage,
@@ -190,7 +190,7 @@ def main():
     )
     X_tr, y_tr = augment_train(X_tr, y_tr, seed=args.seed)
 
-    model = RepNetHybridModel(**best_params_full)
+    model = RepNetCrossLeadModel(**best_params_full)
     model.fit(X_tr, y_tr, X_es, y_es)
 
     # Save model weights
@@ -206,7 +206,7 @@ def main():
     # Build summary
     lines = []
     lines.append(f"{'='*60}")
-    lines.append("OPTIMIZATION COMPLETE — RepNet Hybrid: lr + dropout")
+    lines.append("OPTIMIZATION COMPLETE — RepNet CrossLead: lr + dropout")
     lines.append(f"{'='*60}")
     lines.append(f"Best trial: #{study.best_trial.number}")
     lines.append(f"Best CV AUROC: {study.best_value:.4f}")

@@ -6,7 +6,15 @@ Evaluation protocol:
      - Signal conditioning (notch 60 Hz + bandpass 0.5–40 Hz + z-score) applied once
      - Augmentation (noise, amplitude scaling, time shift) applied per-fold on train only
   3. Final model retrained on all 80% dev data, evaluated on 20% test holdout
-  4. Results printed (AUROC + classification metrics)
+  4. Results saved to timestamped directory (logs, plots, weights, metrics)
+
+Outputs (saved to cv_results/YYYY-MM-DD_HH-MM-SS/):
+  - results.log       — full training log
+  - config.json       — hyperparameters and data info
+  - cv_results.json   — per-fold and test metrics
+  - summary.txt       — formatted results report
+  - model_*.pt        — trained model weights (one per model)
+  - training_curves_*.html — loss/AUROC plots (one per model)
 
 Usage:
     python -m src.train_cv
@@ -15,19 +23,24 @@ Usage:
 """
 
 import argparse
+import json
 import logging
+from datetime import datetime
+from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import classification_report, roc_auc_score
+import torch
+from sklearn.metrics import classification_report, roc_auc_score, roc_curve
 
 from src.data.dataset import kfold_cv_indices, load_seniordesign, split_holdout
 from src.models.repnet_baseline import RepNetBaselineModel
-from src.models.repnet_hybrid import RepNetHybridModel
+from src.models.repnet_crosslead import RepNetCrossLeadModel
+from src.models.repnet_temporal import RepNetTemporalModel
+from src.models.repnet_crosslead_temporal import RepNetCrossLeadTemporalModel
 from src.preprocessing.filters import NotchFilter, BaselineWanderFilter
 from src.preprocessing.normalization import ZScoreNormalization
 from src.preprocessing.augmentation import GaussianNoise, AmplitudeScaling, RandomTimeShift
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s")
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -40,10 +53,12 @@ REPNET_BASELINE_PARAMS = dict(
     dropout=0.15,
     lr=5e-4,
     batch_size=64,
-    loss_fn="weighted",
+    loss_fn="focal",
+    focal_alpha=0.75,        # Clinical asymmetry: missing PE costlier than false alarm
+    focal_gamma=2.0,         # Focus on hard examples (EDA silhouette=0.015, heavy overlap)
 )
 
-REPNET_HYBRID_PARAMS = dict(
+REPNET_CROSSLEAD_PARAMS = dict(
     stage_filters=(32, 64),
     wide_kernel=7,
     narrow_kernel=5,
@@ -51,7 +66,35 @@ REPNET_HYBRID_PARAMS = dict(
     n_heads=4,               # cross-lead attention heads
     lr=5e-4,
     batch_size=64,
-    loss_fn="weighted",
+    loss_fn="focal",
+    focal_alpha=0.75,        # Clinical asymmetry: missing PE costlier than false alarm
+    focal_gamma=2.0,         # Focus on hard examples (EDA silhouette=0.015, heavy overlap)
+)
+
+REPNET_TEMPORAL_PARAMS = dict(
+    stage_filters=(32, 64),
+    wide_kernel=7,
+    narrow_kernel=5,
+    dropout=0.15,
+    n_heads=4,               # temporal attention heads
+    lr=5e-4,
+    batch_size=64,
+    loss_fn="focal",
+    focal_alpha=0.75,        # Clinical asymmetry: missing PE costlier than false alarm
+    focal_gamma=2.0,         # Focus on hard examples (EDA silhouette=0.015, heavy overlap)
+)
+
+REPNET_CROSSLEAD_TEMPORAL_PARAMS = dict(
+    stage_filters=(32, 64),
+    wide_kernel=7,
+    narrow_kernel=5,
+    dropout=0.15,
+    n_heads=4,               # both temporal and cross-lead attention heads
+    lr=5e-4,
+    batch_size=64,
+    loss_fn="focal",
+    focal_alpha=0.75,        # Clinical asymmetry: missing PE costlier than false alarm
+    focal_gamma=2.0,         # Focus on hard examples (EDA silhouette=0.015, heavy overlap)
 )
 
 SEED = 42
@@ -117,7 +160,7 @@ def augment_train(X: np.ndarray, y: np.ndarray,
 # ---------------------------------------------------------------------------
 
 def run_cv(params: dict, X_dev: np.ndarray, y_dev: np.ndarray,
-           folds, epochs: int, model_cls=RepNetHybridModel) -> list[float]:
+           folds, epochs: int, model_cls) -> list[float]:
     """Run k-fold CV, return per-fold validation AUROCs."""
     aurocs = []
     for fold_idx, (train_idx, val_idx) in enumerate(folds):
@@ -142,7 +185,7 @@ def run_cv(params: dict, X_dev: np.ndarray, y_dev: np.ndarray,
 
 
 def train_final(params: dict, X_dev: np.ndarray, y_dev: np.ndarray,
-                epochs: int, seed: int = SEED, model_cls=RepNetHybridModel):
+                epochs: int, seed: int, model_cls):
     """Retrain on full dev set for final test evaluation.
 
     Stratified 90/10 split BEFORE augmentation to avoid leakage.
@@ -170,26 +213,56 @@ def youden_threshold(y_true: np.ndarray, probs: np.ndarray) -> float:
     return float(thresholds[np.argmax(j)])
 
 
-def print_results(name: str, cv_aurocs: list[float],
-                  test_auc: float, y_test: np.ndarray, probs_test: np.ndarray):
-    """Print CV summary and test evaluation."""
+def format_results(name: str, cv_aurocs: list[float],
+                   test_auc: float, y_test: np.ndarray, probs_test: np.ndarray) -> tuple[str, dict]:
+    """Format CV summary and test evaluation, return text and metrics dict."""
     cv_arr = np.array(cv_aurocs)
-    print(f"\n{'='*60}")
-    print(f"  {name}")
-    print(f"{'='*60}")
-    print(f"  5-fold CV AUROC: {cv_arr.mean():.4f} ± {cv_arr.std():.4f}")
-    print(f"  Per-fold:        {[f'{v:.4f}' for v in cv_aurocs]}")
-    print(f"  Test AUROC:      {test_auc:.4f}")
-    print()
-    # 0.5 threshold
+
+    # Calculate metrics at different thresholds
     preds_05 = (probs_test >= 0.5).astype(int)
-    print("  Classification report (threshold=0.50):")
-    print(classification_report(y_test, preds_05, target_names=["No PE", "PE"]))
-    # Youden's J threshold
     thresh_j = youden_threshold(y_test, probs_test)
     preds_j = (probs_test >= thresh_j).astype(int)
-    print(f"  Classification report (Youden's J threshold={thresh_j:.3f}):")
-    print(classification_report(y_test, preds_j, target_names=["No PE", "PE"]))
+
+    # Build text output
+    lines = []
+    lines.append(f"\n{'='*60}")
+    lines.append(f"  {name}")
+    lines.append(f"{'='*60}")
+    lines.append(f"  5-fold CV AUROC: {cv_arr.mean():.4f} ± {cv_arr.std():.4f}")
+    lines.append(f"  Per-fold:        {[f'{v:.4f}' for v in cv_aurocs]}")
+    lines.append(f"  Test AUROC:      {test_auc:.4f}")
+    lines.append("")
+    lines.append("  Classification report (threshold=0.50):")
+    lines.append(classification_report(y_test, preds_05, target_names=["No PE", "PE"]))
+    lines.append(f"  Classification report (Youden's J threshold={thresh_j:.3f}):")
+    lines.append(classification_report(y_test, preds_j, target_names=["No PE", "PE"]))
+
+    text_output = "\n".join(lines)
+
+    # Build metrics dict
+    from sklearn.metrics import precision_recall_fscore_support
+    prec_05, rec_05, f1_05, _ = precision_recall_fscore_support(y_test, preds_05, average='binary', pos_label=1)
+    prec_j, rec_j, f1_j, _ = precision_recall_fscore_support(y_test, preds_j, average='binary', pos_label=1)
+
+    metrics = {
+        "cv_auroc_mean": float(cv_arr.mean()),
+        "cv_auroc_std": float(cv_arr.std()),
+        "cv_aurocs_per_fold": [float(x) for x in cv_aurocs],
+        "test_auroc": float(test_auc),
+        "threshold_0.5": {
+            "precision": float(prec_05),
+            "recall": float(rec_05),
+            "f1": float(f1_05),
+        },
+        "threshold_youden_j": {
+            "threshold": float(thresh_j),
+            "precision": float(prec_j),
+            "recall": float(rec_j),
+            "f1": float(f1_j),
+        }
+    }
+
+    return text_output, metrics
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +275,24 @@ def main():
     parser.add_argument("--n-folds", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=50)
     args = parser.parse_args()
+
+    # ------------------------------------------------------------------
+    # Create timestamped output directory
+    # ------------------------------------------------------------------
+    run_dir = Path("cv_results") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set up logging to both console and file
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(run_dir / "results.log"),
+        ],
+    )
+
+    logger.info("Output directory: %s", run_dir)
 
     # ------------------------------------------------------------------
     # 1. Load & preprocess
@@ -219,17 +310,43 @@ def main():
                 len(y_dev), len(y_test),
                 100 * y_dev.mean(), 100 * y_test.mean())
 
+    # Save configuration
+    config = {
+        "data_dir": args.data_dir,
+        "n_folds": args.n_folds,
+        "epochs": args.epochs,
+        "seed": SEED,
+        "dataset_size": {
+            "total": len(y),
+            "dev": len(y_dev),
+            "test": len(y_test),
+            "dev_pos_rate": float(y_dev.mean()),
+            "test_pos_rate": float(y_test.mean()),
+        },
+        "repnet_baseline_params": REPNET_BASELINE_PARAMS,
+        "repnet_crosslead_params": REPNET_CROSSLEAD_PARAMS,
+        "repnet_temporal_params": REPNET_TEMPORAL_PARAMS,
+        "repnet_crosslead_temporal_params": REPNET_CROSSLEAD_TEMPORAL_PARAMS,
+    }
+    with open(run_dir / "config.json", "w") as f:
+        json.dump(config, f, indent=2)
+    logger.info("Saved config to %s", run_dir / "config.json")
+
     # ------------------------------------------------------------------
     # 3. 5-fold CV
     # ------------------------------------------------------------------
     folds = kfold_cv_indices(y_dev, n_folds=args.n_folds, seed=SEED)
 
     models = [
-        ("RepNet Baseline",   RepNetBaselineModel,    REPNET_BASELINE_PARAMS),
-        ("RepNet Hybrid",     RepNetHybridModel,      REPNET_HYBRID_PARAMS),
+        ("RepNet Baseline",            RepNetBaselineModel,            REPNET_BASELINE_PARAMS),
+        ("RepNet CrossLead",           RepNetCrossLeadModel,           REPNET_CROSSLEAD_PARAMS),
+        ("RepNet Temporal",            RepNetTemporalModel,            REPNET_TEMPORAL_PARAMS),
+        ("RepNet CrossLead-Temporal",  RepNetCrossLeadTemporalModel,   REPNET_CROSSLEAD_TEMPORAL_PARAMS),
     ]
 
     results = {}
+    all_metrics = {}
+
     for name, model_cls, params in models:
         print(f"\n{'#'*60}")
         print(f"  {name} — {args.n_folds}-fold CV")
@@ -239,29 +356,82 @@ def main():
 
         print(f"\n  Retraining {name} on full dev set …")
         final_model = train_final(params, X_dev, y_dev, epochs=args.epochs,
-                                  model_cls=model_cls)
+                                  seed=SEED, model_cls=model_cls)
         probs_test = final_model.predict_proba(X_test)
         test_auc = roc_auc_score(y_test, probs_test)
-        results[name] = (cv_aurocs, test_auc, probs_test)
+
+        # Save model weights
+        model_filename = f"model_{name.replace(' ', '_').lower()}.pt"
+        torch.save(final_model.model.state_dict(), run_dir / model_filename)
+        logger.info("Saved %s weights to %s", name, run_dir / model_filename)
+
+        results[name] = (cv_aurocs, test_auc, probs_test, final_model)
 
     # ------------------------------------------------------------------
-    # 4. Results per model
+    # 4. Results per model & save artifacts
     # ------------------------------------------------------------------
-    for name, (cv_aurocs, test_auc, probs_test) in results.items():
-        print_results(name, cv_aurocs, test_auc, y_test, probs_test)
+    summary_lines = []
+
+    for name, (cv_aurocs, test_auc, probs_test, final_model) in results.items():
+        text_output, metrics = format_results(name, cv_aurocs, test_auc, y_test, probs_test)
+        print(text_output)
+        summary_lines.append(text_output)
+        all_metrics[name] = metrics
+
+        # Save training curves
+        try:
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+
+            epochs_axis = list(range(1, len(final_model.history["train_loss"]) + 1))
+            fig = make_subplots(rows=1, cols=2, subplot_titles=("Train Loss", "Val AUROC"))
+            fig.add_trace(
+                go.Scatter(x=epochs_axis, y=final_model.history["train_loss"], name="Train Loss"),
+                row=1, col=1,
+            )
+            fig.add_trace(
+                go.Scatter(x=epochs_axis, y=final_model.history["val_auroc"], name="Val AUROC"),
+                row=1, col=2,
+            )
+            fig.update_layout(
+                title=f"{name} Training Curves",
+                xaxis_title="Epoch", xaxis2_title="Epoch",
+            )
+            curves_filename = f"training_curves_{name.replace(' ', '_').lower()}.html"
+            fig.write_html(str(run_dir / curves_filename))
+            logger.info("Saved %s training curves to %s", name, run_dir / curves_filename)
+        except Exception as e:
+            logger.warning("Could not save training curves for %s: %s", name, e)
 
     # ------------------------------------------------------------------
     # 5. Summary comparison
     # ------------------------------------------------------------------
-    print(f"\n{'='*60}")
-    print("  SUMMARY")
-    print(f"{'='*60}")
-    print(f"  {'Model':<22} {'CV AUROC (mean±std)':<24} {'Test AUROC'}")
-    print(f"  {'-'*58}")
-    for name, (cv_aurocs, test_auc, _) in results.items():
+    summary_header = f"\n{'='*60}\n  SUMMARY\n{'='*60}\n"
+    summary_header += f"  {'Model':<22} {'CV AUROC (mean±std)':<24} {'Test AUROC'}\n"
+    summary_header += f"  {'-'*58}\n"
+
+    summary_table = []
+    for name, (cv_aurocs, test_auc, _, _) in results.items():
         cv_arr = np.array(cv_aurocs)
-        print(f"  {name:<22} {cv_arr.mean():.4f} ± {cv_arr.std():.4f}         {test_auc:.4f}")
-    print()
+        line = f"  {name:<22} {cv_arr.mean():.4f} ± {cv_arr.std():.4f}         {test_auc:.4f}"
+        summary_table.append(line)
+
+    summary_text = summary_header + "\n".join(summary_table) + "\n"
+    print(summary_text)
+    summary_lines.append(summary_text)
+
+    # Save summary to file
+    with open(run_dir / "summary.txt", "w") as f:
+        f.write("\n".join(summary_lines))
+    logger.info("Saved summary to %s", run_dir / "summary.txt")
+
+    # Save metrics JSON
+    with open(run_dir / "cv_results.json", "w") as f:
+        json.dump(all_metrics, f, indent=2)
+    logger.info("Saved metrics to %s", run_dir / "cv_results.json")
+
+    print(f"\nAll results saved to: {run_dir}/")
+    logger.info("Training complete!")
 
 
 if __name__ == "__main__":
