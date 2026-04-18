@@ -109,12 +109,12 @@ Two more assigned literature regard dimensionality reduction of the input. We we
 
 \section{Enhancement Literature Overview}
 
-The following are literature that we believe will further enhance our model performance beyond the baseline by applying complex and cutting edge methods. They also explore the later stage deliverables beyond model training we intend to achieve.
+The following are literature that we believe will further enhance our model performance beyond the baseline by applying complex and cutting edge methods. Here we will also explore the later stage deliverables such beyond model training such as model compression for edge deployment we intend to achieve.
 
 \subsection{ECG Feature Analysis Literature Reviews}
 ECG feature analysis and feature extraction as a field will be an important aspect of our explainable RF classifier. We selected Kaplan et al. as a review of ECG feature analysis, going into the anatomy of a single heartbeat and naming everything we should be familiar with, and also exploring applications of machine learning \cite{kaplan_berkaya_survey_2018}. We also selected Singh et al. as a review of ECG feature extraction, it goes over the very algorithms that we end up using in existing libraries such as Neurokit2 \cite{singh_ecg_2023}.
 
-\subsection{ECG Waveform Features of Preeclampsia}
+\subsection{Preeclampsia ECG Waveform Features}
 
 Since our RF model will train on manual featurization on ECG waveforms, for future reading we selected older papers firmly in the camp of clinical electrocardiography rather than machine learning or deep learning. Angeli et al. serves a review of a few ECG features of preeclampsia \cite{angeli_novel_2015}. Rafaelli et al. deep dives into the QT interval, a repeatedly cited ECG feature of preeclampsia with visual and mathematical analysis \cite{raffaelli_pre-eclampsia_2014}. This will serve as as a demonstration of the approach for the other features we have been assigned or find relevant in the literature.
 
@@ -186,16 +186,208 @@ Frontal QRS-T Angle & $|\,\text{QRS Axis} - \text{T Axis}\,|$ \\
 Once the UCDH Echo dataset and MUSE values are released, we will be able to compare Neurokit values from MUSE values and determine if there are any drastic differences. An RF model will be initially used, but other decision tree models will be tested such as LightGBM and XGBoost to achieve best performance. After model selection, feature importance and feature distribution will be analyzed through $\chi^2$ testing or principal component analysis (PCA). Because the dataset is imbalanced, we may employ SMOTE to train on a balanced dataset.
 
 \section{Convolutional Transformer Progress}
-Previous work shows the
 
-\subsection{Previous work}
+In this report we cover the process of arriving at our baseline model, enhancements we have made thus far, as well as directions we plan to take for the three weeks until Progress Report 2 where we intend to have a fully functional model and report for submission to Sandia, and use the remainder of the time to prepare our live presentation and showcase demonstration.
 
-show butler et al basic resnet architecture,
+We performed exploratory data analysis to inform our initial model architecture to perform both narrow studies modifying parameters with optuna, and broad studies modifying architecture to see what sticks.
 
-talk about how resnet architecture is where we will begin and create repnet baseline
+\subsection{Previous Work}
+
+We build off of the work by Butler et al.\ and their ECG-AI which we have obtained from GitHub \cite{butler_ai-based_2024}. ECG-AI is a ResNet-based 1-D CNN that accepts 12-lead ECG signals of length 2250 samples as a channel-dependent input. The architecture comprises six residual blocks organized into three stages of progressively increasing filter width (16, 32, 64). All convolutions use kernel size 3 with L2 regularization ($\lambda = 10^{-4}$). Each block ends with max-pooling and dropout (0.1). Blocks 3 and 5 (the first block of Stages 2 and 3) additionally use strided convolutions (stride=2) with a $1\times1$ projection for the skip connection to match the increased filter count. A final flatten and dense softmax layer produces a two-class output.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    block/.style={draw, rounded corners, minimum height=0.55cm, minimum width=4.5cm,
+                  font=\scriptsize\sffamily, align=center, thick},
+    stage16/.style={block, fill=blue!15},
+    stage32/.style={block, fill=orange!20},
+    stage64/.style={block, fill=red!15},
+    io/.style={block, fill=green!15},
+    arrow/.style={-{Stealth[length=2pt]}, thick},
+    stagelabel/.style={font=\tiny\sffamily\bfseries, text=gray},
+]
+
+\node[io] (input) {Input: $2250\times12$};
+\node[stage16, below=of input] (rb1) {ResBlock $16\times3$ (3 conv) $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage16, below=of rb1] (rb2) {ResBlock $16\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage32, below=0.6cm of rb2] (rb3) {ResBlock $32\times3$ (s=2, 1$\times$1 proj) $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage32, below=of rb3] (rb4) {ResBlock $32\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage64, below=0.6cm of rb4] (rb5) {ResBlock $64\times3$ (s=2, 1$\times$1 proj) $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage64, below=of rb5] (rb6) {ResBlock $64\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[io, below=0.6cm of rb6] (flat) {Flatten $\to$ Dense(2) $\to$ Softmax};
+
+\foreach \a/\b in {input/rb1, rb1/rb2, rb2/rb3, rb3/rb4, rb4/rb5, rb5/rb6, rb6/flat}{
+    \draw[arrow] (\a) -- (\b);
+}
+
+\begin{scope}[on background layer]
+    \node[fit=(rb1)(rb2), inner sep=5pt, draw=blue!40, fill=blue!5, rounded corners, dashed] (s1) {};
+    \node[stagelabel, right=3pt of s1] {Stage 1 -- 16 filters};
+    \node[fit=(rb3)(rb4), inner sep=5pt, draw=orange!50, fill=orange!5, rounded corners, dashed] (s2) {};
+    \node[stagelabel, right=3pt of s2] {Stage 2 -- 32 filters};
+    \node[fit=(rb5)(rb6), inner sep=5pt, draw=red!40, fill=red!5, rounded corners, dashed] (s3) {};
+    \node[stagelabel, right=3pt of s3] {Stage 3 -- 64 filters};
+\end{scope}
+
+\end{tikzpicture}
+\caption{High-level view of the Butler et al.\ ECG-AI architecture showing six ResBlocks across three filter-width stages (16, 32, 64). Block~1 contains three convolutions; Blocks~3 and~5 use strided convolutions (s=2) with $1\times1$ projections for dimensionality matching. All blocks end with max-pooling and dropout.}
+\label{fig:butler-arch}
+\end{figure}
+
+The progressively increasing filter width means more feature interpretations at earlier layers as the receptive field grows. We begin with simple patterns which might just be some sort sequences of values, but their successive compositions begin to capture clinical features [He et al. Reset progressively increasing filter wdith receptive field]. We will also utilize the architecture of successively increasing ResNet blocks for our baseline model.
+
+\subsection{Channel Independence via Lead Correlation}
+
+To determine whether the 12 ECG leads should be processed jointly (channel-dependent) or independently (channel-independent), we measure how much preeclampsia disrupts the inter-lead correlation structure. For each recording $n$, we compute the $12 \times 12$ Pearson correlation matrix $C^{(n)}$ across leads, then average within each class [cite Pearson correlatin]
+
+\begin{equation}
+\bar{C}_{\text{PE}} = \frac{1}{N_{\text{PE}}} \sum_{n \in \text{PE}} C^{(n)}, \qquad
+\bar{C}_{\text{Normal}} = \frac{1}{N_{\text{Normal}}} \sum_{n \in \text{Normal}} C^{(n)}
+\end{equation}
+
+We then compute the Frobenius norm of the difference:
+
+\begin{equation}
+\| \bar{C}_{\text{PE}} - \bar{C}_{\text{Normal}} \|_F = \sqrt{\sum_{i=1}^{12}\sum_{j=1}^{12} \left(\bar{C}_{\text{PE},ij} - \bar{C}_{\text{Normal},ij}\right)^2} = 1.026
+\end{equation}
+
+A high Frobenius norm ($>2.0$) would indicate that preeclampsia significantly alters how leads correlate with each other, meaning the cross-lead relationship itself is a discriminative feature best captured by 2D convolution across leads. Our value of 1.026 indicates only modest disruption --- the leads correlate roughly the same way in both classes. The discriminative information therefore resides within each lead's waveform, not in inter-lead coupling, justifying per-lead 1D convolution (channel-independent processing).
+
+ECG-AI inputs the entire $12 \times 2500$ data matrix into the CNN, where all leads mix from the first convolutional layer. RepNet instead processes each lead through its own 1D CNN stream, extracting per-lead features before combining them via cross-lead attention in subsequent stages.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    box/.style={draw, rounded corners, minimum height=0.5cm, font=\scriptsize\sffamily, align=center, thick},
+    lead/.style={box, fill=teal!15},
+    conv/.style={box, fill=blue!15},
+    out/.style={box, fill=green!15},
+    arrow/.style={-{Stealth[length=2pt]}, thick},
+    lbl/.style={font=\tiny\sffamily, text=gray},
+]
+
+\node[lead, minimum width=3.5cm] (input_b) at (0, 0) {Input: $2250\times12$};
+\node[conv, minimum width=3.5cm] (conv_b) at (0, -1) {Stage 1: 2 ResBlocks, 16 filters (k=3)};
+\node[conv, minimum width=3.5cm, fill=orange!15] (res_b) at (0, -2.1) {Stage 2: 2 ResBlocks, 32 filters (k=3, s=2)};
+\node[conv, minimum width=3.5cm, fill=red!12] (res_c) at (0, -3.2) {Stage 3: 2 ResBlocks, 64 filters (k=3, s=2)};
+\node[out, minimum width=3.5cm] (out_b) at (0, -4.3) {Flatten $\to$ Dense(2)};
+
+\draw[arrow] (input_b) -- (conv_b);
+\draw[arrow] (conv_b) -- (res_b);
+\draw[arrow] (res_b) -- (res_c);
+\draw[arrow] (res_c) -- (out_b);
+
+\node[lbl, right=0.15cm of conv_b, text width=2cm] {all 12 leads\\mixed from layer 1};
+
+\end{tikzpicture}
+\caption{ECG-AI channel-dependent input. All 12 leads are fed as channels into a shared CNN, where leads mix from the first convolutional layer.}
+\label{fig:butler-channel-dep}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    box/.style={draw, rounded corners, minimum height=0.5cm, font=\scriptsize\sffamily, align=center, thick},
+    lead/.style={box, fill=teal!15, minimum width=0.8cm},
+    conv/.style={box, fill=blue!15, minimum width=0.8cm},
+    stage/.style={box, fill=blue!10, minimum width=4cm},
+    fuse/.style={box, fill=purple!12, minimum width=4cm},
+    out/.style={box, fill=green!15, minimum width=4cm},
+    arrow/.style={-{Stealth[length=2pt]}, thick},
+    lbl/.style={font=\tiny\sffamily, text=gray},
+]
+
+% Individual lead inputs
+\foreach \i/\lead in {0/I, 1/II, 2/III, 3/\dots, 4/V6} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[lead] (in_\i) at (\xpos, 0) {\lead};
+}
+
+% Stage 1: per-lead conv
+\foreach \i in {0,1,2,3,4} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[conv] (s1_\i) at (\xpos, -1.1) {Conv};
+    \draw[arrow] (in_\i) -- (s1_\i);
+}
+\node[lbl, right=0.15cm of s1_4, text width=2.2cm] {Stage 1\\k=7, 32 filters};
+
+% Stage 2: per-lead conv
+\foreach \i in {0,1,2,3,4} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[conv, fill=blue!10] (s2_\i) at (\xpos, -2.2) {Conv};
+    \draw[arrow] (s1_\i) -- (s2_\i);
+}
+\node[lbl, right=0.15cm of s2_4, text width=2.2cm] {Stage 2\\k=5, 64 filters};
 
 
-We have obtained the model dimensions and weights of the ECG-AI trained by Butler et al. from GitHub. This model can serve as a benchmark against our own model, both in the performance of their model weights, and the performance of their model architecture trained on our dataset. Furthermore, the architecture serves as a starting point where we can experiment with transfer learning in freezing in retraining different layers, append, pre-pend, replace, or shim layers to achieve new functions such as attention, all in the aim of even better performance.
+% Fusion: concatenate 12 lead feature vectors
+\node[fuse] (fuse) at (0, -3.4) {Concatenate 12 lead features $\to$ Conv1D($1\times1$)};
+\foreach \i in {0,1,2,3,4} {
+    \draw[arrow] (s2_\i) -- (fuse);
+}
+
+\node[out] (out_r) at (0, -4.5) {GAP $\to$ Dense(2)};
+
+\draw[arrow] (fuse) -- (out_r);
+
+\node[lbl, right=0.15cm of fuse, text width=2.2cm] {leads interact\\after features};
+
+\end{tikzpicture}
+\caption{RepNet Baseline channel-independent input. Each lead is processed through its own Conv1D stream across two stages before fusion. Justified by the inter-lead correlation Frobenius norm of 1.026, indicating discriminative information is within each lead, not in cross-lead coupling.}
+\label{fig:repnet-channel-indep}
+\end{figure}
+
+\subsubsection{Kernel Size and Layer Depth for Receptive Field}
+We use per-lead power spectral density to determine kernel width and how they build up towards our receptive field. For each lead $\ell$ and recording $n$, the power spectral density is estimated via Welch's method, which divides the signal $x^{(n)}_\ell(t)$ into overlapping segments, windows each with a Hann function, computes the periodogram of each segment, and averages them (The use of fast Fourier transform for the estimation of power spectra: A method based on time averaging over short, modified periodograms)
+
+\begin{equation}
+\hat{S}^{(n)}_\ell(f) = \frac{1}{K} \sum_{k=1}^{K} \left| \text{DFT}\left[ w(t) \cdot x^{(n)}_{\ell,k}(t) \right] \right|^2
+\end{equation}
+
+\noindent where $K$ is the number of segments, $w(t)$ is the window function, and $x^{(n)}_{\ell,k}(t)$ is the $k$-th segment. We then average across all recordings within each class to obtain class-level PSD estimates $\bar{S}_{\text{PE}}(f)$ and $\bar{S}_{\text{Normal}}(f)$, and identify the frequency $f_{\text{peak}}$ at which their absolute difference is maximized. At our sampling rate of 250\,Hz with a segment length of 512 samples, this yields a frequency resolution of approximately 0.49\,Hz.
+
+See Appendix~\ref{appendix:psd} for the full per-lead PSD comparison. The greatest class divergence occurs at approximately 1\,Hz across all leads, indicating that the discriminative signal is concentrated at low frequencies.
+
+To capture a feature at frequency $f$, a convolutional receptive field must span at least one full cycle of that frequency. At 250\,Hz sampling rate, one cycle of the 1\,Hz discriminative peak corresponds to 250 samples. The network's receptive field must therefore exceed 250 samples for the convolutional pathway alone to detect this feature. Rather than using a single large kernel, we stack smaller convolutions with max-pooling, where each pooling layer doubles the effective stride and thus the receptive field grows geometrically with depth. The receptive field at layer $l$ follows:
+
+\begin{equation}
+\text{RF}_l = \text{RF}_{l-1} + (k_l - 1) \times \prod_{j=1}^{l-1} s_j
+\end{equation}
+
+\noindent where $k_l$ is the kernel size and $s_j$ is the stride (including pooling) at layer $j$. Table~\ref{tab:receptive-field} compares the receptive field buildup between ECG-AI and RepNet Baseline.
+
+\begin{table}[H]
+\centering
+\caption{Receptive field buildup comparison. ECG-AI uses six blocks with k=3 and strided convolutions at stage transitions. RepNet Baseline uses two blocks with wider kernels (k=7, k=5). Each block contains two convolutions followed by max-pooling.}
+\label{tab:receptive-field}
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Layer} & \textbf{ECG-AI RF} & \textbf{RepNet Baseline RF} \\
+\midrule
+Input & 1 & 1 \\
+Block 1: 2$\times$Conv + Pool & 8 & 14 \\
+Block 2: 2$\times$Conv + Pool & 18 & 32 \\
+Block 3: 2$\times$Conv(s=2) + Pool & 38 & --- \\
+Block 4: 2$\times$Conv + Pool & 78 & --- \\
+Block 5: 2$\times$Conv(s=2) + Pool & 158 & --- \\
+Block 6: 2$\times$Conv + Pool & 318 & --- \\
+\midrule
+\textbf{Final conv RF (samples)} & \textbf{318} & \textbf{32} \\
+\textbf{Final conv RF (seconds)} & \textbf{1.27\,s} & \textbf{0.13\,s} \\
+\textbf{Exceeds 250 samples?} & Yes & No (+ GAP) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ECG-AI reaches a receptive field of 318 samples (1.27\,s) through six blocks of small k=3 kernels with strided convolutions at stage transitions, comfortably exceeding the 250-sample threshold. RepNet Baseline reaches only 32 samples (0.13\,s) with two blocks --- far short of the 250-sample target for capturing the 1\,Hz discriminative feature. However, the global average pooling (GAP) at the fusion stage collapses the entire remaining temporal dimension, giving the classifier access to information across the full 2500-sample (10\,s) input. This design is deliberate: RepNet uses far fewer convolutional layers to minimize the parameter count --- critical given our dataset of 337 preeclampsia cases compared to Butler et al.'s larger multi-site cohort --- and delegates full-sequence context to the pooling and fusion stages rather than asking convolution alone to build sufficient receptive field.
+
+\subsubsection{Discussion}
+Initial exploratory data analysis and architectural decisions were made given a pre-balanced UCD-H dataset, (see appendix D for metrics about the data). Near completing this report we have received the full unbalanced data which will inform a much more aggressive analysis and architectural fine-tuning. A detailing of the dataset and analysis performed will be provided in Progrss Report 2.
 
 \section{Optuna Hyperparameter Optimization}
 To achieve optimal model performance with the CNN Transformer we will use ECG-AI as a baseline architecture and experiment with additional layers and hyperparameters using the Optuna framework. This requires making modular components — models with exposed hyperparameter inputs and interchangeable preprocessing and data augmentation pipelines supporting majority undersampling, SMOTE, or GAN strategies.
@@ -245,7 +437,7 @@ Our next steps are to begin model development using Optuna for hyperparameter op
 \centering
 \begin{tabular}{cp{0.26\textwidth}p{0.12\textwidth}p{0.44\textwidth}}
 \toprule
-\textbf{Reviewed} & \textbf{Paper} & \textbf{Type} & \textbf{Purpose} \\
+\textbf{Read} & \textbf{Paper} & \textbf{Type} & \textbf{Purpose} \\
 \midrule
 \multicolumn{4}{l}{\textbf{Phase 1 --- Exploratory Review}} \\[2pt]
 \multicolumn{4}{l}{\textit{Preeclampsia ML Literature Reviews}} \\
@@ -279,7 +471,7 @@ $\checkmark$ & Zhang et al.~\cite{zhang_development_2023} & Original & \\
  & Jia et al.~\cite{jia_preprocessing_2024} & Review & Overview of ECG preprocessing techniques \\
  & Satija et al.~\cite{satija_review_2018} & Review & ECG signal quality assessment \\
 \midrule
-\multicolumn{4}{l}{\textit{ECG Waveform Features of Preeclampsia}} \\
+\multicolumn{4}{l}{\textit{Preeclampsia ECG Waveform Features}} \\
  & Angeli et al.~\cite{angeli_novel_2015} & Original & QT interval relevance for preeclampsia \\
  & Rafaelli et al.~\cite{raffaelli_pre-eclampsia_2014} & Original & ECG features of preeclampsia \\
 \midrule
@@ -303,15 +495,6 @@ $\checkmark$ & Zhang et al.~\cite{zhang_development_2023} & Original & \\
 \end{table*}
 
 \clearpage
-\section{Caliper Visualization Interface}
-\begin{figure}[h]
-\centering
-\includegraphics[angle=-90,width=0.70\textwidth]{caliper_interface.png}
-\caption{An example vibe-coded interface showcasing the various waveform displays and options available in the Caliper visualization tool.}
-\label{fig:caliper-interface}
-\end{figure}
-
-\clearpage
 % Chat log macros (breakable across pages)
 \newcommand{\chatuser}[1]{%
   \begin{flushright}%
@@ -323,6 +506,16 @@ $\checkmark$ & Zhang et al.~\cite{zhang_development_2023} & Original & \\
   \raggedright\small #1%
   \end{tcolorbox}\medskip}
 
+\section{Power Spectral Density per Lead}
+\label{appendix:psd}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{output.png}
+\caption{Mean power spectral density (0--60\,Hz) per lead, comparing preeclampsia (red) vs.\ normal (blue). The greatest class divergence occurs at approximately 1\,Hz across all leads, indicating that the discriminative signal is concentrated at low frequencies. This motivates the use of wide convolutional kernels (k=7, k=5) to capture low-frequency features.}
+\label{fig:psd}
+\end{figure}
+
+\clearpage
 \section{ChatGPT Literature Review Query Transcript}
 \label{appendix:chatgpt}
 
