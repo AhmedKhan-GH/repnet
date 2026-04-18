@@ -8,6 +8,7 @@
 \usepackage{amssymb}
 \usepackage[most]{tcolorbox}
 \usepackage{cuted}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc}
 
 \settopmatter{printacmref=false, printfolios=false}
@@ -63,8 +64,8 @@
 \toprule
 \textbf{Repository} & \textbf{Link} \\
 \midrule
-RepNet & \url{https://github.com/AhmedKhan-GH/repnet} \\
-Caliper & \url{https://github.com/AhmedKhan-GH/caliper} \\
+RepNet & \url{https://GitHub.com/AhmedKhan-GH/repnet} \\
+Caliper & \url{https://GitHub.com/AhmedKhan-GH/caliper} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -78,7 +79,14 @@ We are currently running model training experiments on architectural dimensions 
 
 For model refinement, we intend to perform ablation studies and dimensionality reduction on the input \cite{xue_does_2024,attia_automated_2022}, and analyze saliency maps and attention maps to determine the relevant data for classification to inform reduced-lead learning and input [Gradcam citation]. We intend to explore purpose build ECG preprocessing strategies for signal sanitization \cite{jia_preprocessing_2024,satija_review_2018} and data augmentation strategies to manage class imbalance \cite{rahman_systematic_2023,xia_generative_2023}. We intend to explore specific feature extractions of preeclampsia \cite{angeli_novel_2015,raffaelli_pre-eclampsia_2014} and explore the larger field of ECG feature analysis \cite{kaplan_berkaya_survey_2018,singh_ecg_2023}. We intend to explore past work of preeclampsia decision tree strategies \cite{park_pchd_2014,musa_predicting_2023}, to better classify and explain results with our random forest.
 We intend to perform model compression for the deployment on edge devices and compute constrained environments such as Jetson Nano or Raspberry Pi \cite{keivanimehr_tinyml_2025,gupta_comprehensive_2024}.
-Lastly we intend to combine our model with our in-house real-time machine learning visualizer named Caliper to demonstrate clinical workflows augmented by machine learning and deep learning, for final presentation at the UC Davis Senior Design Showcase in June 2026 [cite caliper github].
+Lastly we intend to combine our model with our in-house real-time machine learning visualizer named Caliper to demonstrate clinical workflows augmented by machine learning and deep learning, for final presentation at the UC Davis Senior Design Showcase in June 2026 [cite caliper GitHub].
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\columnwidth]{12911_2023_2233_Fig1_HTML}
+  \caption{Example 12-lead ECG recording over 10 seconds showing all 12 waveforms (I, II, III, aVR, aVL, aVF, V1--V6). Each lead captures the heart's electrical activity from a different spatial angle.}
+  \label{fig:ecg-12lead-example}
+\end{figure}
 
 \section{Exploratory Literature Overview}
 
@@ -253,7 +261,7 @@ We then compute the Frobenius norm of the difference:
 \| \bar{C}_{\text{PE}} - \bar{C}_{\text{Normal}} \|_F = \sqrt{\sum_{i=1}^{12}\sum_{j=1}^{12} \left(\bar{C}_{\text{PE},ij} - \bar{C}_{\text{Normal},ij}\right)^2} = 1.026
 \end{equation}
 
-A high Frobenius norm ($>2.0$) would indicate that preeclampsia significantly alters how leads correlate with each other, meaning the cross-lead relationship itself is a discriminative feature best captured by 2D convolution across leads. Our value of 1.026 indicates only modest disruption --- the leads correlate roughly the same way in both classes. The discriminative information therefore resides within each lead's waveform, not in inter-lead coupling, justifying per-lead 1D convolution (channel-independent processing).
+A high Frobenius norm ($>2.0$) would indicate that preeclampsia significantly alters how leads correlate with each other, meaning the cross-lead relationship itself is a discriminative feature best captured by 2D convolution across leads. Our value of 1.026 indicates only modest disruption --- the leads correlate roughly the same way in both classes. The discriminative information therefore resides within each lead's waveform, not in inter-lead coupling, justifying per-lead 1D convolution (channel-independent processing). [cite frobenius norm
 
 ECG-AI inputs the entire $12 \times 2500$ data matrix into the CNN, where all leads mix from the first convolutional layer. RepNet instead processes each lead through its own 1D CNN stream, extracting per-lead features before combining them via cross-lead attention in subsequent stages.
 
@@ -294,7 +302,6 @@ ECG-AI inputs the entire $12 \times 2500$ data matrix into the CNN, where all le
     box/.style={draw, rounded corners, minimum height=0.5cm, font=\scriptsize\sffamily, align=center, thick},
     lead/.style={box, fill=teal!15, minimum width=0.8cm},
     conv/.style={box, fill=blue!15, minimum width=0.8cm},
-    stage/.style={box, fill=blue!10, minimum width=4cm},
     fuse/.style={box, fill=purple!12, minimum width=4cm},
     out/.style={box, fill=green!15, minimum width=4cm},
     arrow/.style={-{Stealth[length=2pt]}, thick},
@@ -323,36 +330,32 @@ ECG-AI inputs the entire $12 \times 2500$ data matrix into the CNN, where all le
 }
 \node[lbl, right=0.15cm of s2_4, text width=2.2cm] {Stage 2\\k=5, 64 filters};
 
-
-% Fusion: concatenate 12 lead feature vectors
-\node[fuse] (fuse) at (0, -3.4) {Concatenate 12 lead features $\to$ Conv1D($1\times1$)};
+% Fusion
+\node[fuse] (fuse) at (0, -3.4) {Concatenate 12 leads $\to$ Conv1D($1\times1$)};
 \foreach \i in {0,1,2,3,4} {
     \draw[arrow] (s2_\i) -- (fuse);
 }
 
-\node[out] (out_r) at (0, -4.5) {GAP $\to$ Dense(2)};
-
+\node[out] (out_r) at (0, -4.4) {GAP $\to$ Dense(2)};
 \draw[arrow] (fuse) -- (out_r);
 
-\node[lbl, right=0.15cm of fuse, text width=2.2cm] {leads interact\\after features};
-
 \end{tikzpicture}
-\caption{RepNet Baseline channel-independent input. Each lead is processed through its own Conv1D stream across two stages before fusion. Justified by the inter-lead correlation Frobenius norm of 1.026, indicating discriminative information is within each lead, not in cross-lead coupling.}
-\label{fig:repnet-channel-indep}
+\caption{RepNet Baseline architecture. Each lead is processed through independent Conv1D streams across two stages with no cross-lead interaction until fusion. GAP collapses the full temporal dimension, providing full-sequence context despite the small convolutional receptive field of 32 samples.}
+\label{fig:repnet-baseline-arch}
 \end{figure}
 
-\subsubsection{Kernel Size and Layer Depth for Receptive Field}
-We use per-lead power spectral density to determine kernel width and how they build up towards our receptive field. For each lead $\ell$ and recording $n$, the power spectral density is estimated via Welch's method, which divides the signal $x^{(n)}_\ell(t)$ into overlapping segments, windows each with a Hann function, computes the periodogram of each segment, and averages them (The use of fast Fourier transform for the estimation of power spectra: A method based on time averaging over short, modified periodograms)
+\subsection{Kernel Size / Layer Depth for Receptive Field}
+Power spectral density (PSD) decomposes a signal into its frequency components and reveals where the energy is concentrated. For each lead $\ell$ and recording $n$, PSD is estimated via Welch's method, which divides the signal $x^{(n)}_\ell(t)$ into overlapping segments, windows each with a Hann function, computes the periodogram of each segment, and averages them [cite welch].
 
 \begin{equation}
 \hat{S}^{(n)}_\ell(f) = \frac{1}{K} \sum_{k=1}^{K} \left| \text{DFT}\left[ w(t) \cdot x^{(n)}_{\ell,k}(t) \right] \right|^2
 \end{equation}
 
-\noindent where $K$ is the number of segments, $w(t)$ is the window function, and $x^{(n)}_{\ell,k}(t)$ is the $k$-th segment. We then average across all recordings within each class to obtain class-level PSD estimates $\bar{S}_{\text{PE}}(f)$ and $\bar{S}_{\text{Normal}}(f)$, and identify the frequency $f_{\text{peak}}$ at which their absolute difference is maximized. At our sampling rate of 250\,Hz with a segment length of 512 samples, this yields a frequency resolution of approximately 0.49\,Hz.
+\noindent where $K$ is the number of segments, $w(t)$ is the window function, and $x^{(n)}_{\ell,k}(t)$ is the $k$-th segment. Averaging across all recordings within each class yields class-level PSD estimates $\bar{S}_{\text{PE}}(f)$ and $\bar{S}_{\text{Normal}}(f)$. The frequency $f_{\text{peak}}$ at which their absolute difference is maximized indicates where the discriminative signal lives. At 250\,Hz sampling with a segment length of 512 samples, this yields a frequency resolution of approximately 0.49\,Hz.
 
 See Appendix~\ref{appendix:psd} for the full per-lead PSD comparison. The greatest class divergence occurs at approximately 1\,Hz across all leads, indicating that the discriminative signal is concentrated at low frequencies.
 
-To capture a feature at frequency $f$, a convolutional receptive field must span at least one full cycle of that frequency. At 250\,Hz sampling rate, one cycle of the 1\,Hz discriminative peak corresponds to 250 samples. The network's receptive field must therefore exceed 250 samples for the convolutional pathway alone to detect this feature. Rather than using a single large kernel, we stack smaller convolutions with max-pooling, where each pooling layer doubles the effective stride and thus the receptive field grows geometrically with depth. The receptive field at layer $l$ follows:
+To capture a feature at frequency $f$, a convolutional receptive field must span at least one full cycle of that frequency. At 250\,Hz, one cycle of the 1\,Hz discriminative peak corresponds to 250 samples. A network's receptive field must therefore exceed 250 samples for the convolutional pathway alone to detect this feature. Rather than using a single large kernel, smaller convolutions are stacked with max-pooling, where each pooling layer doubles the effective stride and the receptive field grows geometrically with depth. The receptive field at layer $l$ follows:
 
 \begin{equation}
 \text{RF}_l = \text{RF}_{l-1} + (k_l - 1) \times \prod_{j=1}^{l-1} s_j
@@ -362,39 +365,215 @@ To capture a feature at frequency $f$, a convolutional receptive field must span
 
 \begin{table}[H]
 \centering
-\caption{Receptive field buildup comparison. ECG-AI uses six blocks with k=3 and strided convolutions at stage transitions. RepNet Baseline uses two blocks with wider kernels (k=7, k=5). Each block contains two convolutions followed by max-pooling.}
-\label{tab:receptive-field}
+\caption{ECG-AI receptive field buildup. Six blocks with k=3 and strided convolutions at stage transitions (Blocks 3, 5).}
+\label{tab:rf-ecgai}
 \small
-\begin{tabular}{lrr}
+\begin{tabular}{lr}
 \toprule
-\textbf{Layer} & \textbf{ECG-AI RF} & \textbf{RepNet Baseline RF} \\
+\textbf{Layer} & \textbf{RF (samples)} \\
 \midrule
-Input & 1 & 1 \\
-Block 1: 2$\times$Conv + Pool & 8 & 14 \\
-Block 2: 2$\times$Conv + Pool & 18 & 32 \\
-Block 3: 2$\times$Conv(s=2) + Pool & 38 & --- \\
-Block 4: 2$\times$Conv + Pool & 78 & --- \\
-Block 5: 2$\times$Conv(s=2) + Pool & 158 & --- \\
-Block 6: 2$\times$Conv + Pool & 318 & --- \\
+Input & 1 \\
+Block 1: 3$\times$Conv(k=3) + Pool & 8 \\
+Block 2: 2$\times$Conv(k=3) + Pool & 18 \\
+Block 3: 2$\times$Conv(k=3, s=2) + Proj + Pool & 38 \\
+Block 4: 2$\times$Conv(k=3) + Pool & 78 \\
+Block 5: 2$\times$Conv(k=3, s=2) + Proj + Pool & 158 \\
+Block 6: 2$\times$Conv(k=3) + Pool & 318 \\
 \midrule
-\textbf{Final conv RF (samples)} & \textbf{318} & \textbf{32} \\
-\textbf{Final conv RF (seconds)} & \textbf{1.27\,s} & \textbf{0.13\,s} \\
-\textbf{Exceeds 250 samples?} & Yes & No (+ GAP) \\
+\textbf{Final RF} & \textbf{318 (1.27\,s)} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-ECG-AI reaches a receptive field of 318 samples (1.27\,s) through six blocks of small k=3 kernels with strided convolutions at stage transitions, comfortably exceeding the 250-sample threshold. RepNet Baseline reaches only 32 samples (0.13\,s) with two blocks --- far short of the 250-sample target for capturing the 1\,Hz discriminative feature. However, the global average pooling (GAP) at the fusion stage collapses the entire remaining temporal dimension, giving the classifier access to information across the full 2500-sample (10\,s) input. This design is deliberate: RepNet uses far fewer convolutional layers to minimize the parameter count --- critical given our dataset of 337 preeclampsia cases compared to Butler et al.'s larger multi-site cohort --- and delegates full-sequence context to the pooling and fusion stages rather than asking convolution alone to build sufficient receptive field.
+ECG-AI reaches a receptive field of 318 samples (1.27\,s) through six blocks of small k=3 kernels with strided convolutions at stage transitions, comfortably exceeding the 250-sample threshold. RepNet Baseline reaches only 32 samples (0.13\,s) with two blocks --- far short of the 250-sample target for capturing the 1\,Hz discriminative feature. However, the global average pooling (GAP) at the fusion stage collapses the entire remaining temporal dimension, giving the classifier access to information across the full 2500-sample (10\,s) input.
 
-\subsubsection{Discussion}
-Initial exploratory data analysis and architectural decisions were made given a pre-balanced UCD-H dataset, (see appendix D for metrics about the data). Near completing this report we have received the full unbalanced data which will inform a much more aggressive analysis and architectural fine-tuning. A detailing of the dataset and analysis performed will be provided in Progrss Report 2.
 
-\section{Optuna Hyperparameter Optimization}
-To achieve optimal model performance with the CNN Transformer we will use ECG-AI as a baseline architecture and experiment with additional layers and hyperparameters using the Optuna framework. This requires making modular components — models with exposed hyperparameter inputs and interchangeable preprocessing and data augmentation pipelines supporting majority undersampling, SMOTE, or GAN strategies.
+\begin{table}[H]
+\centering
+\caption{RepNet Baseline receptive field buildup. Two blocks with wider kernels (k=7, k=5), each containing two convolutions followed by max-pooling.}
+\label{tab:rf-repnet}
+\small
+\begin{tabular}{lr}
+\toprule
+\textbf{Layer} & \textbf{RF (samples)} \\
+\midrule
+Input & 1 \\
+Stage 1: 2$\times$Conv(k=7) + Pool & 14 \\
+Stage 2: 2$\times$Conv(k=5) + Pool & 32 \\
+\midrule
+\textbf{Final conv RF} & \textbf{32 (0.13\,s)} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-Similarly with random forest, we will tune all relevant parameters such as number of estimators, max features, and max depth. We will perform recursive feature elimination (RFE) to optimize the model input into the relevant features and see which are indiciative of preeclampsia \cite{joshi_linking_2025}. All intermediate weights, parameters, and performance metrics will be logged so that batch training jobs can yield both the most performant model and visualizations to bolster our research presentation.
+We note that the RepNet Baseline and Hybrid architectures were created before this exploratory data analysis and architectural deconstruction of ECG-AI were performed. The current two-stage designs with a 32-sample receptive field do not yet reflect the 250-sample target derived from the PSD analysis. However, we have some training history and performance baselines on them that we want to use to inform incremental scaling rather than naively copying larger architectures.
 
-\section{Ablation and Dimensionality Reduction}
+\subsection{Experimenting with Cross-Lead Attention}
+
+We inserted cross-lead multi-head self-attention blocks between the baseline convolutional stages to explore whether allowing leads to interact before fusion would improve classification. The attention mechanism pools each lead's feature map to a single token, applies self-attention across the 12 lead tokens, and gates each lead's full feature map with the resulting weights.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    box/.style={draw, rounded corners, minimum height=0.5cm, font=\scriptsize\sffamily, align=center, thick},
+    lead/.style={box, fill=teal!15, minimum width=0.8cm},
+    conv/.style={box, fill=blue!15, minimum width=0.8cm},
+    attn/.style={box, fill=orange!20, minimum width=4cm},
+    fuse/.style={box, fill=purple!12, minimum width=4cm},
+    out/.style={box, fill=green!15, minimum width=4cm},
+    arrow/.style={-{Stealth[length=2pt]}, thick},
+    lbl/.style={font=\tiny\sffamily, text=gray},
+]
+
+% Individual lead inputs
+\foreach \i/\lead in {0/I, 1/II, 2/III, 3/\dots, 4/V6} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[lead] (in_\i) at (\xpos, 0) {\lead};
+}
+
+% Stage 1: per-lead conv
+\foreach \i in {0,1,2,3,4} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[conv] (s1_\i) at (\xpos, -1.1) {Conv};
+    \draw[arrow] (in_\i) -- (s1_\i);
+}
+\node[lbl, right=0.15cm of s1_4, text width=2.2cm] {Stage 1\\k=7, 32 filters};
+
+% Cross-lead attention 1
+\node[attn] (attn1) at (0, -2.1) {Cross-Lead Attention (4 heads)};
+\foreach \i in {0,1,2,3,4} {
+    \draw[arrow] (s1_\i) -- (attn1);
+}
+
+% Stage 2: per-lead conv
+\foreach \i in {0,1,2,3,4} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[conv, fill=blue!10] (s2_\i) at (\xpos, -3.1) {Conv};
+}
+\draw[arrow] (attn1) -- (s2_0);
+\draw[arrow] (attn1) -- (s2_1);
+\draw[arrow] (attn1) -- (s2_2);
+\draw[arrow] (attn1) -- (s2_3);
+\draw[arrow] (attn1) -- (s2_4);
+\node[lbl, right=0.15cm of s2_4, text width=2.2cm] {Stage 2\\k=5, 64 filters};
+
+% Cross-lead attention 2
+\node[attn] (attn2) at (0, -4.1) {Cross-Lead Attention (4 heads)};
+\foreach \i in {0,1,2,3,4} {
+    \draw[arrow] (s2_\i) -- (attn2);
+}
+
+% Fusion
+\node[fuse] (fuse) at (0, -5.1) {Concatenate 12 leads $\to$ Conv1D($1\times1$)};
+\draw[arrow] (attn2) -- (fuse);
+
+\node[out] (out_r) at (0, -6.1) {GAP $\to$ Dense(2)};
+\draw[arrow] (fuse) -- (out_r);
+
+\end{tikzpicture}
+\caption{RepNet Hybrid architecture. Per-lead Conv1D streams are interleaved with cross-lead multi-head self-attention, allowing leads to dynamically weight each other after each convolutional stage.}
+\label{fig:repnet-hybrid-arch}
+\end{figure}
+
+ Initial experiments indicated a slight increase in performance over the baseline, so we then performed a broad Optuna hyperparameter study optimizing learning rate and dropout rate over 20 trials that took a few hours to complete overnight. This gives us an estimate for the combinatorial explosion of larger training jobs, and how we should allocate our time and compute resources accordingly. The below contour plot that the model benefits from lower learning rates universally, with some slight tendency towards lower dropout rate, but that goes against empirical results from papers so further experiment will be necessary.
+
+\begin{table}[H]
+\centering
+\caption{RepNet Hybrid Optuna best trial results (Trial \#12 of 20).}
+\label{tab:optuna-results}
+\small
+\begin{tabular}{lr}
+\toprule
+\multicolumn{2}{l}{\textbf{Best Hyperparameters}} \\
+\midrule
+Learning rate & $8.76 \times 10^{-4}$ \\
+Dropout & 0.064 \\
+CV AUROC (5-fold) & 0.8018 \\
+Test AUROC & 0.7873 \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\begin{tabular}{lrr}
+\toprule
+& \textbf{$t = 0.50$} & \textbf{Youden's $J = 0.786$} \\
+\midrule
+Accuracy & 0.73 & 0.76 \\
+PE Precision & 0.70 & 0.76 \\
+PE Recall & 0.84 & 0.76 \\
+PE F1-score & 0.76 & 0.76 \\
+Normal Precision & 0.79 & 0.75 \\
+Normal Recall & 0.61 & 0.75 \\
+Normal F1-score & 0.69 & 0.75 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{contour_plot.png}
+\caption{Optuna contour plot of the hyperparameter search over learning rate and dropout for RepNet Hybrid. The objective value (mean 5-fold CV AUROC) is highest in the low-dropout ($<0.1$), moderate learning rate ($\sim 8 \times 10^{-4}$) region. High dropout ($>0.25$) consistently degrades performance.}
+\label{fig:optuna-contour}
+\end{figure}
+
+\begin{algorithm}[H]
+\caption{Optuna TPE Hyperparameter Study on RepNet Hybrid}\label{alg:optuna}
+\SetAlgoLined
+\KwIn{$X, y$ (full dataset), $N$ (number of trials), $K=5$ (folds)}
+\KwOut{Best model weights, test AUROC}
+\textbf{Fixed:} filters $= (32, 64)$, $k = (7, 5)$, heads $= 4$, batch $= 64$, epochs $= 50$, loss $=$ weighted CE\;
+$X_{\text{dev}}, X_{\text{test}}, y_{\text{dev}}, y_{\text{test}} \gets \text{StratifiedSplit}(X, y, 80/20)$\;
+$\text{folds} \gets \text{StratifiedKFold}(X_{\text{dev}}, y_{\text{dev}}, K)$\;
+\BlankLine
+\For{$t \gets 1$ \KwTo $N$}{
+    $\text{lr} \sim \text{LogUniform}(10^{-4},\; 5 \times 10^{-3})$\;
+    $\text{dropout} \sim \text{Uniform}(0.05,\; 0.4)$\;
+    \BlankLine
+    \For{$k \gets 1$ \KwTo $K$}{
+        $X_{\text{tr}}, X_{\text{val}} \gets \text{folds}[k]$\;
+        $X_{\text{tr}} \gets \text{Augment}(X_{\text{tr}},\; \sigma{=}0.02,\; \text{scale}{=}0.1,\; \text{shift}{=}100)$\;
+        $\mathcal{M} \gets \text{RepNetHybrid}(\text{lr}, \text{dropout}, \textbf{Fixed})$\;
+        $\text{Train}(\mathcal{M}, X_{\text{tr}}, X_{\text{val}}, \text{patience}{=}10)$\;
+        $A_k \gets \text{AUROC}(\mathcal{M}, X_{\text{val}})$\;
+    }
+    Report $\frac{1}{K}\sum_{k=1}^{K} A_k$ to TPE sampler\;
+}
+\BlankLine
+$\text{lr}^*, \text{dropout}^* \gets \text{best trial parameters}$\;
+$\mathcal{M}^* \gets \text{RepNetHybrid}(\text{lr}^*, \text{dropout}^*, \textbf{Fixed})$\;
+$\text{Train}(\mathcal{M}^*, X_{\text{dev}}, \text{patience}{=}10)$\;
+\Return $\text{AUROC}(\mathcal{M}^*, X_{\text{test}})$\;
+\end{algorithm}
+
+
+\subsection{Discussion}
+All above analysis and model architecture discovery was performed on a pre-balanced subset of the UC Davis Health preeclampsia dataset. Near completing this report we have received the full unbalanced dataset, which will inform more aggressive architectural scaling, fine-tuning, and exploration of augmentation and synthetic data generation.
+
+\begin{table}[H]
+\centering
+\caption{UC Davis Health preeclampsia dataset distribution.}
+\label{tab:ucdh-dataset}
+\small
+\begin{tabular}{lrr}
+\toprule
+& \textbf{Balanced} & \textbf{Full} \\
+\midrule
+Normal patients & 132 & 1,217 \\
+Normal ECGs & 182 & 1,854 \\
+\midrule
+PE patients & 132 & 168 \\
+PE ECGs & 187 & 337 \\
+\midrule
+\textbf{Total ECGs} & \textbf{369} & \textbf{2,191} \\
+Ratio (Normal:PE) & $\sim$1:1 & $\sim$5.5:1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Future Work}
+
+We will experiment with a vast variety of experimental architectures from literature and creative ideas looking at the data, model performance, layer behavior, and optuna feedback. We will have to determine what is to be done about the severe class imbalance of the full dataset, we will most likely experiment with SMOTE-Tomek, an ecg-specialized SMOTE (cite). AND we will experiment with GAN models built for synthetic generation of ECG data (cite).
 
 We will analyze dimensionality reduction of our inputs, determining which leads are relevant for diagnosis of preeclampsia, for compute and resource constrained environments such as the developing world where preeclampsia disproportionately kills and could benefit from the most modest intervention. Such would enable using simpler non 12-lead ECG systems, and diagnosis from local and embedded compute on the spot rather than needing external compute clusters on premisis or in the cloud.
 
@@ -402,11 +581,11 @@ We will perform dimensionality reduction using principal component analysis (PCA
 
 We will also do ablation study, where we selectively add or remove information such as masking certain leads, or injecting noise, to see what actually breaks the model versus leaves it unchanged. At the extreme we can do a combinatorial study of every possible subset of the 12-lead ECG, 2 to the power of 12 being 4096 sets, if compute constraints are not an issue such as cloud computing \cite{xue_does_2024}.
 
-Lastly we may train an autoencoder such across leads to learn a compressed latent representation, and by varying bottleneck size we can see performance vs information capacity, seeing how much information we can compress and still retain performance, showing us how much information we can discard or start with in the first place. This would essentially be a continous version of channel dropout.
+Lastly we may train an autoencoder such as BERT across leads to learn a compressed latent representation, and by varying bottleneck size we can see performance vs information capacity, seeing how much information we can compress and still retain performance, showing us how much information we can discard or start with in the first place. This would essentially be a continous version of channel dropout mentioned earlier.
 
 
 \section{Caliper Libtorch Visualization Utility}
-The development of our model will ship alongside Caliper, a framework built atop of C++, Libtorch (Pytorch C++ API), and OpenGL, ImGUI and ImPLOT. It will be publicly available through github. It is a highly performant machine learning visualization tool able to display data elements, neural network layers, outputs in real time, and tie them to arbitrary rendering through whatever is possible with a 3D graphics API, and also offering a user interface to alter settings on the fly.
+The development of our model will ship alongside Caliper, a framework built atop of C++, Libtorch (Pytorch C++ API), and OpenGL, ImGUI and ImPLOT. It will be publicly available through GitHub. It is a highly performant machine learning visualization tool able to display data elements, neural network layers, outputs in real time, and tie them to arbitrary rendering through whatever is possible with a 3D graphics API, and also offering a user interface to alter settings on the fly.
 
 Development of the basic framework has been sucessful, with CUDA augmentation on Windows and MPS augmentation on MacOS. We will begin development of the graphical user interface for demonstration alongside model development. We are planning to have options to load ECG datasets in the format of CSV and then options to load models from standard PyTorch weight formats that can then automatically construct visualizations that can also show data propogation through the network.
 
