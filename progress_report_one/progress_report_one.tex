@@ -5,6 +5,9 @@
 \usepackage{tikz}
 \usepackage{float}
 \usepackage{hyperref}
+\usepackage{amssymb}
+\usepackage[most]{tcolorbox}
+\usepackage{cuted}
 \usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc}
 
 \settopmatter{printacmref=false, printfolios=false}
@@ -44,6 +47,16 @@
 %% information and builds the first part of the formatted document.
 \maketitle
 
+{%
+\renewcommand{\contentsname}{Table of Contents}
+\setcounter{tocdepth}{2}
+\begin{strip}
+\hrule\vspace{6pt}
+\tableofcontents
+\vspace{6pt}\hrule
+\end{strip}
+}
+
 \section*{Code Availability}
 \begin{center}
 \begin{tabular}{@{}ll@{}}
@@ -56,168 +69,64 @@ Caliper & \url{https://github.com/AhmedKhan-GH/caliper} \\
 \end{tabular}
 \end{center}
 
+Our model is being trained on a proprietary UC Davis Health dataset, hence this progress report will only contain aggregate statistics about our results and publicly available ECG examples.
+
 \section{Introduction}
-Risk Estimation of Preeclampsia Network (RepNet) is our research in improving the machine learning and deep learning classification of 12-Lead electrocardiogram (ECG) waveforms for estimation of preeclampsia (PE). We aim to do this via implementing a novel transformer based convolutional neural network (CNN) architecture trained on a proprietary UC Davis Health (UCDH) dataset.
+Risk Estimation of Preeclampsia Network (RepNet) is our research in improving the machine learning and deep learning classification of 12-lead electrocardiogram (ECG) waveforms for estimation of preeclampsia. We are implementing a one-dimensional convolutional neural network (CNN) with experimental attention mechanisms for temporal and cross-lead analysis. This builds off of the sole previous study in CNN based ECG classification for preeclampsia by Butler et al \cite{butler_ai-based_2024}. Furthermore we are implementing a random forest classifier that extracts manually specified ECG features to explain classification results. This builds off general ideas and approaches of a previous study in ECG classification for RWMA by Joshi et al \cite{joshi_linking_2025}.
 
-Training will be conducted through the Optuna hyperparameter optimization framework to experiment with the combinatorial parameter and architectural space of the model. Lastly we aim to augment dataset imbalance using a transformer based generative adversarial network (GAN) or synthetic minority oversampling technique (SMOTE).
+We are currently running model training experiments on architectural dimensions informed by exploratory data analysis. We are running our model training and validation on PyTorch and Scikit-Learn through the Optuna hyperparameter optimization framework which enables exploration of the parameter and architectural space of the model. Optuna uses Tree-structured Parzen Estimator to maximize training results across runs by selecting hyperparameters from a continually updated probability distribution [cite optuna paper]. This approach was inspired by Joshi et al \cite{joshi_linking_2025}.
 
-We will explore the only one past work done on this specific subject and make advancements on the foundation of their work, and benchmark against it. We will also explore the retraining of existing ECG large foundation models (LFM) as well as benchmarking against their performance versus our specific architecture.
+For model refinement, we intend to perform ablation studies and dimensionality reduction on the input \cite{xue_does_2024,attia_automated_2022}, and analyze saliency maps and attention maps to determine the relevant data for classification to inform reduced-lead learning and input [Gradcam citation]. We intend to explore purpose build ECG preprocessing strategies for signal sanitization \cite{jia_preprocessing_2024,satija_review_2018} and data augmentation strategies to manage class imbalance \cite{rahman_systematic_2023,xia_generative_2023}. We intend to explore specific feature extractions of preeclampsia \cite{angeli_novel_2015,raffaelli_pre-eclampsia_2014} and explore the larger field of ECG feature analysis \cite{kaplan_berkaya_survey_2018,singh_ecg_2023}. We intend to explore past work of preeclampsia decision tree strategies \cite{park_pchd_2014,musa_predicting_2023}, to better classify and explain results with our random forest.
+We intend to perform model compression for the deployment on edge devices and compute constrained environments such as Jetson Nano or Raspberry Pi \cite{keivanimehr_tinyml_2025,gupta_comprehensive_2024}.
+Lastly we intend to combine our model with our in-house real-time machine learning visualizer named Caliper to demonstrate clinical workflows augmented by machine learning and deep learning, for final presentation at the UC Davis Senior Design Showcase in June 2026 [cite caliper github].
 
-We aim to train a random forrest (RF) classifier and visualize manually extracted ECG features from the RF classifier alongside the attention mapping of the DL to augment clinical workflows by providing explainability to clinicians through tangible quantities. We intend to create a machine learning visualization tool to show model prediction, attention mapping, and featurization suggestions in real time.
+\section{Exploratory Literature Overview}
 
-Lastly we intend to perform ablation studies on model inputs as well as dimensionality reduction of the dataset to experiment with reduced-lead classification, and see if it can be just as performant since it would be useful in resource constrained clinical settings.
+We performed a survey of the literature by querying ChatGPT (see Appendix~\ref{appendix:chatgpt}), which performed broad internet searches over academic archives such as PubMed, Google Scholar, ArXiv, etc. We queried it to rank the best papers within specific fields we intend to study, such as machine learning models for preeclampsia or deep learning for the entire field of electrocardiogram classification.
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    node distance=0.4cm and 0.6cm,
-    block/.style={draw, rounded corners, minimum height=0.6cm, minimum width=2.2cm,
-                  font=\scriptsize\sffamily, align=center, thick},
-    data/.style={block, fill=teal!15},
-    proc/.style={block, fill=gray!15},
-    ml/.style={block, fill=blue!15},
-    dl/.style={block, fill=orange!15},
-    out/.style={block, fill=green!15},
-    viz/.style={block, fill=purple!15},
-    arrow/.style={-{Stealth[length=2pt]}, thick},
-]
-
-% Input
-\node[data] (ecg) {12-Lead ECG\\(UCDH Dataset)};
-\node[proc, below=of ecg] (preproc) {Preprocessing\\+ Augmentation};
-
-% Split point
-\coordinate[below=0.5cm of preproc] (split);
-
-% ML branch (left)
-\node[ml, below left=0.6cm and 0.8cm of split] (feat) {Feature\\Extraction};
-\node[ml, below=of feat] (rf) {RF Classifier};
-\node[out, below=of rf] (fimp) {Feature\\Importance};
-
-% DL branch (right)
-\node[dl, below right=0.6cm and 0.8cm of split] (cnn) {CNN-Transformer\\(Optuna)};
-\node[dl, below=of cnn] (lfm) {LFM Benchmark\\(ECG-FM)};
-\node[out, below=of lfm] (attn) {Attention\\Mapping};
-
-% Caliper convergence
-\coordinate[below=0.5cm of fimp] (merge_l);
-\coordinate[below=0.5cm of attn] (merge_r);
-\node[viz, below=1.2cm of split |- fimp.south] (caliper) {Caliper\\Visualization};
-\node[out, below=of caliper] (clinic) {Clinical\\Explainability};
-
-% Arrows - main flow
-\draw[arrow] (ecg) -- (preproc);
-\draw[arrow] (preproc) -- (split);
-\draw[arrow] (split) -| (feat);
-\draw[arrow] (split) -| (cnn);
-\draw[arrow] (feat) -- (rf);
-\draw[arrow] (rf) -- (fimp);
-\draw[arrow] (cnn) -- (lfm);
-\draw[arrow] (lfm) -- (attn);
-
-% Arrows - merge into Caliper
-\draw[arrow] (fimp.south) |- (caliper.west);
-\draw[arrow] (attn.south) |- (caliper.east);
-\draw[arrow] (caliper) -- (clinic);
-
-\end{tikzpicture}
-\caption{RepNet system pipeline. The 12-Lead ECG dataset is preprocessed and split into two parallel tracks: a random forest classifier with manual feature extraction (left) and a CNN-Transformer with Optuna optimization benchmarked against foundation models (right). Both tracks converge in the Caliper visualization utility, combining feature importance and attention mapping to provide clinical explainability.}
-\label{fig:pipeline}
-\end{figure}
-
-\section{Review of the Literature}
-
-We performed a review of the literature by first querying ChatGPT, which performed broad internet searches over academic archives such as PubMed, Google Scholar, ArXiv, etc. We queried it for ranking the best papers across specific fields we intend to study, such as the state of the art of machine learning (ML) models for PE or deep learning for the entire field of ECG classification.
-
-Papers were evaluated based on their bredth, rigor, and relevance to a novel research project. After this review of literature reviews, we intend to select the most relevant original studies each mention for our actual deep dive into model architecture and methods whilst doing development and validation. See Appendix A for the list of reviewed literature.
+Papers were evaluated based on their relevance to a novel research project via their broad scope or systematic rigor. After this review of literature reviews, we intend to select the most relevant original studies each mention for our actual deep dive into model architecture and methods alongside async development and validation. See Appendix~\ref{appendix:literature} for the summary of reviewed literature.
 
 \subsection{Preeclampsia ML Literature Reviews}
 
-We sought a comprehensive review over the field machine learning and deep learning research into PE, to see what work had been done to solve this problem in the past. We selected Özcan et al. as it both a broad overview across classical ML and modern DL, a review of specific papers and the trade offs of their models. Ozcan included 35 papers published from 2018 to 2023 \cite{ozcan_preeclampsia_2025}. It serves as a good primer into the state of the art. We also selected a statistical meta-analysis by H. Liu et al. that goes much deeper into comparison of model performance between a smaller number of 26 papers \cite{liu_machine_2026}. None of the models presented in Özcan et al. or H. Liu et al. were trained to classify ECG waveforms in any way, they were all various methods of learning from other features such as electronic health record (EHR) data and risk factors.
+For a comprehensive review over the field machine learning and deep learning research into preeclampsia, we have finished reviewing Özcan et al. as it covers both classical machine learning and modern deep learning. It provides a review of 35 papers from 2018 to 2023 and the trade offs of their models \cite{ozcan_preeclampsia_2025}.  Özcan et al. serves as a good primer into the state of the art. We also selected a statistical meta-analysis by H. Liu et al. for future reading, which goes much deeper into comparison of model performance between a smaller number of 26 papers \cite{liu_machine_2026}.
 
+None of the models presented in Özcan et al. were trained to specifically classify ECG waveforms in any way, they were all various methods of learning from other features such as electronic health record (EHR) data and risk factors. It also does not have any decision tree or random forest to specifically classify preeclampsia ECG waveforms, though many RF models exist using other features such as EHR data. This indicates that the field of both classical machine learning and modern deep learning on ECG waveforms of preeclampsia is in dire need of advancement.
 
-By extension, the reviews do not showcase any decision tree (DT) type models to classify ECG Waveforms of PE, though many RF models exist using other features such as EHR data. We further confirm this by an extended-thinking ChatGPT query, asking it to return all ECG Waveform ML papers on PE and it returns Butler et al. and Euliano et al which will be discused later. This indicates that the field of both classical ML and modern DL on ECG waveforms of PE is an untapped research field that is ripe for contribution.
 
 \subsection{Preeclampsia ECG Classification Studies}
-To our knowledge there is only one relevant previous work conducting a DL study on PE ECG waveforms, Butler et al. which showcases a 1-D CNN they call ECG-AI \cite{butler_ai-based_2024}. There is also an older study by Euliano et al. which is on 3-Lead instead of 12-Lead ECG and they perform linear descriminant analysis (LDA), a classical ML approach, and this paper also lends credence to the aim of dimensionality reduction of the input \cite{euliano_photoplethysmography_2018}. We seek to advance the field upon this valuable work.
+To our knowledge there is only one relevant previous work conducting a deep learning study on preeclampsia ECG waveforms, Butler et al. which presents a 1-D CNN they call ECG-AI \cite{butler_ai-based_2024}. See Appendix~\ref{appendix:butler} for a detailed model architecture. There is also an older study by Euliano et al. which is on 3-Lead instead of 12-Lead ECG and they perform linear descriminant analysis (LDA), a classical ML approach. The paper lends credence to a reduced lead input \cite{euliano_photoplethysmography_2018}.
 
-\subsection{ECG Classification ML Literature Reviews}
-In the general field of ECG Waveform classification, we selected the literature review by Boulif et al. as a broad scope primer that covers both ML and DL methods \cite{boulif_literature_2023}. We also selected Prakash et al. as a deep systematic review that covers more research process and model architecture \cite{jaya_prakash_advances_2025}.
+\subsection{ECG Classification Literature Reviews}
+In the general field of ECG Waveform classification, we finished reviewing a literature review Boulif et al., which is a broad scope review that covers both machine learning and deep learning methods \cite{boulif_literature_2023}. We also selected Prakash et al. for future reading, it is a deep systematic review that covers more research process and model architecture \cite{jaya_prakash_advances_2025}.
 
-\subsection{ECG Classification DL Literature Reviews}
-Since we are focusing on cutting edge DL such as CNN enhanced by attention mechanisms, we selected M. Ansari et al. for its comprehensive survey of transformers and LLMs specifically applied to ECG classification \cite{ansari_survey_2025}. Furthermore we selected Y. Ansari et al. for its deep systematic analysis and comparison of DL and transformer model architectures for ECG comparison \cite{ansari_deep_2023}.
-
-\subsection{ECG Classification Transformer Studies}
-We selected leading studies in the application of transformers with CNNs. We selected Kim et al. as it implements Stockwell transform, a functional in the same class as Wavelet transform, but which modulates the size of the window based on the frequency, giving high frequencies better spacial locality, and low frequencies a more accurate frequency reading \cite{kim_novel_2025}. Stockwell transform localizes a signal's energy in both time and frequency rather than forcing it to learn those features from raw timeseries data or discarding it in total transforms like Fourier, enabling models like CNN to pick up on the movement of levels of energy as cardiac events from the visual distributions, as shown in Figure~\ref{fig:stockwell}.
-
-\begin{equation}
-S(t,f)=\int_{-\infty}^{\infty} x(\tau)\,\frac{|f|}{\sqrt{2\pi}}\,e^{-\frac{(t-\tau)^2 f^2}{2}}\,e^{-i 2\pi f \tau}\,d\tau
-\end{equation}
-
-\begin{figure*}[ht]
-\centering
-\includegraphics[width=\textwidth]{41598_2025_92582_Fig3_HTML.png}
-\caption{Stockwell transform representations of ECG heartbeat types (N, S, V, Q). Row 1: raw signal; Rows 2--4: magnitude, real, and imaginary components of the S-transform, showing how time--frequency energy distributions differ across arrhythmia classes. Reproduced from Kim et al.~\cite{kim_novel_2025}.}
-\label{fig:stockwell}
-\end{figure*}
-
-L. Liu et al implements a 1-D CNN with Bidirectional Encoding Representations from Transformers (BERT). BERT is a bidirectional attention mechanism which captures both past and future context. Unlike traditional applications of transformers such as language models or video models that posit only past causal context for inference, the heart functions in such a way that the electrical or physical activity in one moment can cause knock on effects to the system, hence future context \cite{liu_hybrid_2025}.
-
-\subsection{ECG Classification Large Foundation Models}
-
-LFM's hold promise for their training on millions of ECG waveforms, they save us the trouble of access to limited data by training the earlier layers on massive amounts of data, giving it robust feature extraction that can then be reasoned about for different classification tasks after the fact. We selected Han et al. as the leading literature review on ECG Classification LFM's \cite{han_systematic_2025}.
-
-Picking a specific model to work with, we selected ECG-FM since it is the leading open model in the field, they provide a GitHub repository with all relevant infrastructure and pipelines such as signal preprocessing and running benchmarks on public datasets \cite{mckeen_ecg-fm_2025}. We will compare our model's performance trained on these public datasets as well as a fine tuned ECG-FM Though we recognize extremely large models may be too large for a small dataset, so we will explore smaller models as needed.
-
-\subsection{ECG Waveform Features of Preeclampsia}
-
-Since our RF model will train on manual featurization on ECG waveforms, we selected older papers firmly in the camp of clinical electrocardiography rather than machine learning or deep learning. Angeli et al. serves a review of a few ECG features of PE \cite{angeli_novel_2015}. Rafaelli et al. deep dives into the QT interval, a repeatedly cited ECG feature of PE with visual and mathematical analysis \cite{raffaelli_pre-eclampsia_2014}. This will serve as as a demonstration of the approach for the other features we have been assigned or find relevant in the literature.
-
-\subsection{ECG Waveform Preprocessing Reviews}
-
-ECG waveforms are subject to noise from environmental factors such as improper adhesion of contacts, movement during treatment, inductive interference from power lines, and the subtle differences in the real world electrical components such as DACs that convert signals to data. We have selected Jia et al. as an overview of data preprocessing techniques that we can collectively employ across our models and evaluating which combination leads to the best results \cite{jia_preprocessing_2024}.
-
-Most literature build off of a standard approach first doing baseline wander highpass filtering and z-score normalization, sometimes notch filtering the 50 hz (world) or 60 hz (USA) powerline interference. To conduct preprocessing quality evaluation before model training and validation for saving time on compute we selected Satija et al. which covers methods for ECG signal quality assessment \cite{satija_review_2018}.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\columnwidth]{ECG-signal-before-A-and-after-B-preprocessing_W640.jpg}
-\caption{ECG signal before (A) and after (B) preprocessing to remove baseline drift, illustrating the effect of highpass filtering on raw ECG data.}
-\label{fig:ecg-preproc}
-\end{figure}
-
-\subsection{Preeclampsia Decision Tree Classification}
-Since we are training a RF classifier, a variant of decision tree, and furthermore performing dimensionality reduction on ECG leads, we selected Musa et al. as they performed an original study of PCA on a DT classifier for PE, which may indicate how we approach having a dimensionally reduced feature set input for our RF classifier \cite{musa_predicting_2023}. We also selected Park et al., an original study which performed DT classification for ECG waveforms \cite{park_pchd_2014}. We feel that these papers combined serve as a foundation for how we should approach the deeper aspects of our PE ECG RF classifier, and how it may incorporate other dimensions such as EHR data.
-
-\subsection{Data Augmentation for ECG Waveforms}
-An endemic issue of medical ML is sparse access to datasets, which themselves are small and restricted access, especially for lesser researched diseases that would benefit from such work. Furthermore, such datasets have a wild class imbalance because there is no guarantee that diseases are an ideal 50\% of the sample population, diseased sample points are usually in the minority.
-
-Data balancing such as majority undersampling are severely detrimental for throwing away a large portion of the usable data and restricting to an extremely small dataset, and minority oversampling does not really solve anything as simply reasserting the same points does not generalize to learning the decision surface, and may cause the model to overfit. We selected an overview of ECG data augmentation strategies by Rahman et al.\ \cite{rahman_systematic_2023}.
-
-There are more advanced data augmentation strategies that try to interpolate points on the data manifold, such as synthetic minority oversampling technique (SMOTE) \cite{chawla_smote_2002}. Then there are GAN models that try to infer the structure of the data manifold in a nonlinear way through training a generator and descriminator, with the descriminator trying to distinguish synthetic from actual points, and the generator trying to be less perceptable to the descriminator, and it ends up creating sample points that are more indicative of the dataset, and this helps the model train better. We selected a paper by Xia et al. on transformer based GAN for boosting datasets ECG classification \cite{xia_generative_2023}.
-
-\subsection{ECG Model Efficiency and Compression}
-After we have trained a performant model, we must tackle the challenge of deployment on edge devices. Not every clinical setting has direct access to a dedicated compute cluster or server, in general it is expected for the diagnostic tool to be self contained. Medical privacy protections prevent such data from being transmitted to cloud compute solutions. Furthermore, consider compute constraints for financial reasons, such as smaller clinics or even the developing world where PE disproportionately kills. It would be useful to deploy if we could achieve a model of similar performance for a fraction of the memory and compute costs.
-
-We selected Gupta et al. as it is specifically a literature review on efficient ECG Classification models, both existing efficient architectures and strategies to shrink models such as distillation, quantization, pruning, etc \cite{gupta_comprehensive_2024}. We also selected Keivanimehr as it covers TinyML for ECG classification. TiyML is a framework for deploying machine learning on edge and embedded devices, and as such we woul explore how to fit our model into this framework \cite{keivanimehr_tinyml_2025}.
-
-\subsection{ECG Feature Analysis Literature Reviews}
-ECG feature analysis and feature extraction as a field will be an important aspect of our explainable RF classifier. Kaplan et al. as a review of ECG feature analysis, going into the anatomy of a single heartbeat and naming everything we should be familiar with, and also exploring applications of machine learning \cite{kaplan_berkaya_survey_2018}. We selected Singh et al. as a review of ECG feature extraction, it goes over the very algorithms that we end up using in existing libraries such as Neurokit2 \cite{singh_ecg_2023}.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\columnwidth]{A-typical-ECG-waveform-and-its-characteristic-patterns-P-and-T-waves-PR-and-ST_W640.jpg}
-\caption{A typical ECG waveform showing the P-wave, QRS complex, T-wave, and characteristic intervals (PR, QT) and segments (PR, ST) referenced throughout our featurization \cite{beritelli_novel_2018}.}
-\label{fig:sinus-rhythm}
-\end{figure}
+Focusing on deep learning we have finished reviewing M. Ansari et al. for its comprehensive survey of transformers and LLMs specifically applied to ECG classification \cite{ansari_survey_2025}. Furthermore we have also finished reviewing Y. Ansari et al. for its deep systematic analysis and comparison of DL and transformer model architectures for ECG comparison \cite{ansari_deep_2023}. They both show the prevelance of convolutional neural networks, some enhanced by attention mechanisms.
 
 \subsection{Capstone Project Assigned Literature}
 
-As part of our project assignment we were given four papers, one is Butler et al. which we have already covered \cite{butler_ai-based_2024}. Another is Joshi et al., which contains the same bicameral machine learning approach that we are instructed to do, training both a RF classifier and a CNN model on ECG waveform classificaiton. Joshi et al. studied regional wall motional abnormality (RWMA) whilst we are studying PE \cite{joshi_linking_2025}. We have made contact with Joshi, and discussed his approach and considerations from training his model and we have incorporated such into our plans.
+Our project assignment provides four papers, one was Butler et al. which we have already covered \cite{butler_ai-based_2024}. Another is Joshi et al., which contains the same bicameral machine learning approach that we are instructed to do, training both a RF classifier and a CNN model on ECG waveform classificaiton. Joshi et al. studied regional wall motional abnormality (RWMA) whilst we are studying preeclampsia \cite{joshi_linking_2025}. We have made contact with Joshi, and discussed his approach and considerations from training his model, especially optuna hyperparameter optimization, and we have incorporated such into our plans.
 
-\subsection{ECG Dimensionality Reduction Studies}
+Two more assigned literature regard dimensionality reduction of the input. We were provided Xue et al. which covers dimensionality reduction in the ECG channels and if they still contain the relevant information and if they can be reconstructed with interpolation \cite{xue_does_2024}. We were also provided Attia et al. that explores ECG classification from a single lead, showing what is possible at the limit of the dimensionality reduction \cite{attia_automated_2022}. Dimensionality reduction is relevant because a fully-kitted 12 Lead ECG is still a less common measure used in larger clinics and hospitals. In any situation such as for paramedics, smaller clinics, or even the developing world where preeclampsia disproportionately kills, it would be useful to still be able to draw conclusions even with constrained diagnostic resources.
 
-Two more assigned literature regarded dimensionality reduction of the input. We were provided Xue et al. which covers dimensionality reduction in the ECG channels and if they still contain the relevant information and if they can be reconstructed with interpolation \cite{xue_does_2024}. We were also provided Attia et al. that explores ECG classification from a single lead, showing what is possible at the limit of the dimensionality reduction \cite{attia_automated_2022}. Dimensionality reduction is relevant because a fully-kitted 12 Lead ECG is still the most extreme measure, used in large hospitals. In any situation such as for paramedics, smaller clinics, or even the developing world where PE disproportionately kills, it would be useful to still be able to draw conclusions even with constrained diagnostic resources.
+\section{Enhancement Literature Overview}
+
+The following are literature that we believe will further enhance our model performance beyond the baseline by applying complex and cutting edge methods. Here we will also explore the later stage deliverables such beyond model training such as model compression for edge deployment we intend to achieve.
+
+\subsection{ECG Feature Analysis Literature Reviews}
+ECG feature analysis and feature extraction as a field will be an important aspect of our explainable RF classifier. We selected Kaplan et al. as a review of ECG feature analysis, going into the anatomy of a single heartbeat and naming everything we should be familiar with, and also exploring applications of machine learning \cite{kaplan_berkaya_survey_2018}. We also selected Singh et al. as a review of ECG feature extraction, it goes over the very algorithms that we end up using in existing libraries such as Neurokit2 \cite{singh_ecg_2023}.
+
+\subsection{Preeclampsia ECG Waveform Features}
+
+Since our RF model will train on manual featurization on ECG waveforms, for future reading we selected older papers firmly in the camp of clinical electrocardiography rather than machine learning or deep learning. Angeli et al. serves a review of a few ECG features of preeclampsia \cite{angeli_novel_2015}. Rafaelli et al. deep dives into the QT interval, a repeatedly cited ECG feature of preeclampsia with visual and mathematical analysis \cite{raffaelli_pre-eclampsia_2014}. This will serve as as a demonstration of the approach for the other features we have been assigned or find relevant in the literature.
+
+\subsection{ECG Waveform Preprocessing Reviews}
+
+Most literature builds off of a standard approach first doing baseline wander highpass filtering and z-score normalization, and notch filtering the 50 hz (world) or 60 hz (USA) powerline interference. We have applied these methods already in our data pre-processing and exploratory data analysis pipelines.
+
+For future reading we have selected Jia et al. as an overview of data preprocessing techniques that we can collectively employ across our models and evaluating which combination leads to the best results \cite{jia_preprocessing_2024}. To conduct preprocessing quality evaluation before model training and validation for saving time on compute we selected Satija et al. which covers methods for ECG signal quality assessment \cite{satija_review_2018}.
+
+\subsection{ECG Model Efficiency and Compression}
+
+Not every clinical setting, especially in the developing world, has access to dedicated high performance compute. For compute efficiency and deployment on edge devices, we selected Gupta et al. as it is specifically a literature review on efficient ECG Classification models, both existing efficient architectures and strategies to shrink models such as distillation, quantization, pruning, etc \cite{gupta_comprehensive_2024}. We also selected Keivanimehr as it covers TinyML for ECG classification. TiyML is a framework for deploying machine learning on edge and embedded devices, and as such we woul explore how to fit our model into this framework \cite{keivanimehr_tinyml_2025}.
 
 \section{Random Forest Featurization Progress}
 Decision tree-based models have proven to be successful in predicting preeclampsia, though none through the use of ECGs for inference.
@@ -277,11 +186,14 @@ Frontal QRS-T Angle & $|\,\text{QRS Axis} - \text{T Axis}\,|$ \\
 Once the UCDH Echo dataset and MUSE values are released, we will be able to compare Neurokit values from MUSE values and determine if there are any drastic differences. An RF model will be initially used, but other decision tree models will be tested such as LightGBM and XGBoost to achieve best performance. After model selection, feature importance and feature distribution will be analyzed through $\chi^2$ testing or principal component analysis (PCA). Because the dataset is imbalanced, we may employ SMOTE to train on a balanced dataset.
 
 \section{Convolutional Transformer Progress}
-We have obtained the model dimensions and weights of the ECG-AI trained by Butler et al. from GitHub. This model can serve as a benchmark against our own model, both in the performance of their model weights, and the performance of their model architecture trained on our dataset. Furthermore, the architecture serves as a starting point where we can experiment with transfer learning in freezing in retraining different layers, append, pre-pend, replace, or shim layers to achieve new functions such as attention, all in the aim of even better performance.
 
-\subsection{Butler et al.\ ECG-AI Model Architecture}
+In this report we cover the process of arriving at our baseline model, enhancements we have made thus far, as well as directions we plan to take for the three weeks until Progress Report 2 where we intend to have a fully functional model and report for submission to Sandia, and use the remainder of the time to prepare our live presentation and showcase demonstration.
 
-The Butler et al.\ ECG-AI model is a 1-D residual convolutional neural network that accepts 12-lead ECG signals of length 2250 samples. The architecture comprises six residual blocks organized into three stages of progressively increasing filter width (16, 32, 64), each followed by max-pooling and dropout for regularization. A final flatten and dense softmax layer produces a two-class output. See Appendix~B for the full decomposed layer-by-layer model architecture.
+We performed exploratory data analysis to inform our initial model architecture to perform both narrow studies modifying parameters with optuna, and broad studies modifying architecture to see what sticks.
+
+\subsection{Previous Work}
+
+We build off of the work by Butler et al.\ and their ECG-AI which we have obtained from GitHub \cite{butler_ai-based_2024}. ECG-AI is a ResNet-based 1-D CNN that accepts 12-lead ECG signals of length 2250 samples as a channel-dependent input. The architecture comprises six residual blocks organized into three stages of progressively increasing filter width (16, 32, 64). All convolutions use kernel size 3 with L2 regularization ($\lambda = 10^{-4}$). Each block ends with max-pooling and dropout (0.1). Blocks 3 and 5 (the first block of Stages 2 and 3) additionally use strided convolutions (stride=2) with a $1\times1$ projection for the skip connection to match the increased filter count. A final flatten and dense softmax layer produces a two-class output.
 
 \begin{figure}[H]
 \centering
@@ -298,11 +210,11 @@ The Butler et al.\ ECG-AI model is a 1-D residual convolutional neural network t
 ]
 
 \node[io] (input) {Input: $2250\times12$};
-\node[stage16, below=of input] (rb1) {ResBlock $16\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage16, below=of input] (rb1) {ResBlock $16\times3$ (3 conv) $\to$ MaxPool $\to$ Drop 0.1};
 \node[stage16, below=of rb1] (rb2) {ResBlock $16\times3$ $\to$ MaxPool $\to$ Drop 0.1};
-\node[stage32, below=0.6cm of rb2] (rb3) {ResBlock $32\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage32, below=0.6cm of rb2] (rb3) {ResBlock $32\times3$ (s=2, 1$\times$1 proj) $\to$ MaxPool $\to$ Drop 0.1};
 \node[stage32, below=of rb3] (rb4) {ResBlock $32\times3$ $\to$ MaxPool $\to$ Drop 0.1};
-\node[stage64, below=0.6cm of rb4] (rb5) {ResBlock $64\times3$ $\to$ MaxPool $\to$ Drop 0.1};
+\node[stage64, below=0.6cm of rb4] (rb5) {ResBlock $64\times3$ (s=2, 1$\times$1 proj) $\to$ MaxPool $\to$ Drop 0.1};
 \node[stage64, below=of rb5] (rb6) {ResBlock $64\times3$ $\to$ MaxPool $\to$ Drop 0.1};
 \node[io, below=0.6cm of rb6] (flat) {Flatten $\to$ Dense(2) $\to$ Softmax};
 
@@ -320,9 +232,162 @@ The Butler et al.\ ECG-AI model is a 1-D residual convolutional neural network t
 \end{scope}
 
 \end{tikzpicture}
-\caption{High-level view of the Butler et al.\ ECG-AI architecture showing six ResBlocks across three filter-width stages (16, 32, 64), each stage followed by max-pooling and dropout, culminating in a dense softmax output layer.}
+\caption{High-level view of the Butler et al.\ ECG-AI architecture showing six ResBlocks across three filter-width stages (16, 32, 64). Block~1 contains three convolutions; Blocks~3 and~5 use strided convolutions (s=2) with $1\times1$ projections for dimensionality matching. All blocks end with max-pooling and dropout.}
 \label{fig:butler-arch}
 \end{figure}
+
+The progressively increasing filter width means more feature interpretations at earlier layers as the receptive field grows. We begin with simple patterns which might just be some sort sequences of values, but their successive compositions begin to capture clinical features [He et al. Reset progressively increasing filter wdith receptive field]. We will also utilize the architecture of successively increasing ResNet blocks for our baseline model.
+
+\subsection{Channel Independence via Lead Correlation}
+
+To determine whether the 12 ECG leads should be processed jointly (channel-dependent) or independently (channel-independent), we measure how much preeclampsia disrupts the inter-lead correlation structure. For each recording $n$, we compute the $12 \times 12$ Pearson correlation matrix $C^{(n)}$ across leads, then average within each class [cite Pearson correlatin]
+
+\begin{equation}
+\bar{C}_{\text{PE}} = \frac{1}{N_{\text{PE}}} \sum_{n \in \text{PE}} C^{(n)}, \qquad
+\bar{C}_{\text{Normal}} = \frac{1}{N_{\text{Normal}}} \sum_{n \in \text{Normal}} C^{(n)}
+\end{equation}
+
+We then compute the Frobenius norm of the difference:
+
+\begin{equation}
+\| \bar{C}_{\text{PE}} - \bar{C}_{\text{Normal}} \|_F = \sqrt{\sum_{i=1}^{12}\sum_{j=1}^{12} \left(\bar{C}_{\text{PE},ij} - \bar{C}_{\text{Normal},ij}\right)^2} = 1.026
+\end{equation}
+
+A high Frobenius norm ($>2.0$) would indicate that preeclampsia significantly alters how leads correlate with each other, meaning the cross-lead relationship itself is a discriminative feature best captured by 2D convolution across leads. Our value of 1.026 indicates only modest disruption --- the leads correlate roughly the same way in both classes. The discriminative information therefore resides within each lead's waveform, not in inter-lead coupling, justifying per-lead 1D convolution (channel-independent processing).
+
+ECG-AI inputs the entire $12 \times 2500$ data matrix into the CNN, where all leads mix from the first convolutional layer. RepNet instead processes each lead through its own 1D CNN stream, extracting per-lead features before combining them via cross-lead attention in subsequent stages.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    box/.style={draw, rounded corners, minimum height=0.5cm, font=\scriptsize\sffamily, align=center, thick},
+    lead/.style={box, fill=teal!15},
+    conv/.style={box, fill=blue!15},
+    out/.style={box, fill=green!15},
+    arrow/.style={-{Stealth[length=2pt]}, thick},
+    lbl/.style={font=\tiny\sffamily, text=gray},
+]
+
+\node[lead, minimum width=3.5cm] (input_b) at (0, 0) {Input: $2250\times12$};
+\node[conv, minimum width=3.5cm] (conv_b) at (0, -1) {Stage 1: 2 ResBlocks, 16 filters (k=3)};
+\node[conv, minimum width=3.5cm, fill=orange!15] (res_b) at (0, -2.1) {Stage 2: 2 ResBlocks, 32 filters (k=3, s=2)};
+\node[conv, minimum width=3.5cm, fill=red!12] (res_c) at (0, -3.2) {Stage 3: 2 ResBlocks, 64 filters (k=3, s=2)};
+\node[out, minimum width=3.5cm] (out_b) at (0, -4.3) {Flatten $\to$ Dense(2)};
+
+\draw[arrow] (input_b) -- (conv_b);
+\draw[arrow] (conv_b) -- (res_b);
+\draw[arrow] (res_b) -- (res_c);
+\draw[arrow] (res_c) -- (out_b);
+
+\node[lbl, right=0.15cm of conv_b, text width=2cm] {all 12 leads\\mixed from layer 1};
+
+\end{tikzpicture}
+\caption{ECG-AI channel-dependent input. All 12 leads are fed as channels into a shared CNN, where leads mix from the first convolutional layer.}
+\label{fig:butler-channel-dep}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    box/.style={draw, rounded corners, minimum height=0.5cm, font=\scriptsize\sffamily, align=center, thick},
+    lead/.style={box, fill=teal!15, minimum width=0.8cm},
+    conv/.style={box, fill=blue!15, minimum width=0.8cm},
+    stage/.style={box, fill=blue!10, minimum width=4cm},
+    fuse/.style={box, fill=purple!12, minimum width=4cm},
+    out/.style={box, fill=green!15, minimum width=4cm},
+    arrow/.style={-{Stealth[length=2pt]}, thick},
+    lbl/.style={font=\tiny\sffamily, text=gray},
+]
+
+% Individual lead inputs
+\foreach \i/\lead in {0/I, 1/II, 2/III, 3/\dots, 4/V6} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[lead] (in_\i) at (\xpos, 0) {\lead};
+}
+
+% Stage 1: per-lead conv
+\foreach \i in {0,1,2,3,4} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[conv] (s1_\i) at (\xpos, -1.1) {Conv};
+    \draw[arrow] (in_\i) -- (s1_\i);
+}
+\node[lbl, right=0.15cm of s1_4, text width=2.2cm] {Stage 1\\k=7, 32 filters};
+
+% Stage 2: per-lead conv
+\foreach \i in {0,1,2,3,4} {
+    \pgfmathsetmacro{\xpos}{-2 + \i * 1.0}
+    \node[conv, fill=blue!10] (s2_\i) at (\xpos, -2.2) {Conv};
+    \draw[arrow] (s1_\i) -- (s2_\i);
+}
+\node[lbl, right=0.15cm of s2_4, text width=2.2cm] {Stage 2\\k=5, 64 filters};
+
+
+% Fusion: concatenate 12 lead feature vectors
+\node[fuse] (fuse) at (0, -3.4) {Concatenate 12 lead features $\to$ Conv1D($1\times1$)};
+\foreach \i in {0,1,2,3,4} {
+    \draw[arrow] (s2_\i) -- (fuse);
+}
+
+\node[out] (out_r) at (0, -4.5) {GAP $\to$ Dense(2)};
+
+\draw[arrow] (fuse) -- (out_r);
+
+\node[lbl, right=0.15cm of fuse, text width=2.2cm] {leads interact\\after features};
+
+\end{tikzpicture}
+\caption{RepNet Baseline channel-independent input. Each lead is processed through its own Conv1D stream across two stages before fusion. Justified by the inter-lead correlation Frobenius norm of 1.026, indicating discriminative information is within each lead, not in cross-lead coupling.}
+\label{fig:repnet-channel-indep}
+\end{figure}
+
+\subsubsection{Kernel Size and Layer Depth for Receptive Field}
+We use per-lead power spectral density to determine kernel width and how they build up towards our receptive field. For each lead $\ell$ and recording $n$, the power spectral density is estimated via Welch's method, which divides the signal $x^{(n)}_\ell(t)$ into overlapping segments, windows each with a Hann function, computes the periodogram of each segment, and averages them (The use of fast Fourier transform for the estimation of power spectra: A method based on time averaging over short, modified periodograms)
+
+\begin{equation}
+\hat{S}^{(n)}_\ell(f) = \frac{1}{K} \sum_{k=1}^{K} \left| \text{DFT}\left[ w(t) \cdot x^{(n)}_{\ell,k}(t) \right] \right|^2
+\end{equation}
+
+\noindent where $K$ is the number of segments, $w(t)$ is the window function, and $x^{(n)}_{\ell,k}(t)$ is the $k$-th segment. We then average across all recordings within each class to obtain class-level PSD estimates $\bar{S}_{\text{PE}}(f)$ and $\bar{S}_{\text{Normal}}(f)$, and identify the frequency $f_{\text{peak}}$ at which their absolute difference is maximized. At our sampling rate of 250\,Hz with a segment length of 512 samples, this yields a frequency resolution of approximately 0.49\,Hz.
+
+See Appendix~\ref{appendix:psd} for the full per-lead PSD comparison. The greatest class divergence occurs at approximately 1\,Hz across all leads, indicating that the discriminative signal is concentrated at low frequencies.
+
+To capture a feature at frequency $f$, a convolutional receptive field must span at least one full cycle of that frequency. At 250\,Hz sampling rate, one cycle of the 1\,Hz discriminative peak corresponds to 250 samples. The network's receptive field must therefore exceed 250 samples for the convolutional pathway alone to detect this feature. Rather than using a single large kernel, we stack smaller convolutions with max-pooling, where each pooling layer doubles the effective stride and thus the receptive field grows geometrically with depth. The receptive field at layer $l$ follows:
+
+\begin{equation}
+\text{RF}_l = \text{RF}_{l-1} + (k_l - 1) \times \prod_{j=1}^{l-1} s_j
+\end{equation}
+
+\noindent where $k_l$ is the kernel size and $s_j$ is the stride (including pooling) at layer $j$. Table~\ref{tab:receptive-field} compares the receptive field buildup between ECG-AI and RepNet Baseline.
+
+\begin{table}[H]
+\centering
+\caption{Receptive field buildup comparison. ECG-AI uses six blocks with k=3 and strided convolutions at stage transitions. RepNet Baseline uses two blocks with wider kernels (k=7, k=5). Each block contains two convolutions followed by max-pooling.}
+\label{tab:receptive-field}
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Layer} & \textbf{ECG-AI RF} & \textbf{RepNet Baseline RF} \\
+\midrule
+Input & 1 & 1 \\
+Block 1: 2$\times$Conv + Pool & 8 & 14 \\
+Block 2: 2$\times$Conv + Pool & 18 & 32 \\
+Block 3: 2$\times$Conv(s=2) + Pool & 38 & --- \\
+Block 4: 2$\times$Conv + Pool & 78 & --- \\
+Block 5: 2$\times$Conv(s=2) + Pool & 158 & --- \\
+Block 6: 2$\times$Conv + Pool & 318 & --- \\
+\midrule
+\textbf{Final conv RF (samples)} & \textbf{318} & \textbf{32} \\
+\textbf{Final conv RF (seconds)} & \textbf{1.27\,s} & \textbf{0.13\,s} \\
+\textbf{Exceeds 250 samples?} & Yes & No (+ GAP) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ECG-AI reaches a receptive field of 318 samples (1.27\,s) through six blocks of small k=3 kernels with strided convolutions at stage transitions, comfortably exceeding the 250-sample threshold. RepNet Baseline reaches only 32 samples (0.13\,s) with two blocks --- far short of the 250-sample target for capturing the 1\,Hz discriminative feature. However, the global average pooling (GAP) at the fusion stage collapses the entire remaining temporal dimension, giving the classifier access to information across the full 2500-sample (10\,s) input. This design is deliberate: RepNet uses far fewer convolutional layers to minimize the parameter count --- critical given our dataset of 337 preeclampsia cases compared to Butler et al.'s larger multi-site cohort --- and delegates full-sequence context to the pooling and fusion stages rather than asking convolution alone to build sufficient receptive field.
+
+\subsubsection{Discussion}
+Initial exploratory data analysis and architectural decisions were made given a pre-balanced UCD-H dataset, (see appendix D for metrics about the data). Near completing this report we have received the full unbalanced data which will inform a much more aggressive analysis and architectural fine-tuning. A detailing of the dataset and analysis performed will be provided in Progrss Report 2.
 
 \section{Optuna Hyperparameter Optimization}
 To achieve optimal model performance with the CNN Transformer we will use ECG-AI as a baseline architecture and experiment with additional layers and hyperparameters using the Optuna framework. This requires making modular components — models with exposed hyperparameter inputs and interchangeable preprocessing and data augmentation pipelines supporting majority undersampling, SMOTE, or GAN strategies.
@@ -363,246 +428,146 @@ Our next steps are to begin model development using Optuna for hyperparameter op
 \clearpage
 \onecolumn
 \section{Summary of Reviewed Literature}
+\label{appendix:literature}
 
 \begin{table*}[h]
 \caption{Summary of Reviewed Literature}
 \label{tab:literature}
 \small
 \centering
-\begin{tabular}{p{0.28\textwidth}p{0.14\textwidth}p{0.48\textwidth}}
+\begin{tabular}{cp{0.26\textwidth}p{0.12\textwidth}p{0.44\textwidth}}
 \toprule
-\textbf{Paper} & \textbf{Type} & \textbf{Purpose} \\
+\textbf{Read} & \textbf{Paper} & \textbf{Type} & \textbf{Purpose} \\
 \midrule
-\multicolumn{3}{l}{\textit{Preeclampsia ML Literature Reviews}} \\
-Özcan et al.~\cite{ozcan_preeclampsia_2025} & Review & General overview of ML models in preeclampsia \\
-Liu et al.~\cite{liu_machine_2026} & Review & Statistical meta analysis of ML models in preeclampsia \\
+\multicolumn{4}{l}{\textbf{Phase 1 --- Exploratory Review}} \\[2pt]
+\multicolumn{4}{l}{\textit{Preeclampsia ML Literature Reviews}} \\
+$\checkmark$ & Özcan et al.~\cite{ozcan_preeclampsia_2025} & Review & General overview of ML models in preeclampsia \\
+ & Liu et al.~\cite{liu_machine_2026} & Review & Statistical meta analysis of ML models in preeclampsia \\
 \midrule
-\multicolumn{3}{l}{\textit{Preeclampsia ECG Classification Studies}} \\
-Butler et al.~\cite{butler_ai-based_2024} & Original & 1-D CNN for preeclampsia ECG classification \\
-Euliano et al.~\cite{euliano_photoplethysmography_2018} & Original & \\
+\multicolumn{4}{l}{\textit{Preeclampsia ECG Classification Studies}} \\
+$\checkmark$ & Butler et al.~\cite{butler_ai-based_2024} & Original & 1-D CNN for preeclampsia ECG classification \\
+$\checkmark$ & Euliano et al.~\cite{euliano_photoplethysmography_2018} & Original & \\
 \midrule
-\multicolumn{3}{l}{\textit{ECG Classification Machine Learning}} \\
-Boulif et al.~\cite{boulif_literature_2023} & Review & Broad overview of ECG classification methods \\
-Prakash et al.~\cite{jaya_prakash_advances_2025} & Review & Systematic review of ML and DL for ECG beat classification \\
+\multicolumn{4}{l}{\textit{ECG Classification Machine Learning}} \\
+$\checkmark$ & Boulif et al.~\cite{boulif_literature_2023} & Review & Broad overview of ECG classification methods \\
+ & Prakash et al.~\cite{jaya_prakash_advances_2025} & Review & Systematic review of ML and DL for ECG beat classification \\
 \midrule
-\multicolumn{3}{l}{\textit{ECG Classification DL Literature Reviews}} \\
-Y. Ansari et al.~\cite{ansari_deep_2023} & Review & Overview of DL architectures for ECG (2017-2023) \\
-M. Ansari et al.~\cite{ansari_survey_2025} & Review & Survey of transformers and LLMs for ECG processing \\
+\multicolumn{4}{l}{\textit{ECG Classification DL Literature Reviews}} \\
+$\checkmark$ & Y. Ansari et al.~\cite{ansari_deep_2023} & Review & Overview of DL architectures for ECG (2017-2023) \\
+$\checkmark$ & M. Ansari et al.~\cite{ansari_survey_2025} & Review & Survey of transformers and LLMs for ECG processing \\
 \midrule
-\multicolumn{3}{l}{\textit{ECG Classification Transformer Studies}} \\
-Kim et al.~\cite{kim_novel_2025} & Original & \\
-L. Liu et al.~\cite{liu_hybrid_2025} & Original & \\
+\multicolumn{4}{l}{\textit{Capstone Project Assigned Literature}} \\
+$\checkmark$ & Butler et al.~\cite{butler_ai-based_2024} & Original & 1-D CNN for preeclampsia ECG classification \\
+$\checkmark$ & Joshi et al.~\cite{joshi_linking_2025} & Original & RF and CNN bicameral approach for ECG waveform classification \\
+$\checkmark$ & Xue et al.~\cite{xue_does_2024} & Original & ML methods for preeclampsia prediction \\
+$\checkmark$ & Attia et al.~\cite{attia_automated_2022} & Original & ML applications in ECG analysis \\
 \midrule
-\multicolumn{3}{l}{\textit{ECG Classification Large Foundation Models}} \\
-Han et al.~\cite{han_systematic_2025} & Review & Review of large foundation models for ECG \\
-McKeen et al.~\cite{mckeen_ecg-fm_2025} & Original & ECG-FM open source foundation model \\
+\multicolumn{4}{l}{\textit{Random Forest Featurization Progress}} \\
+$\checkmark$ & Bulez et al.~\cite{bulez_artificial_2024} & Original & \\
+$\checkmark$ & Zhang et al.~\cite{zhang_development_2023} & Original & \\
 \midrule
-\multicolumn{3}{l}{\textit{ECG Waveform Features of Preeclampsia}} \\
-Rafaelli et al.~\cite{raffaelli_pre-eclampsia_2014} & Original & ECG features of preeclampsia \\
-Angeli et al.~\cite{angeli_novel_2015} & Original & QT interval relevance for preeclampsia \\
+\multicolumn{4}{l}{\textbf{Phase 2 --- Enhancement Review}} \\[2pt]
+\multicolumn{4}{l}{\textit{ECG Waveform Preprocessing Reviews}} \\
+ & Jia et al.~\cite{jia_preprocessing_2024} & Review & Overview of ECG preprocessing techniques \\
+ & Satija et al.~\cite{satija_review_2018} & Review & ECG signal quality assessment \\
 \midrule
-\multicolumn{3}{l}{\textit{ECG Waveform Preprocessing Reviews}} \\
-Jia et al.~\cite{jia_preprocessing_2024} & Review & Overview of ECG preprocessing techniques \\
-Satija et al.~\cite{satija_review_2018} & Review & ECG signal quality assessment \\
+\multicolumn{4}{l}{\textit{Preeclampsia ECG Waveform Features}} \\
+ & Angeli et al.~\cite{angeli_novel_2015} & Original & QT interval relevance for preeclampsia \\
+ & Rafaelli et al.~\cite{raffaelli_pre-eclampsia_2014} & Original & ECG features of preeclampsia \\
 \midrule
-\multicolumn{3}{l}{\textit{Preeclampsia Decision Tree Classification}} \\
-Park et al.~\cite{park_pchd_2014} & Original & Decision tree methods on ECG waveforms \\
-Musa et al.~\cite{musa_predicting_2023} & Original & PCA on decision tree classifier for preeclampsia \\
+\multicolumn{4}{l}{\textit{ECG Feature Analysis Literature Reviews}} \\
+ & Kaplan et al.~\cite{kaplan_berkaya_survey_2018} & Review & General overview on ECG feature analysis \\
+ & Singh et al.~\cite{singh_ecg_2023} & Review & General overview on ECG feature extraction \\
 \midrule
-\multicolumn{3}{l}{\textit{Data Augmentation for ECG Waveforms}} \\
-Rahman et al.~\cite{rahman_systematic_2023} & Review & Overview of ECG data augmentation \\
-Xia et al.~\cite{xia_generative_2023} & Original & Transformer GAN for data augmentation \\
+\multicolumn{4}{l}{\textit{Data Augmentation for ECG Waveforms}} \\
+ & Rahman et al.~\cite{rahman_systematic_2023} & Review & Overview of ECG data augmentation \\
+ & Xia et al.~\cite{xia_generative_2023} & Original & Transformer GAN for data augmentation \\
 \midrule
-\multicolumn{3}{l}{\textit{ECG Model Efficiency and Compression}} \\
-Gupta et al.~\cite{gupta_comprehensive_2024} & Review & Efficient model design for ECG classification \\
-Keivanimehr et al.~\cite{keivanimehr_tinyml_2025} & Original & Model compression for ECG classification \\
+\multicolumn{4}{l}{\textit{Preeclampsia Decision Tree Classification}} \\
+ & Park et al.~\cite{park_pchd_2014} & Original & Decision tree methods on ECG waveforms \\
+ & Musa et al.~\cite{musa_predicting_2023} & Original & PCA on decision tree classifier for preeclampsia \\
 \midrule
-\multicolumn{3}{l}{\textit{ECG Feature Analysis Literature Reviews}} \\
-Kaplan et al.~\cite{kaplan_berkaya_survey_2018} & Review & General overview on ECG feature analysis \\
-Singh et al.~\cite{singh_ecg_2023} & Review & General overview on ECG feature extraction \\
-\midrule
-\multicolumn{3}{l}{\textit{Random Forest Featurization Progress}} \\
-Bulez et al.~\cite{bulez_artificial_2024} & Original & \\
-Zhang et al.~\cite{zhang_development_2023} & Original & \\
-\midrule
-\multicolumn{3}{l}{\textit{Capstone Project Assigned Literature}} \\
-Xue et al.~\cite{xue_does_2024} & Original & ML methods for preeclampsia prediction \\
-Attia et al.~\cite{attia_automated_2022} & Original & ML applications in ECG analysis \\
+\multicolumn{4}{l}{\textit{ECG Model Efficiency and Compression}} \\
+ & Keivanimehr et al.~\cite{keivanimehr_tinyml_2025} & Original & Model compression for ECG classification \\
+ & Gupta et al.~\cite{gupta_comprehensive_2024} & Review & Efficient model design for ECG classification \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 \clearpage
-\section{Butler et al. Full Layer-by-Layer Architecture}
-\vspace{1em}
-\noindent\centering
-\resizebox{!}{0.75\textheight}{%
-\begin{tikzpicture}[
-    node distance=0.15cm,
-    layer/.style={draw, rounded corners=2pt, minimum height=0.38cm, minimum width=1.8cm,
-                  font=\tiny\sffamily, align=center, thick},
-    conv/.style={layer, fill=blue!12},
-    bn/.style={layer, fill=yellow!15},
-    act/.style={layer, fill=green!12},
-    add/.style={layer, fill=purple!12},
-    pool/.style={layer, fill=gray!15},
-    drop/.style={layer, fill=red!8},
-    head/.style={layer, fill=green!20},
-    io/.style={layer, fill=teal!15},
-    proj/.style={layer, fill=orange!15},
-    arrow/.style={-{Stealth[length=1.5pt]}, semithick},
-    skiparrow/.style={-{Stealth[length=1.5pt]}, semithick, dashed, gray},
-    stagelabel/.style={font=\tiny\sffamily\bfseries, text=gray},
-]
+% Chat log macros (breakable across pages)
+\newcommand{\chatuser}[1]{%
+  \begin{flushright}%
+  \colorbox{gray!20}{\parbox{0.78\linewidth}{\raggedright\small\textit{#1}}}%
+  \end{flushright}\medskip}
+\newcommand{\chatbot}[1]{%
+  \begin{tcolorbox}[colback=blue!8,colframe=blue!8,boxrule=0pt,arc=0pt,breakable,
+    left=6pt,right=6pt,top=4pt,bottom=4pt]%
+  \raggedright\small #1%
+  \end{tcolorbox}\medskip}
 
-% ---- Column 1: Blocks 1-2 (16 filters) ----
-\node[io] (in) {Input $2250\times12$};
-
-% Block 1
-\node[conv, below=0.3cm of in] (c0) {Conv1D 16, k=3};
-\node[bn, below=of c0] (b0) {BatchNorm};
-\node[act, below=of b0] (a0) {LeakyReLU};
-\node[conv, below=of a0] (c1) {Conv1D 16, k=3};
-\node[bn, below=of c1] (b1) {BatchNorm};
-\node[act, below=of b1] (a1) {LeakyReLU};
-\node[conv, below=of a1] (c2) {Conv1D 16, k=3};
-\node[bn, below=of c2] (b2) {BatchNorm};
-\node[add, below=of b2] (add0) {Add};
-\node[act, below=of add0] (a2) {LeakyReLU};
-\node[pool, below=of a2] (mp0) {MaxPool1D};
-\node[drop, below=of mp0] (d0) {Dropout 0.1};
-
-% Block 2
-\node[conv, below=0.45cm of d0] (c3) {Conv1D 16, k=3};
-\node[bn, below=of c3] (b3) {BatchNorm};
-\node[act, below=of b3] (a3) {LeakyReLU};
-\node[conv, below=of a3] (c4) {Conv1D 16, k=3};
-\node[bn, below=of c4] (b4) {BatchNorm};
-\node[add, below=of b4] (add1) {Add};
-\node[act, below=of add1] (a4) {LeakyReLU};
-\node[pool, below=of a4] (mp1) {MaxPool1D};
-\node[drop, below=of mp1] (d1) {Dropout 0.1};
-
-% ---- Column 2: Blocks 3-4 (32 filters) ----
-\node[conv, right=2.5cm of in] (c5) {Conv1D 32, k=3};
-\node[bn, below=of c5] (b5) {BatchNorm};
-\node[act, below=of b5] (a5) {LeakyReLU};
-\node[conv, below=of a5] (c6) {Conv1D 32, k=3};
-\node[proj, below=of c6] (c7) {Conv1D 32, k=1};
-\node[bn, below=of c7] (b6) {BatchNorm};
-\node[add, below=of b6] (add2) {Add};
-\node[act, below=of add2] (a6) {LeakyReLU};
-\node[pool, below=of a6] (mp2) {MaxPool1D};
-\node[drop, below=of mp2] (d2) {Dropout 0.1};
-
-% Block 4
-\node[conv, below=0.45cm of d2] (c8) {Conv1D 32, k=3};
-\node[bn, below=of c8] (b7) {BatchNorm};
-\node[act, below=of b7] (a7) {LeakyReLU};
-\node[conv, below=of a7] (c9) {Conv1D 32, k=3};
-\node[bn, below=of c9] (b8) {BatchNorm};
-\node[add, below=of b8] (add3) {Add};
-\node[act, below=of add3] (a8) {LeakyReLU};
-\node[pool, below=of a8] (mp3) {MaxPool1D};
-\node[drop, below=of mp3] (d3) {Dropout 0.1};
-
-% ---- Column 3: Blocks 5-6 (64 filters) ----
-\node[conv, right=2.5cm of c5] (c10) {Conv1D 64, k=3};
-\node[bn, below=of c10] (b9) {BatchNorm};
-\node[act, below=of b9] (a9) {LeakyReLU};
-\node[conv, below=of a9] (c11) {Conv1D 64, k=3};
-\node[proj, below=of c11] (c12) {Conv1D 64, k=1};
-\node[bn, below=of c12] (b10) {BatchNorm};
-\node[add, below=of b10] (add4) {Add};
-\node[act, below=of add4] (a10) {LeakyReLU};
-\node[pool, below=of a10] (mp4) {MaxPool1D};
-\node[drop, below=of mp4] (d4) {Dropout 0.1};
-
-% Block 6
-\node[conv, below=0.45cm of d4] (c13) {Conv1D 64, k=3};
-\node[bn, below=of c13] (b11) {BatchNorm};
-\node[act, below=of b11] (a11) {LeakyReLU};
-\node[conv, below=of a11] (c14) {Conv1D 64, k=3};
-\node[bn, below=of c14] (b12) {BatchNorm};
-\node[add, below=of b12] (add5) {Add};
-\node[act, below=of add5] (a12) {LeakyReLU};
-\node[pool, below=of a12] (mp5) {MaxPool1D};
-\node[drop, below=of mp5] (d5) {Dropout 0.1};
-
-% Classification head — separate from stages
-\node[head, below=0.45cm of d5] (flat) {Flatten};
-\node[head, below=of flat] (dense) {Dense(2)};
-\node[head, below=of dense] (softmax) {Softmax};
-
-% ---- Sequential arrows within columns ----
-% Col 1
-\foreach \a/\b in {in/c0, c0/b0, b0/a0, a0/c1, c1/b1, b1/a1, a1/c2, c2/b2, b2/add0, add0/a2, a2/mp0, mp0/d0,
-                    d0/c3, c3/b3, b3/a3, a3/c4, c4/b4, b4/add1, add1/a4, a4/mp1, mp1/d1}{
-    \draw[arrow] (\a) -- (\b);
-}
-% Col 2
-\foreach \a/\b in {c5/b5, b5/a5, a5/c6, c6/c7, c7/b6, b6/add2, add2/a6, a6/mp2, mp2/d2,
-                    d2/c8, c8/b7, b7/a7, a7/c9, c9/b8, b8/add3, add3/a8, a8/mp3, mp3/d3}{
-    \draw[arrow] (\a) -- (\b);
-}
-% Col 3 + head
-\foreach \a/\b in {c10/b9, b9/a9, a9/c11, c11/c12, c12/b10, b10/add4, add4/a10, a10/mp4, mp4/d4,
-                    d4/c13, c13/b11, b11/a11, a11/c14, c14/b12, b12/add5, add5/a12, a12/mp5, mp5/d5,
-                    d5/flat, flat/dense, dense/softmax}{
-    \draw[arrow] (\a) -- (\b);
-}
-
-% Cross-column arrows — rectangular path between columns
-\coordinate (mid12) at ($(d1.east)!0.5!(c5.west)$);
-\coordinate (mid23) at ($(d3.east)!0.5!(c10.west)$);
-\draw[arrow] (d1.east) -- (mid12 |- d1.east) |- (c5.west);
-\draw[arrow] (d3.east) -- (mid23 |- d3.east) |- (c10.west);
-
-% Skip connections (dashed) — routed to the right of each column
-\draw[skiparrow] (a0.east) -- ++(0.35,0) |- (add0.east);
-\draw[skiparrow] (d0.east) -- ++(0.35,0) |- (add1.east);
-\draw[skiparrow] (c5.east) -- ++(0.35,0) |- (add2.east);
-\draw[skiparrow] (d2.east) -- ++(0.35,0) |- (add3.east);
-\draw[skiparrow] (c10.east) -- ++(0.35,0) |- (add4.east);
-\draw[skiparrow] (d4.east) -- ++(0.35,0) |- (add5.east);
-
-% Stage labels at top
-\begin{scope}[on background layer]
-    % Stage 1 — two res blocks
-    \node[fit=(c0)(d0), inner sep=4pt, draw=blue!40, fill=blue!5, rounded corners, dashed] (s1a) {};
-    \node[stagelabel, left=2pt of s1a] {Block 1};
-    \node[fit=(c3)(d1), inner sep=4pt, draw=blue!40, fill=blue!5, rounded corners, dashed] (s1b) {};
-    \node[stagelabel, left=2pt of s1b] {Block 2};
-    % Stage 2 — two res blocks
-    \node[fit=(c5)(d2), inner sep=4pt, draw=orange!50, fill=orange!5, rounded corners, dashed] (s2a) {};
-    \node[stagelabel, left=2pt of s2a] {Block 3};
-    \node[fit=(c8)(d3), inner sep=4pt, draw=orange!50, fill=orange!5, rounded corners, dashed] (s2b) {};
-    \node[stagelabel, left=2pt of s2b] {Block 4};
-    % Stage 3 — two res blocks
-    \node[fit=(c10)(d4), inner sep=4pt, draw=red!40, fill=red!5, rounded corners, dashed] (s3a) {};
-    \node[stagelabel, left=2pt of s3a] {Block 5};
-    \node[fit=(c13)(d5), inner sep=4pt, draw=red!40, fill=red!5, rounded corners, dashed] (s3b) {};
-    \node[stagelabel, left=2pt of s3b] {Block 6};
-    % Stage group labels — all at same vertical position
-    \node[stagelabel, above=3pt of s2a] (s2label) {Stage 2 -- 32 filters};
-    \node[stagelabel, above=3pt of s3a] {Stage 3 -- 64 filters};
-    \node[stagelabel] at (s1a.north |- s2label) {Stage 1 -- 16 filters};
-    \node[fit=(flat)(softmax), inner sep=5pt, draw=green!50, fill=green!3, rounded corners, dashed] (sh) {};
-    \node[stagelabel, right=3pt of sh] {Head};
-\end{scope}
-
-\end{tikzpicture}%
-}
-\captionof{figure}{Complete layer-by-layer architecture of the Butler et al.\ ECG-AI model, expanded from Figure~\ref{fig:butler-arch}. The network comprises six residual blocks across three stages of increasing filter width: Stage~1 (16 filters), Stage~2 (32 filters), and Stage~3 (64 filters). Each layer is shown individually --- Conv1D (blue), BatchNorm (yellow), LeakyReLU (green), Add (purple), MaxPool1D (gray), and Dropout (red). Dashed gray arrows indicate residual skip connections that bypass the convolutional layers within each block. Orange blocks denote $1\times1$ projection convolutions at Blocks~3 and~5, where the skip path requires dimensionality matching due to the increase in filter count. The classification head (Flatten, Dense, Softmax) follows after Stage~3.}
-\label{fig:butler-detail}
+\section{Power Spectral Density per Lead}
+\label{appendix:psd}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{output.png}
+\caption{Mean power spectral density (0--60\,Hz) per lead, comparing preeclampsia (red) vs.\ normal (blue). The greatest class divergence occurs at approximately 1\,Hz across all leads, indicating that the discriminative signal is concentrated at low frequencies. This motivates the use of wide convolutional kernels (k=7, k=5) to capture low-frequency features.}
+\label{fig:psd}
+\end{figure}
 
 \clearpage
-\section{Caliper Visualization Interface}
-\begin{figure}[h]
-\centering
-\includegraphics[angle=-90,width=0.70\textwidth]{caliper_interface.png}
-\caption{An example vibe-coded interface showcasing the various waveform displays and options available in the Caliper visualization tool.}
-\label{fig:caliper-interface}
-\end{figure}
+\section{ChatGPT Literature Review Query Transcript}
+\label{appendix:chatgpt}
+
+\begin{flushleft}
+The following is an excerpt of GPT\,5.4 Thinking used to survey the literature.
+\end{flushleft}
+
+\chatuser{Name the top literature reviews of preeclampsia prediction using ML and DL.}
+
+\chatbot{The strongest review papers in this niche are these five.
+\begin{enumerate}
+  \item \textbf{Ranjbar et al., ``Machine learning models for predicting preeclampsia: a systematic review.''} This is the one I would put at the top. It is a formal systematic review, it focuses tightly on preeclampsia prediction, and it summarizes predictive factors plus model accuracy across the ML literature. It appeared in 2023 in \textit{BMJ Open} and is also indexed in PubMed and BMC Pregnancy and Childbirth records.
+  \item \textbf{Özcan and Peker, ``Preeclampsia prediction via machine learning: a systematic literature review.''} This is one of the clearest broad syntheses of the ML prediction literature. It reviews studies from 2013 onward and points out a real weakness in the field: many papers rely on small, single-center datasets and narrow geographic coverage.
+  \item \textbf{Aljameel et al., ``Prediction of Preeclampsia Using Machine Learning and Deep Learning Models: A Review.''} This is the most directly relevant paper if you specifically want both \textbf{ML and DL} in the title and scope. It reviews studies published from 2018 to 2022, explicitly discusses deep learning papers, and summarizes commonly used methods such as random forest, SVM, and ANN.
+  \item \textbf{Liu et al., ``Machine Learning Prediction Models for Preeclampsia.''} This 2026 paper is the newest major evidence synthesis I found, and it is a \textbf{systematic review and meta-analysis}, which gives it extra weight. Its stated goal is to evaluate model performance and clinical application value while dealing with heterogeneity in the literature.
+  \item \textbf{Hennessy et al., ``Machine learning, advanced data analysis, and a role in pregnancy care? How can we help improve preeclampsia outcomes?''} This is less of a hard-nosed evidence synthesis than the papers above, yet it is still a useful review article because it frames how ML is being used in pregnancy and preeclampsia care, and it is valuable for understanding the clinical translation problem.
+\end{enumerate}
+If you want the cleanest ranking by rigor and usefulness for academic work, I would order them like this: \textbf{Ranjbar 2023}, \textbf{Liu 2026}, \textbf{Özcan 2024}, \textbf{Aljameel 2023}, \textbf{Hennessy 2024}. That ranking puts systematic reviews and meta-analytic work first, then the best broad surveys, then the more narrative clinical overview.
+
+A blunt truth about this area: there are still very few genuinely high-quality reviews focused specifically on \textbf{deep learning} for preeclampsia prediction. Most of the stronger papers are really \textbf{ML-first reviews} that include some DL studies, rather than deep-learning-centered reviews built on a large mature literature.}
+
+\chatuser{Name the top literature reviews of ECG classification using ML and DL.}
+
+\chatbot{The top review papers on ECG classification using machine learning and deep learning are these.
+\begin{enumerate}
+  \item \textbf{Xiao et al., ``Deep Learning-Based ECG Arrhythmia Classification: A Systematic Review.''} This is one of the strongest and most useful reviews in the area. It is tightly focused on ECG arrhythmia classification, reviews 368 studies, and organizes the field by databases, preprocessing, model families, evaluation setups, metrics, and code availability. That makes it one of the clearest map-of-the-field papers for DL-based ECG classification.
+  \item \textbf{Ebrahimi et al., ``A review on deep learning methods for ECG arrhythmia classification.''} This is an earlier landmark survey and still one of the most cited broad reviews in the subject. It is valuable because it pulled together the early wave of deep learning work on ECG classification and helped define the common architectures and workflow patterns used afterward.
+  \item \textbf{Prakash et al., ``Advances in machine and deep learning for ECG beat classification: a systematic review.''} This is one of the best choices when you specifically want both \textbf{ML and DL} in scope rather than a DL-only paper. It is a recent systematic review centered on ECG beat classification and emphasizes current trends, dataset limitations, and the need for standardized, clinically usable pipelines.
+  \item \textbf{Petmezas et al., ``State-of-the-Art Deep Learning Methods on Electrocardiogram Data: Systematic Review.''} This review is broader than arrhythmia classification alone, since it covers multiple ECG clinical tasks, yet it is still one of the stronger synthesis papers for understanding how deep learning methods are used on ECG data at scale. It is useful when you want ECG classification placed inside the larger ECG-analysis landscape.
+  \item \textbf{Ansari et al., ``Deep learning for ECG Arrhythmia detection and classification: an overview of progress for period 2017--2023.''} This is a substantial survey focused on arrhythmia detection and classification, with emphasis on architectures and technical trends across the modern DL period. It is especially useful for readers trying to understand how CNN, RNN, hybrid, and transformer-style approaches evolved in the literature.
+\end{enumerate}
+If the goal is a blunt ranking by usefulness for research, I would put them in this order: \textbf{Xiao 2023}, \textbf{Prakash 2025}, \textbf{Ebrahimi 2020}, \textbf{Petmezas 2022}, \textbf{Ansari 2023}. That ranking gives priority to reviews that are systematic, directly centered on ECG classification, and broad enough to synthesize datasets, preprocessing, architectures, and evaluation quality in one place.
+
+A hard truth about this literature is that many papers labeled as ``ECG classification reviews'' are actually narrow arrhythmia-review papers, and many of the stronger ones are \textbf{deep-learning-heavy} rather than balanced treatments of both classical machine learning and deep learning. The Prakash 2025 review stands out precisely because it more clearly spans both ML and DL.}
+
+\chatuser{What about ones specifically regarding transformers?}
+
+\chatbot{For ECG classification specifically regarding transformers, the field is still thin on pure review papers. The strongest dedicated review is this one.
+\begin{enumerate}
+  \item \textbf{Ansari et al., ``A survey of transformers and large language models for ECG signal processing and interpretation.''} This is the clearest top pick for transformer-focused ECG review literature. It is a 2025 survey in \textit{Artificial Intelligence Review} that explicitly covers transformer architectures for ECG tasks, including diagnosis and classification, and it compares transformer and LLM approaches across categories while discussing embedding design, architectural limits, and transparency issues.
+\end{enumerate}
+After that, the best papers are broader ECG review articles that include transformer-based classification as a substantial part of the map rather than the sole focus.
+\begin{enumerate}
+\setcounter{enumi}{1}
+  \item \textbf{Gupta et al., ``A comprehensive review on efficient artificial intelligence approaches for electrocardiogram-based cardiac rhythm classification.''} This 2024 review is one of the better broad syntheses for rhythm classification, and it explicitly discusses current state-of-the-art AI models plus upcoming modeling methods relevant to real-time deployment. It is useful for transformer work because it places transformer-style methods inside the practical ECG classification pipeline rather than treating them as isolated model novelties.
+  \item \textbf{Xiao et al., ``Deep Learning-Based ECG Arrhythmia Classification: A Systematic Review.''} This is still one of the strongest overall ECG-classification reviews. Its main value for transformer-focused reading is that it gives a rigorous systematic framework for datasets, preprocessing, task setups, metrics, and model families, which lets you situate transformer papers inside the larger arrhythmia-classification literature.
+  \item \textbf{Velandia et al., ``Systematic Review of Artificial Intelligence and Electrocardiography for Detecting and Predicting Cardiovascular Diseases.''} This 2025 systematic review is wider than classification alone, yet it is useful because it synthesizes recent AI methods for ECG analysis across cardiovascular tasks. For a transformer reader, it helps show how classification papers sit inside the broader diagnostic ecosystem and where transformer-based models are entering the literature.
+  \item \textbf{Wu et al., ``Deep learning and electrocardiography: systematic review of applications in cardiovascular disease diagnosis.''} This 2025 systematic review is again broader than arrhythmia classification, though still valuable because it surveys recent deep-learning ECG applications across cardiovascular diagnosis. It is useful for transformer-specific work when you want a broader clinical and technical synthesis rather than a paper limited to rhythm labels.
+\end{enumerate}
+The blunt answer is that \textbf{there is really only one major review centered on transformers for ECG tasks} that stands out right now: \textbf{Ansari 2025}. The rest of the useful literature is mostly broader ECG AI or DL review work that contains transformer subsections, references, or taxonomy rather than being transformer-only surveys.
+
+If you want the strongest ranking for this exact niche, I would order them as: \textbf{Ansari 2025}, \textbf{Gupta 2024}, \textbf{Xiao 2023}, \textbf{Velandia 2025}, \textbf{Wu 2025}. That ranking reflects how directly each paper helps with transformer-based ECG classification rather than ECG AI in general.}
+
 
 \end{document}
