@@ -16,3 +16,7 @@ out
 __pycache__/
 *.py[cod]
 .DS_Store
+
+*.nav
+*.snm
+*.toc
