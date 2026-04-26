@@ -1,0 +1,202 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{microtype}
+\usepackage{hyperref}
+
+\title{RepNet-Baseline-Large + Cross-Lead Attention\\
+\large Architecture and Receptive-Field Analysis}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Notation}
+
+Let $B$ be the batch size, $L = 12$ the number of ECG leads, $T_0 = 2500$ the
+input sequence length (10\,s at $f_s = 250$\,Hz), and $D = F_3$ the final conv
+filter count. We write tensor shapes as $\mathbb{R}^{B \times L \times C \times T}$
+where $C$ is the channel dimension at the current stage.
+
+\section{Architecture}
+
+The model is a per-lead 1-D residual CNN trunk followed by a learned token
+compression and a cross-lead attention head. Per-lead processing means the
+12 leads pass through a single set of conv weights independently
+(weights shared, batch and lead axes folded together for efficient evaluation).
+
+\subsection{Per-lead convolutional trunk}
+
+Each stage is a standard pre-activation residual block followed by stride-2
+max pooling and dropout:
+%
+\begin{align*}
+  \text{Block}_k(x) \;=\; \text{Drop}\!\left( \text{MaxPool}_2 \!\left(
+    \text{ReLU}\!\left(
+      \text{BN}_2\!\left(\text{Conv}_2(\text{ReLU}(\text{BN}_1(\text{Conv}_1(x))))\right) + \text{Skip}(x)
+    \right)
+  \right) \right).
+\end{align*}
+%
+With three stages of filter widths $(F_1, F_2, F_3) = (32, 64, 128)$ and kernel
+sizes $(k_1, k_2, k_3) = (7, 5, 3)$:
+
+\begin{center}
+\begin{tabular}{lllrr}
+\toprule
+Stage & Operation & Kernel & Out channels & Out length \\
+\midrule
+0 & Input                          & ---  & 1   & 2500 \\
+1 & PerLeadConvBlock $1 \to 32$    & 7    & 32  & 1250 \\
+2 & PerLeadConvBlock $32 \to 64$   & 5    & 64  &  625 \\
+3 & PerLeadConvBlock $64 \to 128$  & 3    & 128 &  312 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+After the trunk, the tensor has shape $\mathbb{R}^{B \times 12 \times 128 \times 312}$.
+
+\subsection{Token compression}
+
+Each lead's temporal axis is pooled to a fixed number of tokens
+$T = 8$ via \texttt{AdaptiveAvgPool1d}:
+%
+\[
+  \mathbb{R}^{B \times 12 \times 128 \times 312}
+  \;\xrightarrow{\text{AdaptiveAvgPool1d}(8)}\;
+  \mathbb{R}^{B \times 12 \times 128 \times 8}
+  \;\xrightarrow{\text{permute}}\;
+  \mathbb{R}^{B \times 12 \times 8 \times 128}.
+\]
+%
+We add learnable position and lead embeddings:
+$\mathbf{p} \in \mathbb{R}^{T \times D}$ broadcast over leads, and
+$\mathbf{l} \in \mathbb{R}^{L \times D}$ broadcast over tokens.
+
+\subsection{Cross-lead attention block}
+
+For each of the $T = 8$ token positions, the 12 leads attend to each other.
+The token axis is folded into the batch dimension so attention operates purely
+across leads:
+%
+\[
+  \mathbb{R}^{B \times L \times T \times D}
+  \;\to\;
+  \mathbb{R}^{(B \cdot T) \times L \times D}.
+\]
+%
+Each block is a standard pre-LayerNorm transformer:
+%
+\begin{align*}
+  \mathbf{x} &\leftarrow \mathbf{x} + \text{MHA}\!\bigl(\text{LN}(\mathbf{x})\bigr), \\
+  \mathbf{x} &\leftarrow \mathbf{x} + \text{MLP}\!\bigl(\text{LN}(\mathbf{x})\bigr),
+\end{align*}
+%
+with $\text{MHA}$ a multi-head attention layer ($d_{\text{model}} = D = 128$,
+$h = 4$ heads) and $\text{MLP}: D \to 4D \to D$ with GELU activation. After the
+attention stack the tensor is reshaped back to
+$\mathbb{R}^{B \times L \times T \times D}$.
+
+\subsection{Head}
+
+Mean-pool over leads, then over tokens, then a linear classifier:
+%
+\[
+  \mathbb{R}^{B \times L \times T \times D}
+  \;\xrightarrow{\text{mean}_L}\;
+  \mathbb{R}^{B \times T \times D}
+  \;\xrightarrow{\text{mean}_T}\;
+  \mathbb{R}^{B \times D}
+  \;\xrightarrow{\text{Dropout, Linear}}\;
+  \mathbb{R}^{B \times 2}.
+\]
+
+\section{Receptive-Field Analysis}
+
+The per-position receptive field (RF) of a 1-D CNN is computed by tracking the
+cumulative stride (\emph{jump}) and the kernel-induced extension at each layer:
+%
+\[
+  \text{RF}_{\ell+1} = \text{RF}_\ell + (k_{\ell+1} - 1) \cdot j_\ell,
+  \qquad
+  j_{\ell+1} = j_\ell \cdot s_{\ell+1}.
+\]
+%
+With initial $\text{RF}_0 = 1$, $j_0 = 1$:
+
+\begin{center}
+\begin{tabular}{lrrrrr}
+\toprule
+Layer & $k$ & $s$ & RF gain & RF & jump $j$ \\
+\midrule
+Conv 1a & 7 & 1 & 6 & 7  & 1 \\
+Conv 1b & 7 & 1 & 6 & 13 & 1 \\
+Pool 1  & 2 & 2 & 1 & 14 & 2 \\
+Conv 2a & 5 & 1 & 8 & 22 & 2 \\
+Conv 2b & 5 & 1 & 8 & 30 & 2 \\
+Pool 2  & 2 & 2 & 2 & 32 & 4 \\
+Conv 3a & 3 & 1 & 8 & 40 & 4 \\
+Conv 3b & 3 & 1 & 8 & 48 & 4 \\
+Pool 3  & 2 & 2 & 4 & \textbf{52} & 8 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Per-position RF.}
+After the conv trunk, each output position summarises a window of
+$\textbf{52}$ input samples, equivalent to $52 / 250 \approx \textbf{208\,ms}$.
+This covers the QRS complex ($\sim$80--120\,ms) plus the P-wave and PR
+interval, but only part of the T-wave or QT interval.
+
+\paragraph{Per-token effective coverage.}
+After the conv trunk, $T_3 = 312$ feature positions remain, with each adjacent
+position separated by a stride of $j_3 = 8$ input samples. The
+\texttt{AdaptiveAvgPool1d(8)} layer averages disjoint groups of
+$\lfloor 312 / 8 \rfloor = 39$ feature positions per token, so each of the 8
+tokens integrates content from
+%
+\[
+  \underbrace{52}_{\text{per-position RF}}
+  + \underbrace{(39 - 1) \cdot 8}_{\text{additional samples spanned}}
+  = 356 \;\text{input samples} \approx 1.42\,\text{s}.
+\]
+%
+Across all 8 tokens, this tiles $8 \times 39 \cdot 8 \approx 2496$ samples ---
+the entire 10-s recording, with minimal overlap between adjacent tokens. Each
+token therefore corresponds to roughly 1--2 cardiac beats at typical heart
+rates (60--100\,bpm), and the cross-lead attention head can model beat-to-beat
+or rhythm-level structure that the convolutional trunk alone cannot.
+
+\paragraph{Effective receptive field after attention.}
+Because every token attends to every other token (via the cross-lead block
+acting on the lead axis at each token position) \emph{and} the head averages
+across all tokens, the classifier's effective receptive field spans the
+\emph{entire} 10\,s recording.
+
+\section{Parameter Count}
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Component & Parameters \\
+\midrule
+Per-lead conv trunk (3 stages)              & 124{,}128 \\
+Position + lead embeddings                  & 2{,}560 \\
+Cross-lead attention block ($\times 1$)     & 198{,}272 \\
+Classifier head                             & 258 \\
+\midrule
+\textbf{Total}                              & \textbf{325{,}218} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The attention block roughly \emph{doubles} the parameter count relative to the
+depth-3 conv trunk, while extending the effective receptive field from 208\,ms
+(per conv-trunk position) to the full 10-s recording (after the cross-lead
+attention and global pooling).
+
+\end{document}

@@ -7,7 +7,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import (
+    GroupShuffleSplit,
+    StratifiedGroupKFold,
+    train_test_split,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,30 +38,53 @@ def _ecg_quality_mask(X: np.ndarray) -> np.ndarray:
 
 def load_seniordesign(
     data_dir: str | Path = "data/seniordesign_upload",
-) -> tuple[np.ndarray, np.ndarray]:
+    return_patient_ids: bool = False,
+):
     """Load the full Senior Design preeclampsia dataset.
 
     Directory structure expected:
         data_dir/
-            metadata.csv          (columns include ECGTestID, PatLabel)
+            metadata.csv          (columns include ECGTestID, PatLabel, Pat_Obfus_MRN)
             ekg_data/
                 {ECGTestID}.csv   (columns = lead names, rows = timepoints)
 
+    Args:
+        data_dir: Path to the dataset directory.
+        return_patient_ids: If True, also return aligned patient IDs (Pat_Obfus_MRN).
+
     Returns:
-        X: np.ndarray of shape (N, 12, 2500), dtype float32
-        y: np.ndarray of shape (N,), dtype int64  (1 = preeclampsia, 0 = normal)
+        If return_patient_ids is False (default): (X, y)
+        If return_patient_ids is True: (X, y, patient_ids)
+            X: np.ndarray of shape (N, 12, 2500), dtype float32
+            y: np.ndarray of shape (N,), dtype int64  (1 = preeclampsia, 0 = normal)
+            patient_ids: np.ndarray of shape (N,) — Pat_Obfus_MRN values, aligned to X/y
     """
     data_dir = Path(data_dir)
     ekg_dir = data_dir / "ekg_data"
 
-    meta = pd.read_csv(data_dir / "metadata.csv")
+    meta_path = next(
+        (data_dir / name for name in ("metadata.csv", "metadata_balanced.csv")
+         if (data_dir / name).exists()),
+        None,
+    )
+    if meta_path is None:
+        raise FileNotFoundError(
+            f"No metadata.csv or metadata_balanced.csv found in {data_dir}"
+        )
+    meta = pd.read_csv(meta_path)
     available = {
         int(f.stem) for f in ekg_dir.iterdir() if f.suffix == ".csv"
     }
     meta = meta[meta["ECGTestID"].apply(lambda x: int(x) in available)].copy()
     logger.info("Metadata rows with waveform: %d", len(meta))
 
-    X_list, y_list = [], []
+    has_pat_id = "Pat_Obfus_MRN" in meta.columns
+    if return_patient_ids and not has_pat_id:
+        raise KeyError(
+            f"Pat_Obfus_MRN column missing from {meta_path}; cannot return patient IDs."
+        )
+
+    X_list, y_list, pat_list = [], [], []
     n_skip = 0
     for _, row in meta.iterrows():
         path = ekg_dir / f"{int(row['ECGTestID'])}.csv"
@@ -70,6 +97,8 @@ def load_seniordesign(
                 continue
             X_list.append(arr)
             y_list.append(1 if row["PatLabel"] == SD_LABEL_POS else 0)
+            if has_pat_id:
+                pat_list.append(row["Pat_Obfus_MRN"])
         except Exception as exc:
             logger.warning("Skipping %s: %s", path.name, exc)
             n_skip += 1
@@ -79,16 +108,24 @@ def load_seniordesign(
 
     X = np.stack(X_list)               # (N, 12, 2500)
     y = np.array(y_list, dtype=np.int64)
+    pat_ids = np.array(pat_list) if has_pat_id else None
 
     # Quality filtering — NaN/Inf check
     qmask = _ecg_quality_mask(X)
     X = X[qmask]
     y = y[qmask]
+    if pat_ids is not None:
+        pat_ids = pat_ids[qmask]
 
     logger.info(
         "Loaded: X=%s, y=%s (pos=%d, neg=%d, pos rate=%.1f%%)",
         X.shape, y.shape, (y == 1).sum(), (y == 0).sum(), 100 * y.mean(),
     )
+    if return_patient_ids:
+        n_unique_pat = len(np.unique(pat_ids))
+        logger.info("Unique patients: %d (%.2f recordings/patient avg)",
+                    n_unique_pat, len(pat_ids) / max(n_unique_pat, 1))
+        return X, y, pat_ids
     return X, y
 
 
@@ -185,3 +222,73 @@ def kfold_cv_indices(
 
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
     return list(skf.split(np.zeros(len(y)), y))
+
+
+def split_holdout_grouped(
+    X: np.ndarray,
+    y: np.ndarray,
+    groups: np.ndarray,
+    test_size: float = 0.20,
+    seed: int = 42,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Patient-grouped 80/20 holdout split — no patient appears on both sides.
+
+    Uses GroupShuffleSplit (not stratified — sklearn has no stratified-grouped
+    single-shot splitter). Class balance is reported and a warning is logged
+    if test pos-rate diverges from dev by >5 percentage points.
+
+    Returns (X_dev, X_test, y_dev, y_test, groups_dev, groups_test).
+    """
+    splitter = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
+    dev_idx, test_idx = next(splitter.split(X, y, groups))
+
+    X_dev, X_test = X[dev_idx], X[test_idx]
+    y_dev, y_test = y[dev_idx], y[test_idx]
+    g_dev, g_test = groups[dev_idx], groups[test_idx]
+
+    # Sanity: patient sets must be disjoint
+    leak = set(g_dev).intersection(set(g_test))
+    if leak:
+        raise RuntimeError(f"Patient leakage in holdout: {len(leak)} shared IDs")
+
+    pos_rate_dev = y_dev.mean()
+    pos_rate_test = y_test.mean()
+    logger.info(
+        "Grouped holdout: dev=%d (%d patients, pos=%.1f%%) test=%d (%d patients, pos=%.1f%%)",
+        len(y_dev), len(np.unique(g_dev)), 100 * pos_rate_dev,
+        len(y_test), len(np.unique(g_test)), 100 * pos_rate_test,
+    )
+    if abs(pos_rate_dev - pos_rate_test) > 0.05:
+        logger.warning(
+            "Class balance drift: dev pos=%.1f%% vs test pos=%.1f%% (>5pt). "
+            "Consider re-seeding or stratifying within groups.",
+            100 * pos_rate_dev, 100 * pos_rate_test,
+        )
+    return X_dev, X_test, y_dev, y_test, g_dev, g_test
+
+
+def kfold_cv_indices_grouped(
+    y: np.ndarray,
+    groups: np.ndarray,
+    n_folds: int = 5,
+    seed: int = 42,
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Stratified k-fold split that keeps patients within a single fold.
+
+    Uses StratifiedGroupKFold — preserves both class balance and group integrity.
+    Note: StratifiedGroupKFold is not strictly random; the seed only affects shuffle
+    when shuffle=True is passed.
+
+    Returns list of (train_indices, val_indices) for each fold.
+    """
+    sgkf = StratifiedGroupKFold(n_splits=n_folds, shuffle=True, random_state=seed)
+    folds = list(sgkf.split(np.zeros(len(y)), y, groups=groups))
+
+    # Sanity: every fold must have disjoint patient sets between train and val
+    for i, (train_idx, val_idx) in enumerate(folds):
+        leak = set(groups[train_idx]).intersection(set(groups[val_idx]))
+        if leak:
+            raise RuntimeError(
+                f"Patient leakage in fold {i}: {len(leak)} shared IDs"
+            )
+    return folds
