@@ -162,9 +162,74 @@ def majority_undersample(
     keep = np.sort(np.concatenate([min_idx, keep_maj]))
 
     logger.info(
-        "Undersampled: %d → %d (pos=%d, neg=%d)",
+        "Undersampled: %d -> %d (pos=%d, neg=%d)",
         len(y), len(keep),
         int((y[keep] == 1).sum()), int((y[keep] == 0).sum()),
+    )
+    return X[keep], y[keep]
+
+
+def minority_oversample(
+    X: np.ndarray,
+    y: np.ndarray,
+    seed: int = 42,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Replicate minority-class samples with replacement until classes are balanced.
+
+    Applied per-fold on TRAINING data only. Pair with augmentation downstream so
+    the replicated minority samples receive independent transformations and the
+    model isn't trained on identical copies.
+    """
+    rng = np.random.default_rng(seed)
+    n_pos = int((y == 1).sum())
+    n_neg = int((y == 0).sum())
+
+    if n_pos == n_neg:
+        return X, y
+
+    if n_pos < n_neg:
+        minor_idx = np.where(y == 1)[0]
+        n_extra = n_neg - n_pos
+    else:
+        minor_idx = np.where(y == 0)[0]
+        n_extra = n_pos - n_neg
+
+    extra_idx = rng.choice(minor_idx, size=n_extra, replace=True)
+    X_out = np.concatenate([X, X[extra_idx]], axis=0)
+    y_out = np.concatenate([y, y[extra_idx]], axis=0)
+
+    logger.info(
+        "Oversampled minority: %d -> %d (pos=%d, neg=%d)",
+        len(y), len(y_out),
+        int((y_out == 1).sum()), int((y_out == 0).sum()),
+    )
+    return X_out, y_out
+
+
+def balance_downsample(
+    X: np.ndarray,
+    y: np.ndarray,
+    seed: int = 42,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Downsample majority to match minority count -> exact 1:1 balance.
+
+    For val/early-stop sets where you want a clean unaugmented balanced
+    evaluation signal. Test holdout should still keep real prevalence.
+    """
+    rng = np.random.default_rng(seed)
+    pos_idx = np.where(y == 1)[0]
+    neg_idx = np.where(y == 0)[0]
+    target = min(len(pos_idx), len(neg_idx))
+    if target == 0:
+        return X, y
+
+    keep_pos = rng.choice(pos_idx, size=target, replace=False)
+    keep_neg = rng.choice(neg_idx, size=target, replace=False)
+    keep = np.sort(np.concatenate([keep_pos, keep_neg]))
+
+    logger.info(
+        "Balanced (downsampled): %d -> %d (pos=%d, neg=%d)",
+        len(y), len(keep), target, target,
     )
     return X[keep], y[keep]
 
