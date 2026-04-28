@@ -96,57 +96,82 @@ The model has 3 such (Conv $\to$ Attn) stages in sequence, followed by a fusion 
 \text{Fusion}&: \text{Concat}_{12} \to \text{Conv1d}(2304 \to 192, k{=}1) \to \text{GAP} \to \text{Dropout} \to \text{Linear}(2)
 \end{align}
 
-Figure~\ref{fig:arch} shows the data flow through the network.
+Figure~\ref{fig:arch} shows the data flow. The visual convention: \textbf{stacked boxes denote per-lead operations} (the same weights applied independently to all 12 leads, no cross-lead interaction), while \textbf{single wide boxes denote cross-lead operations} where information flows between leads.
 
 \begin{figure}[h]
 \centering
 \begin{tikzpicture}[
     >={Stealth[length=2mm]},
-    node distance=4mm and 6mm,
-    box/.style    ={draw, rectangle, rounded corners=1mm, minimum height=8mm, minimum width=22mm, align=center, font=\small\sffamily},
-    conv/.style   ={box, fill=blue!12},
-    attn/.style   ={box, fill=orange!18},
-    fuse/.style   ={box, fill=green!15},
-    io/.style     ={box, fill=gray!12, font=\small\sffamily\bfseries},
-    dim/.style    ={font=\scriptsize\itshape, midway, right=1mm, text=gray!50!black},
+    node distance=8mm and 6mm,
+    boxw/.style   ={draw, rectangle, rounded corners=1mm, minimum height=8mm, minimum width=46mm, align=center, font=\small\sffamily},
+    attn/.style   ={boxw, fill=orange!18},
+    fuse/.style   ={boxw, fill=green!15},
+    io/.style     ={boxw, fill=gray!12, font=\small\sffamily\bfseries, minimum width=46mm},
+    dim/.style    ={font=\scriptsize\itshape, midway, right=2mm, text=gray!50!black},
+    convback/.style ={draw, fill=blue!6,  rounded corners=1mm, minimum height=8mm, minimum width=46mm},
+    convmid/.style  ={draw, fill=blue!10, rounded corners=1mm, minimum height=8mm, minimum width=46mm},
+    convfront/.style={draw, fill=blue!16, rounded corners=1mm, minimum height=8mm, minimum width=46mm, align=center, font=\small\sffamily},
 ]
 
-\node[io] (in) {ECG input \\ \scriptsize $(B,\, 12,\, 2500)$};
+% Helper: a "per-lead stack" rendered as 3 offset rectangles. Use \perleadstack{name}{label}.
+\def\perleadstack#1#2{
+    \node[convback]  (#1-b2) {};
+    \node[convmid,   xshift=1.2mm, yshift=-1.2mm] at (#1-b2.center) (#1-b1) {};
+    \node[convfront, xshift=1.2mm, yshift=-1.2mm] at (#1-b1.center) (#1) {#2};
+}
 
-\node[conv,  below=of in]      (c1) {PerLeadConv \\ $1{\to}48,\, k{=}7$};
-\node[attn,  below=of c1]      (a1) {CrossLeadAttn \\ 48 ch, 4 heads};
-\node[conv,  below=of a1]      (c2) {PerLeadConv \\ $48{\to}96,\, k{=}5$};
-\node[attn,  below=of c2]      (a2) {CrossLeadAttn \\ 96 ch, 4 heads};
-\node[conv,  below=of a2]      (c3) {PerLeadConv \\ $96{\to}192,\, k{=}3$};
-\node[attn,  below=of c3]      (a3) {CrossLeadAttn \\ 192 ch, 4 heads};
+\node[io] (in) {ECG input \\ \scriptsize $(B,\, 12 \text{ leads},\, 2500 \text{ samples})$};
 
-\node[fuse,  below=of a3]      (cat) {Concat 12 leads};
-\node[fuse,  below=of cat]     (f1)  {Conv1d $1{\times}1$ \\ $2304{\to}192$};
-\node[fuse,  below=of f1]      (gap) {GAP $\to$ Dropout};
-\node[fuse,  below=of gap]     (fc)  {Linear $192 {\to} 2$};
-\node[io,    below=of fc]      (out) {$P(\text{PE})$};
+% Stage 1
+\node[below=10mm of in] (anchor1) {};
+\begin{scope}[shift={(anchor1)}]
+\perleadstack{c1}{PerLeadConv $1{\to}48,\, k{=}7$ \\ \scriptsize\itshape (shared weights, applied per lead)}
+\end{scope}
+\node[attn, below=10mm of c1] (a1) {CrossLeadAttn — 48 ch, 4 heads \\ \scriptsize\itshape (mixes the 12 lead-tokens)};
 
-\draw[->] (in)  -- (c1);
-\draw[->] (c1)  -- node[dim] {$(B, 12, 48, 1250)$} (a1);
-\draw[->] (a1)  -- (c2);
-\draw[->] (c2)  -- node[dim] {$(B, 12, 96, 625)$}  (a2);
-\draw[->] (a2)  -- (c3);
-\draw[->] (c3)  -- node[dim] {$(B, 12, 192, 312)$} (a3);
-\draw[->] (a3)  -- (cat);
-\draw[->] (cat) -- node[dim] {$(B, 2304, 312)$}    (f1);
-\draw[->] (f1)  -- (gap);
-\draw[->] (gap) -- (fc);
-\draw[->] (fc)  -- (out);
+% Stage 2
+\node[below=10mm of a1] (anchor2) {};
+\begin{scope}[shift={(anchor2)}]
+\perleadstack{c2}{PerLeadConv $48{\to}96,\, k{=}5$ \\ \scriptsize\itshape (shared weights, applied per lead)}
+\end{scope}
+\node[attn, below=10mm of c2] (a2) {CrossLeadAttn — 96 ch, 4 heads \\ \scriptsize\itshape (mixes the 12 lead-tokens)};
+
+% Stage 3
+\node[below=10mm of a2] (anchor3) {};
+\begin{scope}[shift={(anchor3)}]
+\perleadstack{c3}{PerLeadConv $96{\to}192,\, k{=}3$ \\ \scriptsize\itshape (shared weights, applied per lead)}
+\end{scope}
+\node[attn, below=10mm of c3] (a3) {CrossLeadAttn — 192 ch, 4 heads \\ \scriptsize\itshape (mixes the 12 lead-tokens)};
+
+% Fusion head
+\node[fuse, below=10mm of a3] (cat) {Concat 12 leads $\to$ Conv1d $1{\times}1\ (2304{\to}192)$};
+\node[fuse, below=of cat]     (gap) {GAP $\to$ Dropout};
+\node[fuse, below=of gap]     (fc)  {Linear $(192 {\to} 2)$};
+\node[io,   below=of fc]      (out) {$P(\text{PE})$};
+
+\draw[->] (in)         -- (c1-b2.north);
+\draw[->] (c1)         -- node[dim] {$(B, 12, 48, 1250)$} (a1);
+\draw[->] (a1)         -- (c2-b2.north);
+\draw[->] (c2)         -- node[dim] {$(B, 12, 96, 625)$}  (a2);
+\draw[->] (a2)         -- (c3-b2.north);
+\draw[->] (c3)         -- node[dim] {$(B, 12, 192, 312)$} (a3);
+\draw[->] (a3)         -- (cat);
+\draw[->] (cat)        -- (gap);
+\draw[->] (gap)        -- (fc);
+\draw[->] (fc)         -- (out);
 
 % Stage groupings
-\node[draw, dashed, rounded corners=2mm, fit=(c1)(a1), inner sep=2mm, label={[font=\footnotesize, gray!50!black]right:Stage 1}] {};
-\node[draw, dashed, rounded corners=2mm, fit=(c2)(a2), inner sep=2mm, label={[font=\footnotesize, gray!50!black]right:Stage 2}] {};
-\node[draw, dashed, rounded corners=2mm, fit=(c3)(a3), inner sep=2mm, label={[font=\footnotesize, gray!50!black]right:Stage 3}] {};
-\node[draw, dashed, rounded corners=2mm, fit=(cat)(f1)(gap)(fc), inner sep=2mm,
+\node[draw, dashed, rounded corners=2mm, fit=(c1-b2)(a1), inner sep=2mm,
+      label={[font=\footnotesize, gray!50!black]right:Stage 1}] {};
+\node[draw, dashed, rounded corners=2mm, fit=(c2-b2)(a2), inner sep=2mm,
+      label={[font=\footnotesize, gray!50!black]right:Stage 2}] {};
+\node[draw, dashed, rounded corners=2mm, fit=(c3-b2)(a3), inner sep=2mm,
+      label={[font=\footnotesize, gray!50!black]right:Stage 3}] {};
+\node[draw, dashed, rounded corners=2mm, fit=(cat)(gap)(fc), inner sep=2mm,
       label={[font=\footnotesize, gray!50!black]right:Fusion head}] {};
 
 \end{tikzpicture}
-\caption{Architecture of the 3-stage RepNet CrossLead Deeper. \textbf{Blue:} per-lead convolutional blocks (weights shared across the 12 leads, MaxPool$(2)$ at the end of each block halves the temporal dimension). \textbf{Orange:} cross-lead multi-head self-attention; each lead's feature map is pooled to a single token, attention runs over the 12 lead-tokens, the output gates the full-resolution feature maps multiplicatively. \textbf{Green:} fusion head — concatenates the 12 leads, mixes them with a $1{\times}1$ conv, applies global average pooling, and classifies. Dimension annotations show $(B, L, C, T)$ at each stage exit; the temporal axis halves at every stage due to the per-block MaxPool.}
+\caption{Architecture of the 3-stage RepNet CrossLead Deeper. \textbf{Stacked blue boxes} denote per-lead operations: the same convolutional kernel is applied independently to each of the 12 leads (weight-shared, no cross-lead information flow). \textbf{Single orange/green boxes} denote operations with cross-lead information flow. CrossLeadAttention is the only place inter-lead mixing happens within the stages: each lead's feature map is pooled to a single token, attention runs over the 12 lead-tokens, the output gates the full-resolution feature maps multiplicatively (preserving lead identity). The fusion head concatenates the 12 leads only at the very end. Dimension annotations show $(B, L, C, T)$; the temporal axis halves at each stage's MaxPool$(2)$.}
 \label{fig:arch}
 \end{figure}
 
