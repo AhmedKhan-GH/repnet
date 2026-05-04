@@ -22,6 +22,7 @@ import numpy as np
 import optuna
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
 from .base import BaseModel, register_model
@@ -89,19 +90,26 @@ class PerLeadConvBlock(nn.Module):
 
 
 class CrossLeadAttention(nn.Module):
-    """Multi-head self-attention across 12 lead representations.
+    """Multi-head self-attention across lead × time-segment tokens.
 
-    Each lead's feature map is pooled to a single vector, then leads
-    attend to each other. The attention output modulates the full
-    feature maps via a gating mechanism.
+    Each lead's feature map is pooled to `n_tokens` temporal tokens. Attention
+    then operates over (n_leads × n_tokens) tokens — letting the model attend
+    to specific time-segments of specific leads (e.g., T-wave of V4 ↔ QRS of II)
+    rather than only "which leads matter."
+
+    n_tokens=1 (default) reproduces the original whole-lead attention behavior.
 
     Input:  (batch, n_leads, C, T)
     Output: (batch, n_leads, C, T) — same shape, attention-weighted
     """
 
-    def __init__(self, embed_dim: int, n_heads: int = 4, dropout: float = 0.1):
+    def __init__(self, embed_dim: int, n_heads: int = 4, dropout: float = 0.1,
+                 n_tokens: int = 1):
         super().__init__()
-        self.pool = nn.AdaptiveAvgPool1d(1)  # (B*L, C, T) → (B*L, C, 1)
+        self.n_tokens = int(n_tokens)
+        # AdaptiveAvgPool1d(n_tokens) splits the time axis into n_tokens equal segments
+        # and averages within each → (B*L, C, n_tokens)
+        self.pool = nn.AdaptiveAvgPool1d(self.n_tokens)
         self.attn = nn.MultiheadAttention(
             embed_dim=embed_dim, num_heads=n_heads,
             dropout=dropout, batch_first=True,
@@ -115,19 +123,35 @@ class CrossLeadAttention(nn.Module):
     def forward(self, x):
         # x: (batch, n_leads, C, T)
         B, L, C, T = x.shape
+        N = self.n_tokens
 
-        # Pool each lead to a vector: (batch, n_leads, C)
-        tokens = self.pool(x.reshape(B * L, C, T)).squeeze(-1).reshape(B, L, C)
+        # Pool each lead to N tokens: (B*L, C, T) → (B*L, C, N) → (B, L, C, N)
+        pooled = self.pool(x.reshape(B * L, C, T)).reshape(B, L, C, N)
 
-        # Self-attention across leads
+        # Flatten lead+token dims: (B, L*N, C). Order is (lead0_t0, lead0_t1, ..., lead11_tN-1).
+        tokens = pooled.permute(0, 1, 3, 2).reshape(B, L * N, C)
+
+        # Self-attention across L*N tokens
         attn_out, _ = self.attn(tokens, tokens, tokens)
-        attn_out = self.norm(tokens + attn_out)  # residual + layer norm
+        attn_out = self.norm(tokens + attn_out)        # residual + layer norm
 
-        # Gate: convert attention output to per-lead weights
-        gate_weights = self.gate(attn_out)  # (B, L, C)
+        # Gate: per-token weights (B, L*N, C)
+        gate_tokens = self.gate(attn_out)
 
-        # Apply gate to full feature maps
-        return x * gate_weights.unsqueeze(-1)  # broadcast over T
+        # Reshape back to (B, L, C, N) and broadcast/interpolate to (B, L, C, T)
+        gate_lcn = gate_tokens.reshape(B, L, N, C).permute(0, 1, 3, 2)  # (B, L, C, N)
+        if N == 1:
+            gate_full = gate_lcn.expand(B, L, C, T)
+        elif N == T:
+            gate_full = gate_lcn
+        else:
+            # Linear-interpolate the gate from N to T along the time axis
+            gate_full = F.interpolate(
+                gate_lcn.reshape(B * L, C, N),
+                size=T, mode="linear", align_corners=False,
+            ).reshape(B, L, C, T)
+
+        return x * gate_full
 
 
 class RepNetCrossLead(nn.Module):
