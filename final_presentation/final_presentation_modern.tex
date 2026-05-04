@@ -1,0 +1,294 @@
+% Modern UC Davis slide template
+% Adopts the visual language of the senior design poster
+% (final_poster/main.tex): Aggie Blue + Aggie Gold palette, gold accent
+% rule under titles. Compiles with standard pdfLaTeX.
+
+\documentclass[10pt,aspectratio=169]{beamer}
+
+% ====================
+% Packages
+% ====================
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{mathtools}
+\usepackage{tikz}
+\usepackage{hyperref}
+
+% ====================
+% UC Davis brand colors (digital palette)
+% ====================
+\definecolor{aggieblue}{HTML}{022851}
+\definecolor{aggiegold}{HTML}{FFBF00}
+\definecolor{aggieblueDark}{HTML}{011936}
+\definecolor{aggiegoldDark}{HTML}{C99700}
+\definecolor{coolgray}{RGB}{77,79,83}
+\definecolor{boxgray}{RGB}{238,235,233}
+
+% ====================
+% Fonts — standard pdfLaTeX (Latin Modern Sans for body/headings).
+% \Raleway and \Lato are kept as \sffamily aliases so existing markup
+% (font=\Raleway\bfseries..., family=\Lato) still compiles unchanged.
+% ====================
+\renewcommand{\familydefault}{\sfdefault}
+\newcommand{\Raleway}{\sffamily}
+\newcommand{\Lato}{\sffamily}
+
+% ====================
+% Beamer color slots
+% ====================
+\setbeamercolor*{palette primary}{fg=white,bg=aggieblue}
+\setbeamercolor*{palette secondary}{fg=white,bg=coolgray}
+\setbeamercolor*{palette tertiary}{fg=white,bg=aggieblueDark}
+\setbeamercolor*{palette quaternary}{fg=aggieblue,bg=aggiegold}
+
+\setbeamercolor{structure}{fg=aggieblue}
+\setbeamercolor{titlelike}{fg=aggieblue}
+\setbeamercolor{frametitle}{fg=white,bg=aggieblue}
+\setbeamercolor{title}{fg=white,bg=aggieblue}
+\setbeamercolor{author}{fg=aggieblue}
+\setbeamercolor{institute}{fg=coolgray}
+\setbeamercolor{date}{fg=coolgray}
+
+\setbeamercolor{itemize item}{fg=aggieblue}
+\setbeamercolor{itemize subitem}{fg=aggiegoldDark}
+\setbeamercolor{enumerate item}{fg=aggieblue}
+\setbeamercolor{description item}{fg=aggieblue}
+
+\setbeamercolor{block title}{fg=white,bg=aggieblue}
+\setbeamercolor{block body}{fg=black,bg=boxgray}
+\setbeamercolor{block title alerted}{fg=aggieblue,bg=aggiegold}
+\setbeamercolor{block body alerted}{fg=black,bg=boxgray}
+
+\setbeamercolor{section in toc}{fg=aggieblue}
+\setbeamercolor{subsection in toc}{fg=aggieblueDark}
+
+\setbeamercolor{caption name}{fg=aggieblue}
+
+% ====================
+% Fonts (sizes/weights)
+% ====================
+\setbeamerfont{title}{family=\Raleway,series=\bfseries,size=\LARGE}
+\setbeamerfont{subtitle}{family=\Lato,size=\normalsize}
+\setbeamerfont{author}{family=\Lato,size=\small}
+\setbeamerfont{institute}{family=\Lato,size=\footnotesize}
+\setbeamerfont{date}{family=\Lato,size=\footnotesize}
+\setbeamerfont{frametitle}{family=\Raleway,series=\bfseries,size=\large}
+\setbeamerfont{block title}{family=\Raleway,series=\bfseries}
+\setbeamerfont{section in toc}{family=\Raleway,series=\bfseries}
+\setbeamerfont{footline}{family=\Lato,size=\scriptsize}
+
+% ====================
+% Frame title with Aggie Gold accent bar (poster-style separator)
+% ====================
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip
+  \begin{beamercolorbox}[wd=\paperwidth,ht=3.0ex,dp=1.4ex,leftskip=1em,rightskip=1em]{frametitle}%
+    \usebeamerfont{frametitle}\insertframetitle%
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=0.35ex,dp=0pt]{palette quaternary}%
+  \end{beamercolorbox}%
+  \vspace{1.0ex}
+}
+
+% Suppress nav symbols (matches poster aesthetic)
+\beamertemplatenavigationsymbolsempty
+
+% ====================
+% Itemize bullet (small filled square, matches Gemini theme)
+% ====================
+\setbeamertemplate{itemize item}{\raise0.5ex \hbox{\vrule width 0.5ex height 0.5ex}}
+\setbeamertemplate{itemize subitem}{\raise0.3ex \hbox{\vrule width 0.5ex height 0.5ex}}
+\setbeamertemplate{itemize subsubitem}{\raise0.2ex \hbox{\vrule width 0.5ex height 0.5ex}}
+
+% ====================
+% Footer: thin gold rule + repo / event / contact
+% ====================
+\newcommand{\footercontent}[1]{\renewcommand{\insertfootercontent}{#1}}
+\newcommand{\insertfootercontent}{}
+
+\setbeamertemplate{footline}{%
+  \ifx\insertfootercontent\@empty\else
+    \begin{beamercolorbox}[wd=\paperwidth,ht=0.3ex,dp=0pt]{palette quaternary}\end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=\paperwidth,ht=2.4ex,dp=1.2ex,leftskip=1em,rightskip=1em]{palette primary}%
+      \usebeamerfont{footline}\insertfootercontent\hfill\insertframenumber{}/\inserttotalframenumber%
+    \end{beamercolorbox}%
+  \fi
+}
+
+% ====================
+% Section divider slide (Aggie Blue background, gold rule)
+% ====================
+\AtBeginSection[]{%
+  \begin{frame}[plain,noframenumbering]
+    \begin{tikzpicture}[remember picture,overlay]
+      \fill[aggieblue] (current page.south west) rectangle (current page.north east);
+      \fill[aggiegold] ([yshift=-0.6cm]current page.center) rectangle ([yshift=-0.55cm,xshift=4cm]current page.center);
+      \fill[aggiegold] ([yshift=-0.6cm]current page.center) rectangle ([yshift=-0.55cm,xshift=-4cm]current page.center);
+      \node[anchor=center,text=white,font=\Raleway\bfseries\Huge]
+        at ([yshift=0.4cm]current page.center) {\insertsectionhead};
+    \end{tikzpicture}
+  \end{frame}
+}
+
+% ====================
+% Title / authors
+% ====================
+\title{Risk Estimation of Preeclampsia}
+\subtitle{Feature Extraction and Deep Learning on 12-Lead ECG Waveforms}
+\author{Ahmed Khan \and Lawrencedel Legaspi \and Selena Phu}
+\institute{Department of Electrical and Computer Engineering \\ University of California, Davis}
+\date{\today}
+
+% Title-page logo
+\titlegraphic{\includegraphics[height=2.0cm]{logo.png}}
+
+% Footer (mirrors the poster's footer)
+\footercontent{%
+  \href{https://github.com/AhmedKhan-GH/repnet}{github.com/AhmedKhan-GH/repnet}
+  \enspace$\bullet$\enspace
+  UC Davis Senior Design 2026
+  \enspace$\bullet$\enspace
+  \href{mailto:aekhan@ucdavis.edu}{aekhan@ucdavis.edu}%
+}
+
+% ====================
+% Title page template (custom: gold rule, blue title block)
+% Full-bleed TikZ layout — blue extends above page top to avoid any
+% white margin from beamer's frame padding.
+% ====================
+\setbeamertemplate{title page}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    % Blue header band (overflows ~1cm above page top to guarantee full bleed)
+    \fill[aggieblue]
+      ([yshift=1cm]current page.north west)
+      rectangle
+      ([yshift=-3.8cm]current page.north east);
+    % Aggie Gold accent rule beneath header
+    \fill[aggiegold]
+      ([yshift=-3.8cm]current page.north west)
+      rectangle
+      ([yshift=-3.95cm]current page.north east);
+    % Title
+    \node[anchor=center,text=white,align=center,text width=14cm,
+          font=\Raleway\bfseries]
+      at ([yshift=-1.6cm]current page.north)
+      {\usebeamerfont{title}\inserttitle};
+    % Subtitle (tucked closer to title)
+    \node[anchor=center,text=aggiegold,align=center,text width=14cm,
+          font=\Lato]
+      at ([yshift=-2.4cm]current page.north)
+      {\usebeamerfont{subtitle}\insertsubtitle};
+    % Logo (anchored well below the gold rule)
+    \node[anchor=north]
+      at ([yshift=-4.3cm]current page.north)
+      {\inserttitlegraphic};
+    % Authors
+    \node[anchor=north,text=aggieblue,align=center,font=\Lato]
+      at ([yshift=-6.5cm]current page.north)
+      {\usebeamerfont{author}\insertauthor};
+    % Institute
+    \node[anchor=north,text=coolgray,align=center,font=\Lato]
+      at ([yshift=-7.1cm]current page.north)
+      {\usebeamerfont{institute}\insertinstitute};
+    % Date
+    \node[anchor=north,text=coolgray,align=center,font=\Lato]
+      at ([yshift=-8.0cm]current page.north)
+      {\usebeamerfont{date}\insertdate};
+  \end{tikzpicture}%
+}
+
+% ====================
+% Document
+% ====================
+\begin{document}
+
+% ---------- Title ----------
+{%
+  \setbeamertemplate{footline}{}%
+  \begin{frame}[plain,noframenumbering]
+    \titlepage
+  \end{frame}
+}
+
+% ---------- TOC ----------
+\begin{frame}{Contents}
+  \tableofcontents
+\end{frame}
+
+% =========================================================
+\section{Introduction}
+% =========================================================
+
+\begin{frame}{Motivation}
+  \begin{itemize}
+    \item Preeclampsia: hypertensive disorder of pregnancy, 2--8\% of complications.
+    \item Diagnosis currently relies on $\geq$20-week BP and end-organ markers.
+    \item \textbf{Goal:} predict risk weeks earlier from 12-lead ECG morphology.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Goal}
+  \begin{block}{What we are building}
+    An \emph{explainable} preeclampsia risk pipeline pairing engineered ECG
+    features with learned representations, where every prediction can be
+    traced back to a clinically meaningful quantity.
+  \end{block}
+\end{frame}
+
+% =========================================================
+\section{Methods}
+% =========================================================
+
+\begin{frame}{Engineered ECG Features}
+  Placeholder: insert P/QT/Tp-e/ST/axis feature table or schematic here.
+\end{frame}
+
+\begin{frame}{Pipeline}
+  Placeholder: raw ECG $\rightarrow$ NeuroKit2 clean/delineate $\rightarrow$ features
+  $\rightarrow$ RF / LightGBM / XGBoost $\rightarrow$ risk score.
+\end{frame}
+
+% =========================================================
+\section{Results}
+% =========================================================
+
+\begin{frame}{Preliminary Results}
+  Placeholder: AUC / Accuracy / Precision / Recall / F1 on the balanced
+  UCDH Echo subset.
+\end{frame}
+
+% =========================================================
+\section{Future Work}
+% =========================================================
+
+\begin{frame}{Next Steps}
+  \begin{itemize}
+    \item Feature-importance analysis ($\chi^2$, PCA) to prune features.
+    \item RF vs.\ LightGBM vs.\ XGBoost on the full UCDH Echo dataset.
+    \item Single-lead model for smart-wearable deployment.
+    \item Transformer attention maps projected onto engineered features.
+  \end{itemize}
+\end{frame}
+
+% =========================================================
+\section*{Acknowledgements}
+% =========================================================
+
+{%
+  \setbeamertemplate{footline}{}%
+  \begin{frame}[plain,noframenumbering]
+    \begin{tikzpicture}[remember picture,overlay]
+      \fill[aggieblue] (current page.south west) rectangle (current page.north east);
+    \end{tikzpicture}
+    \vfill
+    \centering
+    {\Raleway\bfseries\Huge\color{white} Thank you}\\[0.6em]
+    {\color{aggiegold}\rule{4cm}{0.06cm}}\\[0.8em]
+    {\Lato\large\color{white} Questions?}
+    \vfill
+  \end{frame}
+}
+
+\end{document}
