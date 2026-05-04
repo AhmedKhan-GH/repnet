@@ -1,10 +1,178 @@
-@misc{chatgpt_litreview_2026,
- author = {{OpenAI}},
- title = {Literature Review Query Transcript for {RepNet}: {ML/DL} for Preeclampsia and {ECG} Classification},
- year = {2026},
+@misc{he_deep_2015,
+ abstract = {Deeper neural networks are more difﬁcult to train. We present a residual learning framework to ease the training of networks that are substantially deeper than those used previously. We explicitly reformulate the layers as learning residual functions with reference to the layer inputs, instead of learning unreferenced functions. We provide comprehensive empirical evidence showing that these residual networks are easier to optimize, and can gain accuracy from considerably increased depth. On the ImageNet dataset we evaluate residual nets with a depth of up to 152 layers—8× deeper than VGG nets [41] but still having lower complexity. An ensemble of these residual nets achieves 3.57\% error on the ImageNet test set. This result won the 1st place on the ILSVRC 2015 classiﬁcation task. We also present analysis on CIFAR-10 with 100 and 1000 layers.},
+ author = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+ doi = {10.48550/arXiv.1512.03385},
+ keywords = {Computer Science - Computer Vision and Pattern Recognition},
+ language = {en},
+ month = {December},
+ note = {arXiv:1512.03385 [cs]},
+ publisher = {arXiv},
+ title = {Deep {Residual} {Learning} for {Image} {Recognition}},
+ url = {http://arxiv.org/abs/1512.03385},
+ urldate = {2026-04-18},
+ year = {2015}
+}
+
+@article{selvaraju_grad-cam_2020,
+ abstract = {We propose a technique for producing ‘visual explanations’ for decisions from a large class of Convolutional Neural Network (CNN)-based models, making them more transparent and explainable.},
+ author = {Selvaraju, Ramprasaath R. and Cogswell, Michael and Das, Abhishek and Vedantam, Ramakrishna and Parikh, Devi and Batra, Dhruv},
+ doi = {10.1007/s11263-019-01228-7},
+ issn = {0920-5691, 1573-1405},
+ journal = {International Journal of Computer Vision},
+ keywords = {Computer Science - Artificial Intelligence, Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning},
+ language = {en},
+ month = {February},
+ note = {arXiv:1610.02391 [cs]},
+ number = {2},
+ pages = {336--359},
+ shorttitle = {Grad-{CAM}},
+ title = {Grad-{CAM}: {Visual} {Explanations} from {Deep} {Networks} via {Gradient}-based {Localization}},
+ url = {http://arxiv.org/abs/1610.02391},
+ urldate = {2026-04-18},
+ volume = {128},
+ year = {2020}
+}
+
+@article{welch_use_1967,
+ abstract = {The use of the fast Fourier transform in power spectrum analysis is described. Principal advantages of this method area reduction inthenumber of computations and in required core storage, and convenient application in nonstationarity tests.The method involves sectioning the record and averaging modified periodograms of the sections.},
+ author = {Welch, P.},
+ copyright = {https://ieeexplore.ieee.org/Xplorehelp/downloads/license-information/IEEE.html},
+ doi = {10.1109/TAU.1967.1161901},
+ issn = {0018-9278},
+ journal = {IEEE Transactions on Audio and Electroacoustics},
+ language = {en},
+ month = {June},
+ number = {2},
+ pages = {70--73},
+ shorttitle = {The use of fast {Fourier} transform for the estimation of power spectra},
+ title = {The use of fast {Fourier} transform for the estimation of power spectra: {A} method based on time averaging over short, modified periodograms},
+ url = {http://ieeexplore.ieee.org/document/1161901/},
+ urldate = {2026-04-18},
+ volume = {15},
+ year = {1967}
+}
+
+@article{batista_study_2004,
+ abstract = {There are several aspects that might inﬂuence the performance achieved by existing learning systems. It has been reported that one of these aspects is related to class imbalance in which examples in training data belonging to one class heavily outnumber the examples in the other class. In this situation, which is found in real world data describing an infrequent but important event, the learning system may have diﬃculties to learn the concept related to the minority class. In this work we perform a broad experimental evaluation involving ten methods, three of them proposed by the authors, to deal with the class imbalance problem in thirteen UCI data sets. Our experiments provide evidence that class imbalance does not systematically hinder the performance of learning systems. In fact, the problem seems to be related to learning with too few minority class examples in the presence of other complicating factors, such as class overlapping. Two of our proposed methods deal with these conditions directly, allying a known over-sampling method with data cleaning methods in order to produce better-deﬁned class clusters. Our comparative experiments show that, in general, over-sampling methods provide more accurate results than under-sampling methods considering the area under the ROC curve (AUC). This result seems to contradict results previously published in the literature. Two of our proposed methods, Smote + Tomek and Smote + ENN, presented very good results for data sets with a small number of positive examples. Moreover, Random over-sampling, a very simple over-sampling method, is very competitive to more complex over-sampling methods. Since the over-sampling methods provided very good performance results, we also measured the syntactic complexity of the decision trees induced from over-sampled data. Our results show that these trees are usually more complex then the ones induced from original data. Random over-sampling usually produced the smallest increase in the mean number of induced rules and Smote + ENN the smallest increase in the mean number of conditions per rule, when compared among the investigated over-sampling methods.},
+ author = {Batista, Gustavo E. A. P. A. and Prati, Ronaldo C. and Monard, Maria Carolina},
+ doi = {10.1145/1007730.1007735},
+ issn = {1931-0145, 1931-0153},
+ journal = {ACM SIGKDD Explorations Newsletter},
+ language = {en},
+ month = {June},
+ number = {1},
+ pages = {20--29},
+ title = {A study of the behavior of several methods for balancing machine learning training data},
+ url = {https://dl.acm.org/doi/10.1145/1007730.1007735},
+ urldate = {2026-04-18},
+ volume = {6},
+ year = {2004}
+}
+
+@misc{akiba_optuna_2019,
+ abstract = {The purpose of this study is to introduce new design-criteria for next-generation hyperparameter optimization software. The criteria we propose include (1) deﬁne-by-run API that allows users to construct the parameter search space dynamically, (2) eﬃcient implementation of both searching and pruning strategies, and (3) easy-to-setup, versatile architecture that can be deployed for various purposes, ranging from scalable distributed computing to light-weight experiment conducted via interactive interface. In order to prove our point, we will introduce Optuna, an optimization software which is a culmination of our eﬀort in the development of a next generation optimization software. As an optimization software designed with deﬁne-by-run principle, Optuna is particularly the ﬁrst of its kind. We will present the design-techniques that became necessary in the development of the software that meets the above criteria, and demonstrate the power of our new design through experimental results and real world applications. Our software is available under the MIT license (https://github.com/pfnet/optuna/).},
+ author = {Akiba, Takuya and Sano, Shotaro and Yanase, Toshihiko and Ohta, Takeru and Koyama, Masanori},
+ doi = {10.48550/arXiv.1907.10902},
+ keywords = {Computer Science - Machine Learning, Statistics - Machine Learning},
+ language = {en},
+ month = {July},
+ note = {arXiv:1907.10902 [cs]},
+ publisher = {arXiv},
+ shorttitle = {Optuna},
+ title = {Optuna: {A} {Next}-generation {Hyperparameter} {Optimization} {Framework}},
+ url = {http://arxiv.org/abs/1907.10902},
+ urldate = {2026-04-18},
+ year = {2019}
+}
+
+@inproceedings{xue_does_2024,
+ author = {Xue, Joel},
+ doi = {10.22489/CinC.2024.473},
+ month = {December},
+ title = {Does a {Reduced} {ECG} {Lead} {Set} {Contain} the {Full} 12-{Lead} {ECG} {Information} for {Interpretation}},
+ url = {https://www.cinc.org/archives/2024/pdf/CinC2024-473.pdf},
+ urldate = {2026-04-18},
+ year = {2024}
+}
+
+@article{butler_feasibility_2024,
+ abstract = {Background
+Fatal coronary heart disease (FCHD) is often described as sudden cardiac death (affects {\textgreater}4 million people/year), where coronary artery disease is the only identified condition. Electrocardiographic artificial intelligence (ECG-AI) models for FCHD risk prediction using ECG data from wearable devices could enable wider screening/monitoring efforts.
+
+Objectives
+To develop a single-lead ECG–based deep learning model for FCHD risk prediction and assess concordance between clinical and Apple Watch ECGs.
+
+Methods
+An FCHD single-lead (“lead I” from 12-lead ECGs) ECG-AI model was developed using 167,662 ECGs (50,132 patients) from the University of Tennessee Health Sciences Center. Eighty percent of the data (5-fold cross-validation) was used for training and 20\% as a holdout. Cox proportional hazards (CPH) models incorporating ECG-AI predictions with age, sex, and race were also developed. The models were tested on paired clinical single-lead and Apple Watch ECGs from 243 St. Jude Lifetime Cohort Study participants. The correlation and concordance of the predictions were assessed using Pearson correlation (R), Spearman correlation (ρ), and Cohen’s kappa.
+
+Results
+The ECG-AI and CPH models resulted in AUC = 0.76 and 0.79, respectively, on the 20\% holdout and AUC = 0.85 and 0.87 on the Atrium Health Wake Forest Baptist external validation data. There was moderate-strong positive correlation between predictions (R = 0.74, ρ = 0.67, and κ = 0.58) when tested on the 243 paired ECGs. The clinical (lead I) and Apple Watch predictions led to the same low/high-risk FCHD classification for 99\% of the participants. CPH prediction correlation resulted in an R = 0.81, ρ = 0.76, and κ = 0.78.
+
+Conclusion
+Risk of FCHD can be predicted from single-lead ECGs obtained from wearable devices and are statistically concordant with lead I of a 12-lead ECG.},
+ author = {Butler, Liam and Ivanov, Alexander and Celik, Turgay and Karabayir, Ibrahim and Chinthala, Lokesh and Hudson, Melissa M. and Ness, Kiri K. and Mulrooney, Daniel A. and Dixon, Stephanie B. and Tootooni, Mohammad S. and Doerr, Adam J. and Jaeger, Byron C. and Davis, Robert L. and McManus, David D. and Herrington, David and Akbilgic, Oguz},
+ doi = {10.1016/j.cvdhj.2024.03.007},
+ issn = {2666-6936},
+ journal = {Cardiovascular Digital Health Journal},
  month = {April},
- howpublished = {ChatGPT (GPT-4.5 Auto) conversation},
- note = {Full transcript included in Appendix~D of this report}
+ number = {3},
+ pages = {115--121},
+ pmcid = {PMC11232422},
+ pmid = {38989042},
+ title = {Feasibility of remote monitoring for fatal coronary heart disease using {Apple} {Watch} {ECGs}},
+ url = {https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11232422/},
+ urldate = {2026-04-18},
+ volume = {5},
+ year = {2024}
+}
+
+@misc{noauthor_preeclampsia_2018,
+ journal = {Harvard Health},
+ language = {en},
+ month = {October},
+ title = {Preeclampsia {And} {Eclampsia}},
+ url = {https://www.health.harvard.edu/a_to_z/preeclampsia-and-eclampsia-a-to-z},
+ urldate = {2026-04-18},
+ year = {2018}
+}
+
+@misc{geisinger_early_nodate,
+ author = {Geisinger},
+ title = {Early {Signs} of {Preeclampsia}},
+ url = {https://www.geisinger.org/health-and-wellness/wellness-articles/2025/08/12/15/15/early-signs-of-preeclampsia}
+}
+
+@misc{mayo_clinic_preeclampsia_nodate,
+ author = {Mayo Clinic},
+ title = {Preeclampsia},
+ url = {https://www.mayoclinic.org/diseases-conditions/preeclampsia/diagnosis-treatment/drc-20355751}
+}
+
+@article{butler_ai-based_2024,
+ abstract = {Introduction
+More than 76,000 women die yearly from preeclampsia and hypertensive disorders of pregnancy. Early diagnosis and management of preeclampsia can improve outcomes for both mother and baby. In this study, we developed artificial intelligence models to detect and predict preeclampsia from electrocardiograms (ECGs) in point-of-care settings.
+
+Methods
+Ten-second 12-lead ECG data was obtained from two large health care settings: University of Tennessee Health Science Center (UTHSC) and Atrium Health Wake Forest Baptist (AHWFB). UTHSC data was split into 80\% training and 20\% holdout data. The model used a modified ResNet convolutional neural network, taking one-dimensional raw ECG signals comprising 12 channels as an input, to predict risk of preeclampsia. Sub-analyses were performed to assess the predictive accuracy for preeclampsia prediction within 30, 60, or 90 days before diagnosis.
+
+Results
+The UTHSC cohort included 904 ECGs from 759 females (78.8\% African American) with a mean ± sd age of 27.3 ± 5.0 years. The AHWFB cohort included 817 ECGs from 141 females (45.4 African American) with a mean ± sd age of 27.4 ± 5.9 years. The cross-validated ECG-AI model yielded an AUC (95\% CI) of 0.85 (0.77-0.93) on UTHSC holdout data, and an AUC (95\% CI) of 0.81 (0.77-0.84) on AHWFB data. The sub-analysis of different time windows before preeclampsia prediction resulted in AUCs (95\% CI) of 0.92 (0.84-1.00), 0.89 (0.81-0.98) and 0.90 (0.81-0.98) when tested on ECGs 30 days, 60 days and 90 days, respectively, before diagnosis. When assessed on early onset preeclampsia (preeclampsia diagnosed at {\textless}34 weeks of pregnancy), the model's AUC (95\% CI) was 0.98 (0.89-1.00).
+
+Discussion
+We conclude that preeclampsia can be identified with high accuracy via application of AI models to ECG data.},
+ author = {Butler, Liam and Gunturkun, Fatma and Chinthala, Lokesh and Karabayir, Ibrahim and Tootooni, Mohammad S. and Bakir-Batu, Berna and Celik, Turgay and Akbilgic, Oguz and Davis, Robert L.},
+ doi = {10.3389/fcvm.2024.1360238},
+ issn = {2297-055X},
+ journal = {Frontiers in Cardiovascular Medicine},
+ month = {March},
+ pages = {1360238},
+ pmcid = {PMC10945012},
+ pmid = {38500752},
+ title = {{AI}-based preeclampsia detection and prediction with electrocardiogram data},
+ url = {https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10945012/},
+ urldate = {2026-04-15},
+ volume = {11},
+ year = {2024}
 }
 
 @article{beritelli_novel_2018,
@@ -112,6 +280,23 @@ Conclusions: This study provides additional evidence to support ML in obstetrica
  year = {2024}
 }
 
+@article{zhang_development_2023,
+ abstract = {Preeclampsia (PE) is a condition that poses a signiﬁcant risk of maternal mortality and multiple organ failure during pregnancy. Early prediction of PE can enable timely surveillance and interventions, such as low-dose aspirin administration. In this study, conducted at Stanford Health Care, we examined a cohort of 60 pregnant women and collected 478 urine samples between gestational weeks 8 and 20 for comprehensive metabolomic proﬁling. By employing liquid chromatography mass spectrometry (LCMS/MS), we identiﬁed the structures of seven out of 26 metabolomics biomarkers detected. Utilizing the XGBoost algorithm, we developed a predictive model based on these seven metabolomics biomarkers to identify individuals at risk of developing PE. The performance of the model was evaluated using 10-fold cross-validation, yielding an area under the receiver operating characteristic curve of 0.856. Our ﬁndings suggest that measuring urinary metabolomics biomarkers offers a noninvasive approach to assess the risk of PE prior to its onset.},
+ author = {Zhang, Yaqi and Sylvester, Karl G. and Jin, Bo and Wong, Ronald J. and Schilling, James and Chou, C. James and Han, Zhi and Luo, Ruben Y. and Tian, Lu and Ladella, Subhashini and Mo, Lihong and Marić, Ivana and Blumenfeld, Yair J. and Darmstadt, Gary L. and Shaw, Gary M. and Stevenson, David K. and Whitin, John C. and Cohen, Harvey J. and McElhinney, Doff B. and Ling, Xuefeng B.},
+ doi = {10.3390/metabo13060715},
+ issn = {2218-1989},
+ journal = {Metabolites},
+ language = {en},
+ month = {May},
+ number = {6},
+ pages = {715},
+ title = {Development of a {Urine} {Metabolomics} {Biomarker}-{Based} {Prediction} {Model} for {Preeclampsia} during {Early} {Pregnancy}},
+ url = {https://www.mdpi.com/2218-1989/13/6/715},
+ urldate = {2026-04-13},
+ volume = {13},
+ year = {2023}
+}
+
 @article{ebrahimpour_moghaddam_tasouj_ecg_2025,
  abstract = {Background: Post-traumatic stress disorder (PTSD) is a serious psychiatric condition that can lead to severe anxiety, depression, and cardiovascular complications if left untreated. Early and accurate diagnosis is critical. This study aims to develop and evaluate an artificial intelligence-based classification system using electrocardiogram (ECG) signals for the detection of PTSD. Methods: Raw ECG signals were transformed into time–frequency images using Continuous Wavelet Transform (CWT) to generate 2D scalogram representations. These images were classified using deep learning-based convolutional neural networks (CNNs), including AlexNet, GoogLeNet, and ResNet50. In parallel, statistical features were extracted directly from the ECG signals and used in traditional machine learning (ML) classifiers for performance comparison. Four different segment lengths (5 s, 10 s, 15 s, and 20 s) were tested to assess their effect on classification accuracy. Results: Among the tested models, ResNet50 achieved the highest classification accuracy of 94.92\%, along with strong MCC, sensitivity, specificity, and precision metrics. The best performance was observed with 5-s signal segments. Deep learning (DL) models consistently outperformed traditional ML approaches. The area under the curve (AUC) for ResNet50 reached 0.99, indicating excellent classification capability. Conclusions: This study demonstrates that CNN-based models utilizing time–frequency representations of ECG signals can effectively classify PTSD with high accuracy. Segment length significantly influences model performance, with shorter segments providing more reliable results. The proposed method shows promise for non-invasive, ECG-based diagnostic support in PTSD detection.},
  author = {Ebrahimpour Moghaddam Tasouj, Parisa and Soysal, Gökhan and Eroğul, Osman and Yetkin, Sinan},
@@ -191,7 +376,7 @@ In the entire study population, T-axis deviation from 45° was significantly ass
 
 Conclusion
 An abnormal T-wave axis is associated with an increasing CAC score in this population of Icelandic older adults. This association remains in the subgroup of subjects without clinical CHD.},
- author = {SCHERER, MATTHEW L. and ASPELUND, THOR and SIGURDSSON, SIGURDUR and DETRANO, ROBERT and GARCIA, MELISSA and MITCHELL, GARY F. and LAUNER, LENORE J. and THORGEIRSSON, GUDMUNDUR and GUDNASON, VILMUNDUR and HARRIS, TAMARA B.},
+ author = {Scherer, Matthew L. and Aspelund, Thor and Sigurdsson, Sigurdur and Detrano, Robert and Garcia, Melissa and Mitchell, Gary F. and Launer, Lenore J. and Thorgeirsson, Gudmundur and Gudnason, Vilmundur and Harris, Tamara B.},
  doi = {10.1080/14017430802471483},
  issn = {1401-7431},
  journal = {Scandinavian cardiovascular journal : SCJ},
