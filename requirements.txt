@@ -1,7 +1,9 @@
 bibtexparser
+matplotlib
 numpy
 optuna
 pandas
+plotly
 python-dotenv
 pyzotero
 scikit-learn
