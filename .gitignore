@@ -11,6 +11,8 @@ out
 .env
 
 /data
+/optuna_dump
+/training_dump
 
 # Training run artifacts
 __pycache__/
@@ -20,3 +22,6 @@ __pycache__/
 *.nav
 *.snm
 *.toc
+
+.claude
+.cache_hrv
