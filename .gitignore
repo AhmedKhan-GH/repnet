@@ -28,3 +28,6 @@ __pycache__/
 /src_dump
 optuna_*
 cv_results
+crosslead_*
+resnet_*
+benchmark_*
