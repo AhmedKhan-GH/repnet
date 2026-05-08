@@ -31,3 +31,5 @@ cv_results
 crosslead_*
 resnet_*
 benchmark_*
+
+notebooks/dump
