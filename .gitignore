@@ -26,3 +26,5 @@ __pycache__/
 .claude
 .cache_hrv
 /src_dump
+optuna_*
+cv_results
