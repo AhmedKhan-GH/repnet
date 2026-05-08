@@ -323,7 +323,7 @@ def main():
     parser.add_argument("--epochs",   type=int, default=50)
     args = parser.parse_args()
 
-    run_dir = Path("crossval_results") / f"repnet_crosslead_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    run_dir = Path("cv_results") / f"repnet_crosslead_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(

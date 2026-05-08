@@ -13,7 +13,7 @@ Matches the train_repnet_crosslead_deeper.py pipeline (NOT the 2026-04-17 study)
 
 Use this for fair head-to-head against optimize_crosslead_2stage.py.
 
-Outputs (saved to optuna_results/optuna_crosslead_3stage/YYYY-MM-DD_HH-MM-SS/):
+Outputs (saved to optuna_crosslead_3stage/YYYY-MM-DD_HH-MM-SS/):
   - study.db          — Optuna SQLite study (resume-able)
   - results.log
   - best_model.pt
@@ -169,7 +169,7 @@ def main():
     parser.add_argument("--seed",     type=int, default=42)
     args = parser.parse_args()
 
-    run_dir = Path("optuna_results/optuna_crosslead_3stage") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_dir = Path("optuna_crosslead_3stage") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir.mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(

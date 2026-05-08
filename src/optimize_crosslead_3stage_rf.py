@@ -27,7 +27,7 @@ Fixed (from prior best studies)
   Batch / epochs:  64 / 50
   Splits:          patient-grouped 80/20 holdout + 5-fold patient-grouped CV
 
-Outputs (optuna_results/optuna_crosslead_3stage_rf/YYYY-MM-DD_HH-MM-SS/):
+Outputs (optuna_crosslead_3stage_rf/YYYY-MM-DD_HH-MM-SS/):
   study.db, results.log, best_params.json, best_model.pt, summary.txt,
   *_plot.html
 
@@ -200,7 +200,7 @@ def main():
     parser.add_argument("--seed",     type=int, default=42)
     args = parser.parse_args()
 
-    run_dir = Path("optuna_results/optuna_crosslead_3stage_rf") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_dir = Path("optuna_crosslead_3stage_rf") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir.mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(

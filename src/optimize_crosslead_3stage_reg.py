@@ -22,7 +22,7 @@ Fixed
   Splits:          patient-grouped 80/20 holdout + 5-fold patient-grouped CV
   Batch / epochs:  64 / 50
 
-Outputs (optuna_results/optuna_crosslead_3stage_reg/YYYY-MM-DD_HH-MM-SS/):
+Outputs (optuna_crosslead_3stage_reg/YYYY-MM-DD_HH-MM-SS/):
   study.db, results.log, best_params.json, best_model.pt, summary.txt
   {contour,optimization_history,parallel_coordinate,param_importances,slice}_plot.html
 
@@ -60,7 +60,7 @@ SEED = 42
 
 # --- Fixed (settled by previous studies / architecture analysis) ---
 # lr / dropout from the recent patient-grouped 3-stage study at
-# optuna_results/optuna_crosslead_3stage/2026-04-26_23-12-14 (CV 0.7025, test 0.7540).
+# optuna_crosslead_3stage/2026-04-26_23-12-14 (CV 0.7025, test 0.7540).
 FIXED_PARAMS = dict(
     stage_filters = (32, 64, 128),
     kernels       = (7, 5, 3),
@@ -186,7 +186,7 @@ def main():
     parser.add_argument("--seed",     type=int, default=42)
     args = parser.parse_args()
 
-    run_dir = Path("optuna_results/optuna_crosslead_3stage_reg") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_dir = Path("optuna_crosslead_3stage_reg") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir.mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(
