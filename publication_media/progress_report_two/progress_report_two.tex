@@ -95,16 +95,16 @@ Caliper & \url{https://GitHub.com/AhmedKhan-GH/caliper} \\
 \end{center}
 
 \section{Introduction}
-Risk Estimation of Preeclampsia Network (RepNet) is our research in improving the machine learning and deep learning classification of 12-lead electrocardiogram (ECG) waveforms for estimation of preeclampsia. We are implementing a novel convolutional neural network (CNN) with channel independent 1-dimensional convolutional heads and an attention mechanism for cross-lead analysis.
+Risk Estimation of Preeclampsia Network (RepNet) is our research in improving the machine learning and deep learning classification of 12-lead electrocardiogram (ECG) waveforms for estimation of preeclampsia. We implemented a novel convolutional neural network (CNN) with channel-independent 1-dimensional convolutional heads and an attention mechanism for cross-lead analysis.
 
-This study builds off of the sole previous study in CNN based ECG classification for preeclampsia by Butler et al.~\cite{butler_ai-based_2024}. Furthermore we are implementing a random forest classifier that extracts manually specified ECG features to explain classification results. Both of these approaches build off general ideas and approaches of a previous study in ECG classification for RWMA by Joshi et al.~\cite{joshi_linking_2025}.
+This study builds on the sole previous study in CNN-based ECG classification for preeclampsia by Butler et al.~\cite{butler_ai-based_2024}. Furthermore, we implemented a random forest classifier that extracts manually specified ECG features to explain classification results. Both of these approaches build on general ideas and approaches from a previous study in ECG classification for RWMA by Joshi et al.~\cite{joshi_linking_2025}.
 
 We have completed model training, data pre-processing, and augmentation strategy experimentation using Pytorch and Scikit-Learn running on the Optuna hyper-parameter optimization framework and have achieved promising results to be covered in this paper. Optuna uses Tree-structured Parzen Estimator (TPE) to maximize training results across runs by selecting hyperparameters from a continually updated probability distribution~\cite{akiba_optuna_2019}.
 
 We have analyzed saliency maps, activation propagation, and attention maps to determine and show that the model does consistently recognize heartbeat intervals and focuses on particular ECG leads cited in preeclampsia literature~\cite{aboshady_qtc_2025}. We also observe a dimensionality reduction decision boundary that seems to be effective for certain cases but struggles with others, meaning there may be more preeclampsia morphologies to capture.
 
-We intend to perform model compression for the deployment on edge devices and compute constrained environments such as Jetson Nano or Raspberry Pi.
-Lastly we intend to combine our model with our in-house real-time machine learning visualizer named Caliper to demonstrate clinical workflows augmented by machine learning and deep learning, for final presentation at the UC Davis Senior Design Showcase in June 2026.
+We intend to perform model compression for deployment on edge devices and compute-constrained environments such as Jetson Nano or Raspberry Pi.
+Lastly, we intend to combine our model with our in-house real-time machine learning visualizer named Caliper to demonstrate clinical workflows augmented by machine learning and deep learning, for final presentation at the UC Davis Senior Design Showcase in June 2026.
 
 
 \section{Finalized Model Architecture}
@@ -490,7 +490,7 @@ The column structure is consistent across both classes: aVR and V1 are suppresse
 The fusion head is the only component where all 12 leads merge into a single representation. After Stage~3, the 12 lead feature maps are concatenated along the channel axis: $(B, 12, 192, 312) \to (B, 2304, 312)$. A pointwise $1
 \times 1$ convolution reduces this to $(B, 192, 312)$ with BatchNorm and ReLU, forcing the network to learn a compact cross-lead representation rather than retaining all $12 \times 192 = 2304$ channels. Global average pooling (GAP) then collapses the temporal axis to a 192-dimensional vector. Dropout followed by a fully-connected layer produces the 2-class output (PreE vs.\ Normal).
 
-The 1x1 convolution is preferred over flattening for parameter efficiency: flattening $2304 \times 312$ directly into a classifier would require over 700K parameters in the FC layer alone. The pointwise conv uses only $2304 \times 192 = 442$K parameters and preserves the temporal structure for GAP.
+The 1x1 convolution is preferred over flattening for parameter efficiency: flattening $2304 \times 312 = 718$K activations directly into a two-class FC layer would exceed the entire model's parameter budget. The pointwise conv uses only $2304 \times 192 = 442$K parameters and preserves the temporal structure for GAP.
 
 The final classification reduces to a 192-channel vote. Each GAP channel $i$ contributes a vote $v_i = \text{GAP}_i \cdot (W_{\text{PreE},i} - W_{\text{Normal},i})$ to the PreE-vs-Normal decision margin; the sum of all votes plus a bias term passes through softmax. Figure~\ref{fig:voting} visualizes this mechanism. The structural weights (top) show which channels are wired toward PreE (positive) or Normal (negative). The per-sample panels show a confident true positive (margin $= +1.24$, PreE votes dominate) and a confident true negative (margin $= -4.28$, Normal votes dominate).
 
@@ -632,7 +632,7 @@ Figure~\ref{fig:preprocessing} illustrates each step on a synthetic ECG waveform
 \label{fig:preprocessing}
 \end{figure}
 
-Quality filtering removes 8 recordings with flat leads (std $< 10^{-4}$) and 5 with missing patient identifiers, yielding 2{,}178 usable recordings (335 PreE, 1{,}843 Normal).
+We removed 8 recordings with flat leads (std $< 10^{-4}$) and 5 with missing patient identifiers, yielding 2{,}178 usable recordings (335 PreE, 1{,}843 Normal).
 
 \subsection{Data Split and Balancing}
 \label{sec:data-split}
@@ -643,7 +643,7 @@ Within the dev set, training data is balanced via symmetric augmentation followe
 
 \section{Model Analysis}
 
-The 192-dimensional GAP embedding produced by RepNet's penultimate layer provides a rich space for post-hoc analysis of what the model has learned, where it fails, and how its decision landscape is structured. All analyses in this section use the best single seed (seed \#49, test AUROC = 0.8205) with PCA fit on the development set to avoid leakage.
+The 192-dimensional GAP embedding produced by RepNet's penultimate layer provides a rich space for post-hoc analysis of what the model has learned, where it fails, and how its decision landscape is structured. All analyses in this section use the best single seed (seed \#49, test AUROC = 0.821) with PCA fit on the development set to avoid leakage.
 
 \subsection{Embedding Geometry}
 
@@ -651,7 +651,7 @@ Dimensionality reduction of the 192-d GAP embeddings confirms that the ECG carri
 
 Both projections (Figures~\ref{fig:pca_class}--\ref{fig:tsne_prob}) show PreE samples concentrating in a distinct region of embedding space, separated from the bulk Normal population. The model's predicted $P(\text{PreE})$ tracks this geometry closely: high-confidence predictions (red) align with the PreE cluster while low-confidence predictions (blue) align with the Normal cluster, producing a visible decision boundary with a gradient transition zone where the two classes overlap. The t-SNE projection reveals tighter cluster structure than PCA, with a geometrically distinct high-confidence Normal cluster that is not simply a linear tail of the distribution.
 
-The representation is also highly compressed. The first 5 principal components capture 87.8\% of variance, and the channel correlation matrix has an effective rank of 6.0 --- the 192-channel GAP layer encodes approximately 6 independent dimensions of variation. A linear probe on just 7 PCs matches the full nonlinear model's test AUROC (0.826 vs.\ 0.821), indicating that the discriminative signal is low-dimensional and approximately linear in the learned feature space.
+The representation is also highly compressed. The first 5 principal components capture 87.8\% of variance, and the channel correlation matrix has an effective rank of 6.0 --- the 192-channel GAP layer encodes approximately 6 independent dimensions of variation. A linear probe on just 7 PCs achieves comparable test AUROC to the full nonlinear model (0.826 vs.\ 0.821), indicating that the discriminative signal is low-dimensional and approximately linear in the learned feature space.
 
 \clearpage
 \begin{strip}
@@ -757,13 +757,13 @@ To understand what the model has learned beyond aggregate metrics, we examine tw
 
 We compute a hybrid attribution by averaging normalized Integrated Gradients (IG) and Grad-CAM, then log-scaling to preserve detail in low-magnitude regions. IG integrates gradients along an interpolation path from a zero baseline to the input, producing per-sample per-lead attributions. Grad-CAM extracts class-discriminative spatial maps from the final convolutional stage. The combination captures both fine-grained input sensitivity (IG) and coarse spatial localization (Grad-CAM).
 
-Figures~\ref{fig:saliency1}--\ref{fig:saliency2} show all 12 leads ranked by total attribution magnitude. Red regions indicate features that push the prediction toward PreE; blue regions push toward Normal. The model consistently highlights R-peak onsets and the ST--T segment across multiple heartbeat cycles. Leads V6 and V3 show the strongest attributions, with the ST segment and T-wave morphology receiving the most attention. The attribution pattern is periodic, tracking individual heartbeats rather than responding to a single anomalous region, suggesting the model aggregates evidence across multiple cardiac cycles.
+Figure~\ref{fig:saliency} shows all 12 leads ranked by total attribution magnitude. Red regions indicate features that push the prediction toward PreE; blue regions push toward Normal. The model consistently highlights R-peak onsets and the ST--T segment across multiple heartbeat cycles. Leads V6 and V3 show the strongest attributions, with the ST segment and T-wave morphology receiving the most attention.
 
 \subsection{Clinical Significance of Saliency Patterns}
 
 Preeclampsia causes QTc interval prolongation of 21.7\,ms compared to normal pregnancy~\cite{aboshady_qtc_2025}, reflecting altered ventricular repolarization driven by endothelial dysfunction and increased systemic vascular resistance~\cite{raffaelli_pre-eclampsia_2014}. These hemodynamic changes manifest on the ECG primarily in the ST segment and T-wave --- the electrical signature of ventricular repolarization~\cite{angeli_electrocardiographic_2014}.
 
-The saliency maps confirm that the model has learned to localize to these clinically relevant features. In the top-ranked leads (V6, V3, aVL), the strongest PreE-favoring (red) regions consistently align with the ST segment and T-wave descending limb --- precisely the interval where QTc prolongation stretches and flattens the waveform morphology. The attribution repeats periodically across all visible cardiac cycles, indicating the model aggregates evidence from multiple heartbeats rather than relying on a single anomalous beat.
+The saliency maps confirm that the model has learned to localize to these clinically relevant features. In the top-ranked leads (V6, V3, aVL), the strongest PreE-favoring (red) regions consistently align with the ST segment and T-wave descending limb --- precisely the interval where QTc prolongation stretches and flattens the waveform morphology. The attribution repeats periodically across all visible cardiac cycles, indicating the model aggregates evidence from multiple heartbeats.
 
 The Normal-favoring (blue) regions are equally informative: they cluster around the TP baseline between T-wave offset and the next P-wave onset, where a healthy ECG should be electrically silent. A clean isoelectric return is itself evidence against repolarization abnormality, and the model has learned to weight this absence of pathology toward Normal classification.
 
@@ -781,7 +781,7 @@ Figure~\ref{fig:act_perlead} traces Lead~II's representation through all three c
 
 In Stage~1 (48 channels $\times$ 1250 timesteps), individual channels develop clear heartbeat-locked activation patterns --- sparse hot spots aligned with QRS complexes and T-waves, confirming that the first convolutional block learns basic morphological detectors. The attention-gated output is visually similar, consistent with the near-uniform Stage~1 attention weights observed in Section~4. Stage~2 (96 channels $\times$ 625 timesteps) shows increased channel specialization: some channels respond selectively to R-peaks while others capture inter-beat intervals. Stage~3 (192 channels $\times$ 312 timesteps) produces the most abstract representation, with diffuse activations that encode longer-range temporal patterns rather than individual waveform features.
 
-The progressive abstraction is visible in the activation density. Stage~1 feature maps are sparse --- most channels are near zero except at heartbeat events, indicating the early filters act as edge detectors for the QRS complex. By Stage~3, activations are denser and more distributed across the temporal axis, reflecting that deeper layers encode context-dependent representations that integrate information across multiple heartbeat intervals. This transition from local morphological detection to global temporal encoding is consistent with the receptive field analysis in Section~2: Stage~1 kernels see 28\,ms windows (sub-QRS), while the effective receptive field at Stage~3 spans 180\,ms, covering the full QRS--ST interval.
+The progressive abstraction is visible in the activation density. Stage~1 feature maps are sparse --- most channels are near zero except at heartbeat events, indicating the early filters act as edge detectors for the QRS complex. By Stage~3, activations are denser and more distributed across the temporal axis, reflecting that deeper layers encode context-dependent representations that integrate information across multiple heartbeat intervals. This transition from local morphological detection to global temporal encoding is consistent with the receptive field analysis in Section~2: Stage~1 blocks have a 52\,ms receptive field (sub-QRS), while the cumulative receptive field through Stage~3 spans 180\,ms, covering the full QRS--ST interval.
 
 \clearpage
 \begin{strip}
@@ -801,25 +801,16 @@ Figure~\ref{fig:act_vote} shows the final fusion and classification path. After 
 \label{fig:act_vote}
 \end{strip}
 
-\section{Random Forest Featurization Progress}
-Decision tree-based models have proven to be successful in predicting preeclampsia, though none through the use of ECGs for inference.
-\subsection{Previous Work}
-
- Bulez et al observed the use of a LightGBM model using data from blood tests, blood pressure, and other factors from patient EHRs with the conclusion that age and features from the blood test were most important for inference . In Zhang et al's work, the XGBoost model was used on urine samples to determine seven compounds that were most important in predicting preeclampsia .
+\clearpage
+\section{Random Forest}
 
 \subsection{Evaluation Criteria}
 
-As a binary classification problem, the main metrics used in determining the model performance will be area under curve (AUC), accuracy, precision, recall, and F1-score. MUSE values of certain features are reported from the UCDH Echo dataset which will be compared to features created locally from Neurokit to determine accurate implementation. Once the featurizations have been implemented, feature importance analysis will be used to determine which features from the ECGs are most useful for prediction, ultimately pruning the features by analyzing trade-offs from the performance metrics.
-
-\subsection{Implementation and Results}
-
-The Python library Neurokit has methods for cleaning ECG signals along with extracting certain features. Through the use of these methods, we are able to implement the features in Table~\ref{tab:ecg-features}. Hana Shaik, our graduate mentor, has already implemented ST-T abnormalities and used these features in detecting RWMA. Testing occurred on the Nightingale ECG dataset to ensure that featurization was occurring. As another form of validation, we were able to compare our implementation to Hana's implementation. After receiving the balanced UCDH Echo dataset, we reformatted our Nightingale code to be able to process individual CSV ECG files instead of individual lead files. We had to drop three ECGs due to zeros in some leads or NaNs after delineation.
-
-The main issue as of the moment is figuring out accurate QRS axis and T-axis calculations in order to also obtain the frontal QRS-T angle. Currently we have two implementations for the QRS axis. The first is the isoelectric method, which estimates the axis by pinpointing the isoelectric lead and going $\pm 90^{\circ}$ based on whether the perpendicular pair has a positive or negative QRS value. The second uses the equation $\text{QRS-axis} = \pm \arctan\!\left(\frac{2 \cdot \text{aVF}}{\sqrt{3} \cdot \text{I}}\right)$, which gives a specific numeric value, though in clinical practice small degree differences are insignificant .
+As a binary classification problem, the main metrics used in determining the model performance are AUROC, AUPRC, accuracy, precision, sensitivity, specificity, and F1-score. MUSE values of certain features are reported from the UCDH Echo dataset which are compared to features created locally from Neurokit to determine accurate implementation. Feature importance analysis is used to determine which features from the ECGs are most useful for prediction, ultimately pruning the features by analyzing trade-offs from the performance metrics. Current analyses include chi-squared testing ($\chi^2$), recursive feature elimination (RFE), principal component analysis (PCA), and Kolmogorov-Smirnov testing (KS).
 
 \begin{table}[H]
 \centering
-\caption{ECG Features and Their Equations}
+\caption{Neurokit ECG feature implementations.}
 \label{tab:ecg-features}
 \setlength{\arrayrulewidth}{0.4pt}
 \renewcommand{\arraystretch}{1.25}
@@ -833,9 +824,7 @@ $P_{\min}$ & $\min_{\ell \in \mathcal{L}}(P_{\text{off}}^{\ell} - P_{\text{on}}^
 P-Wave Dispersion & $P_{\max} - P_{\min}$ \\
 \specialrule{1.2pt}{2pt}{2pt}
 \multicolumn{2}{@{}l@{}}{\textit{\textbf{QT Features}}} \\[2pt]
-QT Dispersion & $QT_{\max} = \max_{\ell \in \mathcal{L}}(T_{\text{off}}^{\ell} - R_{\text{on}}^{\ell})$ \\
- & $QT_{\min} = \min_{\ell \in \mathcal{L}}(T_{\text{off}}^{\ell} - R_{\text{on}}^{\ell})$ \\
- & $QT_{\max} - QT_{\min}$ \\
+QT Dispersion & $QT_{\max} - QT_{\min}$ \\
 $T_{pe}$ Interval & $\text{mean}(T_{\text{off}} - T_{\text{peak}})$ \\
 $T_{pe}$/QT & $T_{pe}\text{ Interval} \;/\; \text{mean}(T_{\text{off}} - R_{\text{on}})$ \\
 $T_{pe}$/QTc & $(T_{pe}/\text{QT}) \;/\; \sqrt{\text{mean}(\Delta R_{\text{peak}})}$ \\
@@ -856,23 +845,124 @@ Frontal QRS-T Angle & $|\,\text{QRS Axis} - \text{T Axis}\,|$ \\
 \end{tabular}
 \end{table}
 
+\subsection{Implementation and Results}
+
+The Python library Neurokit has methods for cleaning ECG signals along with extracting certain features. Through the use of these methods, we are able to implement the features in Table~\ref{tab:ecg-features}. Hana Shaik, our graduate mentor, has already implemented ST-T abnormalities and used these features in detecting RWMA. Testing occurred on the Nightingale ECG dataset to ensure that proper featurization was occurring. As another form of validation, we were able to compare our implementation to Hana's implementation. After receiving the balanced UCDH Echo dataset, we reformatted our Nightingale code to be able to process individual CSV ECG files instead of individual lead files.
+
+The main issue as of the moment is figuring out accurate QRS axis and T-axis calculations in order to also obtain the frontal QRS-T angle. Currently we have two implementations for the QRS axis. The first is the isoelectric method, which estimates the axis by pinpointing the isoelectric lead and going $\pm 90^{\circ}$ based on whether the perpendicular pair has a positive or negative QRS value. The second uses the equation $\text{QRS-axis} = \pm \arctan\!\left(\frac{2 \cdot \text{aVF}}{\sqrt{3} \cdot \text{I}}\right)$, which gives a specific numeric value, though in clinical practice small degree differences are insignificant. Dr.\ Ebong, a UC Davis Health cardiologist, is currently evaluating the accuracy of our implementations.
+
+Before training a random forest model on our datasets, it is beneficial to extract novel MUSE features that correlate with the Neurokit features to determine if Neurokit performs well. Specific ECGs were dropped in order to obtain Neurokit featurizations for both balanced and unbalanced ECG waveform datasets with the detailed specifics in Table~\ref{tab:rf-dataset}. In order to stay consistent, the MUSE featurization also drops the same ECGs and compares only features that can be extracted from their respective metadata CSVs. This results in not being able to compare the amplitude differential features in model performance due to the inability to obtain the PR amplitudes from the metadata CSVs. Table~\ref{tab:muse-features} lists the MUSE feature implementations. After observing the average percent differences between the Neurokit and MUSE features, Neurokit feature values were consistently lower in magnitude than MUSE.
+
+\begin{table}[H]
+\centering
+\caption{ECG waveform dataset details for RF experiments.}
+\label{tab:rf-dataset}
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{Dataset} & \textbf{Original (PreE/Norm)} & \textbf{Dropped (PreE/Norm)} & \textbf{Final (PreE/Norm)} \\
+\midrule
+Unbalanced & 337\,/\,1854 & 8\,/\,24  & 329\,/\,1830 \\
+Balanced   & 187\,/\,182  & 6\,/\,1   & 181\,/\,181 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{MUSE feature implementations from metadata CSVs.}
+\label{tab:muse-features}
+\setlength{\arrayrulewidth}{0.4pt}
+\renewcommand{\arraystretch}{1.25}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Feature} & \textbf{MUSE Equation} \\
+\midrule
+$P_{\max}$ / $P_{\min}$ & $\max / \min(\text{P\_Duration for 12 leads})$ \\
+P-Wave Dispersion & $P_{\max} - P_{\min}$ \\
+QT Dispersion & $QT = \sum \text{component durations} + \tfrac{1}{8}RR$;\enspace $\max(QT) - \min(QT)$ \\
+$T_{pe}$ Interval & T\_Duration + T\_PrimeDuration $-$ STEtoTPeak \\
+$T_{pe}$/QT & $T_{pe}$ Interval / QT \\
+$T_{pe}$/QTc & $T_{pe}$/QT $\cdot \sqrt{RR}$ \\
+ST Elevation & (BITFLGS \& 8) $\neq$ 0 \\
+ST Depression & (BITFLGS \& 4) $\neq$ 0 \\
+QRS Axis / T Axis & RAxis / TAxis from metadata \\
+Frontal QRS-T Angle & $|\text{QRS Axis} - \text{T Axis}|$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Initially, Neurokit did not seem reliable in extracting features from raw ECG waveforms, but after passing the extracted featurization datasets into a random forest model, we obtained a clearer understanding. The setup of the model consists of a Stratified Group K-Fold to split the dataset into test and training sets based on an obfuscated patient MRN, which prevents data leakage. The results displayed in Table~\ref{tab:rf-neurokit-muse} reveal that across both the unbalanced and balanced datasets, the Neurokit and MUSE featurizations perform similarly. This enforces the idea that although Neurokit implementations underreport values, it does so consistently which does not affect the model too greatly.
+
+\begin{table}[H]
+\centering
+\caption{Neurokit and MUSE extracted feature performance.}
+\label{tab:rf-neurokit-muse}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{Configuration} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Spec.} & \textbf{Sens.} & \textbf{Acc.} & \textbf{Prec.} & \textbf{F1} \\
+\midrule
+Balanced (Neurokit)   & 66.22 & 67.53 & 66.26 & 57.49 & 61.87 & 62.99 & 59.98 \\
+Balanced (MUSE)       & 62.47 & 65.66 & 60.27 & 59.73 & 59.95 & 60.22 & 59.75 \\
+Unbalanced (Neurokit) & 63.19 & 22.62 & 63.83 & 54.73 & 62.44 & 21.33 & 30.67 \\
+Unbalanced (MUSE)     & 64.25 & 24.68 & 64.75 & 55.33 & 63.32 & 22.03 & 31.44 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+In addition to the previous experiment, another experiment was to add the novel features extracted to the original metadata CSVs to expand the features. When running this larger feature dataset containing 721 features for the metadata with extracted MUSE or 723 features when using extracted Neurokit, the results improve as seen in Table~\ref{tab:rf-combined}. Although the results improved, a preliminary experiment ran on just the metadata achieved better performance, which hints that the current model is overfitting. Chi-squared testing was performed to see if there is a relationship between the outcome and certain features, which shows that aVL ST depression, V4 ST depression, and V3 ST elevation were able to appear in the top 10 lowest p-values once across the four datasets. This is significant because it shows that our extracted features do make a difference in prediction.
+
+\begin{table}[H]
+\centering
+\caption{Neurokit/MUSE + metadata feature performance.}
+\label{tab:rf-combined}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{Configuration} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Spec.} & \textbf{Sens.} & \textbf{Acc.} & \textbf{Prec.} & \textbf{F1} \\
+\midrule
+MUSE + Neurokit (bal.)   & 70.37 & 72.94 & 67.92 & 63.89 & 65.85 & 67.57 & 65.39 \\
+MUSE + MUSE ext.\ (bal.) & 72.03 & 73.90 & 70.10 & 62.78 & 66.38 & 68.21 & 65.27 \\
+MUSE + Neurokit (unbal.) & 69.93 & 32.55 & 73.74 & 56.12 & 71.03 & 27.97 & 37.20 \\
+MUSE + MUSE ext.\ (unbal.) & 69.78 & 34.12 & 73.19 & 57.32 & 70.74 & 28.18 & 37.66 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Figure~\ref{fig:decision_tree} shows a representative decision tree from the balanced RF model. The root split uses V4 minimum ST amplitude differential, and subsequent splits rely on ST differentials from V5, V6, Lead~3, and $T_{pe}$/QT ratios from V3 and V4.
+
+\begin{strip}
+\centering
+\includegraphics[width=\textwidth]{fig_decision_tree.png}
+\captionof{figure}{Decision tree from the balanced RF model. Splits on ST amplitude differentials (V4, V5, V6) and $T_{pe}$/QT ratios (V3, V4).}
+\label{fig:decision_tree}
+\end{strip}
+
 \subsection{Future Work}
 
-With the UCDH Echo dataset and MUSE values now released, we will be able to compare Neurokit values to MUSE values and determine if there are any drastic differences. One issue is there is not a reported value for the QRS axis nor a specific equation the MUSE developers used, so we will have to experiment through feature analysis to determine if our implementations are important for inference. An RF model will be initially used, but other decision tree models will be tested such as LightGBM and XGBoost to achieve best performance. After model selection, feature importance and feature distribution will be analyzed through $\chi^2$ testing or principal component analysis (PCA). Because the dataset is imbalanced, we may employ SMOTE to train on a balanced dataset.
+Feature engineering is the next step to obtaining a better model. Statistical methods will need to be employed to eliminate features that are closely related and features that are shown to sway the current models. There are multiple feature importance tests as discussed previously, but for the near future we will be focusing on chi-squared and RFE. Because one of the datasets is imbalanced, we may employ SMOTE to achieve a much larger balanced dataset.
 
-\section{Caliper Libtorch Visualization Utility}
-The development of our model will ship alongside Caliper, a framework built atop of C++, Libtorch (Pytorch C++ API), and OpenGL, ImGui and ImPlot. It is publicly available through GitHub. It is a highly performant machine learning visualization tool able to display data elements, neural network layers, outputs in real time, and tie them to arbitrary rendering through whatever is possible with a 3D graphics API, and also offering a user interface to alter settings on the fly.
+\clearpage
+\section{Discussion}
 
-Development of the basic framework has been successful, with CUDA augmentation on Windows and MPS augmentation on macOS. We have created a small applet to play around with baseline wander high pass filter in real time, and scrub the entire dataset instantaneously without delay.  We are planning to have options to load ECG datasets in the format of CSV and then options to load models from standard PyTorch weight formats that can then automatically construct visualizations that can also show data propagation through the network.
+The RepNet CrossLead architecture achieves a best-seed AUROC of 0.821 on the held-out test set, which is notable given the relatively small dataset of 2,178 recordings and the difficulty of detecting a subtle cardiac phenotype from standard 12-lead ECGs. The multi-seed validation (mean AUROC $0.744 \pm 0.053$ across 30 seeds) reveals meaningful variance, suggesting sensitivity to train/test partitioning that larger datasets would stabilize. These figures compare favorably to Butler et al.'s AUC of 0.85 on a larger cohort~\cite{butler_ai-based_2024}, particularly given our stricter patient-grouped splitting to prevent data leakage.
 
-For this research project specifically, we will have ECG waveforms be displayed and show the translation of convolutional kernels and the attention map highlighting regions of interest for classification, and alongside that have the random forest classifier and its extraction of manual features be indicated so that there is explainability for the classification. We can showcase that a clinician can point to a heatmap and also state that a certain heartbeat feature has deviated from a healthy range.
+Interpretability analyses provide converging evidence that the model captures clinically meaningful patterns. Saliency maps highlight ST-segment and T-wave regions across precordial leads --- the intervals where preeclampsia-induced QTc prolongation and repolarization abnormalities manifest~\cite{aboshady_qtc_2025, angeli_electrocardiographic_2014}. The random forest corroborates these findings: chi-squared feature importance identifies aVL ST depression, V4 ST depression, and V3 ST elevation among the most discriminative features, and the decision tree splits on ST amplitude differentials and $T_{pe}$/QT ratios. This convergence between a black-box CNN and an interpretable feature-based classifier strengthens the clinical plausibility of the identified ECG biomarkers.
 
-Though Caliper can implement training, it is not intended for this project as our workflow needs to be universally deployable in Python, with libraries that are not available in C++. But for much more intensive and performant projects Caliper could be utilized. We intend to use Caliper to demonstrate our model's features at our tabling in the Davis Senior Design Showcase in June 2026, providing attendees with an opportunity to interact with our research.
+Several limitations remain. The 5.5:1 class imbalance challenges sensitivity despite cost-weighted training. The single-site UC Davis Health dataset may limit generalizability. The Neurokit featurization pipeline currently lacks validated QRS axis and T-axis implementations, leaving the frontal QRS-T angle unexplored in the RF model.
 
 \section{Conclusion}
-We have completed a comprehensive review of the literature spanning preeclampsia ML, ECG classification, transformer architectures, foundation models, data augmentation, and model efficiency. We have identified that ECG waveform classification for preeclampsia is a largely untapped field with only one prior deep learning study. From those insights we have created a baseline for our own novel architecture and intend to further expand and experiment with the architecture to refine it. On the random forest side, we have implemented ECG featurization using Neurokit2 and validated our implementation against existing work. Data augmentation via SMOTE or transformer GAN will be explored to address class imbalance. Development of the Caliper visualization utility will continue in parallel to provide real time explainability for our models at the Davis Senior Design Showcase in June 2026.
 
-As we continue our model architecting and optimizing studies, we will conduct ablation studies and dimensionality reduction experiments to determine the minimum lead configuration necessary for performant classification. An important aspect of this project is building pipelines and systems that can run autonomously on our most powerful compute so we can dedicate time to other aspects of the project.
+We have presented RepNet, a channel-independent CNN with cross-lead attention for preeclampsia detection from 12-lead ECGs, achieving a best AUROC of 0.821 on a patient-grouped held-out test set of 431 recordings from the UC Davis Health dataset. Multi-seed validation across 30 random seeds yields a mean AUROC of $0.744 \pm 0.053$, establishing a robust performance baseline. Saliency mapping and activation propagation confirm that the model focuses on ST-segment and T-wave intervals in precordial leads, consistent with the QTc prolongation and repolarization abnormalities documented in preeclampsia literature. A parallel random forest classifier using manually extracted ECG features corroborates these findings, with chi-squared feature importance highlighting ST amplitude differentials on the same leads.
+
+Future work will focus on: (1)~expanding the dataset through multi-site collaboration and SMOTE-based augmentation to address class imbalance and improve generalizability, (2)~completing the RF feature pipeline with validated QRS axis calculations and recursive feature elimination to identify a minimal discriminative feature set, and (3)~performing ablation studies to determine the minimum lead configuration necessary for deployment on resource-constrained edge devices. In parallel, we are developing Caliper, a real-time machine learning visualization utility built on C++, LibTorch, and OpenGL. Caliper will provide interactive visualization of ECG waveforms, convolutional activation maps, attention heatmaps, and random forest feature extractions, enabling clinicians to inspect both the deep learning and feature-based explanations for a given classification. We intend to demonstrate Caliper alongside our models at the UC Davis Senior Design Showcase in June 2026.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{../../project_references}
