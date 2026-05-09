@@ -43,31 +43,26 @@ frob = np.linalg.norm(C_diff, 'fro')
 print(f'Normal samples: {(y==0).sum()}, PreE samples: {(y==1).sum()}')
 print(f'||C_PreE - C_Normal||_F = {frob:.4f}')
 
-fig, axes = plt.subplots(1, 3, figsize=(14, 4.5),
-                         gridspec_kw={'wspace': 0.3, 'left': 0.05, 'right': 0.95})
+fig, axes = plt.subplots(1, 3, figsize=(15, 4.5),
+                         gridspec_kw={'wspace': 0.08, 'left': 0.04, 'right': 0.88})
 
-im0 = axes[0].imshow(C_norm, cmap='RdBu_r', vmin=-1, vmax=1, aspect='equal')
-axes[0].set_xticks(range(12)); axes[0].set_xticklabels(LEADS, fontsize=7, rotation=45, ha='right')
-axes[0].set_yticks(range(12)); axes[0].set_yticklabels(LEADS, fontsize=7)
-axes[0].set_title(f'Normal (N={int((y==0).sum())})', fontsize=10, fontweight='bold')
-plt.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
+for ax, mat, title in zip(axes,
+                           [C_norm, C_pe, C_diff],
+                           [f'Normal (N={int((y==0).sum())})',
+                            f'PreE (N={int((y==1).sum())})',
+                            'Difference (PreE $-$ Normal)']):
+    im = ax.imshow(mat, cmap='RdBu_r', vmin=-1, vmax=1, aspect='equal')
+    ax.set_xticks(range(12)); ax.set_xticklabels(LEADS, fontsize=7, rotation=45, ha='right')
+    ax.set_yticks(range(12)); ax.set_yticklabels(LEADS, fontsize=7)
+    ax.set_title(title, fontsize=10, fontweight='bold')
 
-im1 = axes[1].imshow(C_pe, cmap='RdBu_r', vmin=-1, vmax=1, aspect='equal')
-axes[1].set_xticks(range(12)); axes[1].set_xticklabels(LEADS, fontsize=7, rotation=45, ha='right')
-axes[1].set_yticks(range(12)); axes[1].set_yticklabels(LEADS, fontsize=7)
-axes[1].set_title(f'PreE (N={int((y==1).sum())})', fontsize=10, fontweight='bold')
-plt.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
-
-vmax_diff = max(abs(C_diff.min()), abs(C_diff.max()))
-im2 = axes[2].imshow(C_diff, cmap='RdBu_r', vmin=-vmax_diff, vmax=vmax_diff, aspect='equal')
-axes[2].set_xticks(range(12)); axes[2].set_xticklabels(LEADS, fontsize=7, rotation=45, ha='right')
-axes[2].set_yticks(range(12)); axes[2].set_yticklabels(LEADS, fontsize=7)
-axes[2].set_title(f'Difference (PreE $-$ Normal)', fontsize=10, fontweight='bold')
 axes[2].text(0.98, 0.02, f'$\\|\\Delta C\\|_F = {frob:.3f}$',
              transform=axes[2].transAxes, fontsize=11, fontweight='bold',
              ha='right', va='bottom',
              bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='gray'))
-plt.colorbar(im2, ax=axes[2], fraction=0.046, pad=0.04)
+
+cbar_ax = fig.add_axes([0.90, 0.15, 0.02, 0.7])
+fig.colorbar(im, cax=cbar_ax, label='Pearson $r$')
 
 fig.suptitle('Inter-lead correlation: Normal vs PreE', fontsize=12, fontweight='bold')
 plt.savefig('frobenius_diff.png', dpi=200, bbox_inches='tight')

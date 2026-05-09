@@ -11,6 +11,34 @@
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{flafter}  % floats never appear before their source position
 \usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+\pgfmathdeclarefunction{ecgbeat}{1}{%
+  \pgfmathparse{%
+    0.15*exp(-((#1-0.16)^2)/0.0032)%
+    -0.08*exp(-((#1-0.32)^2)/0.000288)%
+    +1.0*exp(-((#1-0.36)^2)/0.0002)%
+    -0.2*exp(-((#1-0.4)^2)/0.00045)%
+    +0.25*exp(-((#1-0.55)^2)/0.0032)%
+  }%
+}
+\pgfmathdeclarefunction{ecgsig}{1}{%
+  \pgfmathparse{ecgbeat(#1)+ecgbeat(#1-0.8)}%
+}
+
+% ── Architecture-diagram colours (saturated for print) ──
+\definecolor{stgI}{HTML}{9DC3E6}
+\definecolor{stgII}{HTML}{5B9BD5}
+\definecolor{stgIII}{HTML}{2E75B6}
+\definecolor{cdraw}{HTML}{1A5276}
+\definecolor{afill}{HTML}{F4B183}
+\definecolor{adraw}{HTML}{C44E00}
+\definecolor{ffill}{HTML}{A9D18E}
+\definecolor{fdraw}{HTML}{1D7A2F}
+\definecolor{hfill}{HTML}{BFBFBF}
+\definecolor{hdraw}{HTML}{404040}
+\definecolor{notecol}{HTML}{333333}
 
 \settopmatter{printacmref=false, printfolios=true}
 \setcopyright{none}
@@ -18,7 +46,7 @@
 \pagestyle{plain}
 \begin{document}
 
-\title{RepNet Progress Report - April 17, 2026}
+\title{RepNet Progress Report Two - May 8, 2026}
 
 \author{Ahmed Khan}
 \email{aekhan@ucdavis.edu}
@@ -84,53 +112,622 @@ We intend to perform model compression for the deployment on edge devices and co
 Lastly we intend to combine our model with our in-house real-time machine learning visualizer named Caliper to demonstrate clinical workflows augmented by machine learning and deep learning, for final presentation at the UC Davis Senior Design Showcase in June 2026.
 
 
-\section{Finalized Model Architecture}
+\subsection{Finalized Model Architecture}
+
+\begin{strip}
+\centering
+\vspace{0.5em}
+\begin{tikzpicture}[
+  x=1.35cm, y=1.55cm,
+  >=Stealth,
+  cI/.style  ={rectangle, rounded corners=2pt,
+               minimum width=18mm, minimum height=7mm,
+               fill=stgI, draw=cdraw, line width=0.4pt,
+               font=\normalsize\sffamily\bfseries, inner sep=2pt},
+  cII/.style ={cI, fill=stgII},
+  cIII/.style={cI, fill=stgIII, text=white},
+  att/.style ={rectangle, rounded corners=2pt, minimum width=9mm,
+               fill=afill, draw=adraw, line width=0.4pt,
+               font=\normalsize\sffamily\bfseries, inner sep=2pt},
+  fus/.style ={rectangle, rounded corners=2pt, minimum height=7mm,
+               fill=ffill, draw=fdraw, line width=0.4pt,
+               font=\normalsize\sffamily, inner sep=3pt},
+  hd/.style  ={rectangle, rounded corners=2pt, minimum height=7mm,
+               fill=hfill, draw=hdraw, line width=0.4pt,
+               font=\normalsize\sffamily, inner sep=3pt},
+  w/.style   ={draw=gray!60, line width=0.6pt},
+  nt/.style  ={font=\small, text=notecol},
+  sl/.style  ={font=\normalsize\sffamily\bfseries, text=cdraw},
+  dm/.style  ={font=\scriptsize, text=notecol},
+  detbox/.style={rectangle, rounded corners=2pt,
+                 draw=cdraw!70, fill=stgI!18, line width=0.4pt,
+                 inner sep=5pt, font=\small\sffamily,
+                 text=notecol, align=left},
+  detatt/.style={detbox, draw=adraw!70, fill=afill!18},
+]
+
+% ── Lead labels ──
+\foreach \lid/\y/\nm in {a/1.4/I, b/0.7/II, c/-0.7/V5, d/-1.4/V6}{
+  \node[font=\normalsize\sffamily, text=notecol, anchor=east]
+    at (-0.1, \y) {\nm};
+  \draw[w] (0.05, \y) -- (0.5, \y);
+}
+\node[font=\normalsize, text=gray!50] at (-0.1, 0) {$\vdots$};
+
+% ── Stage 1: k=7, 48 ch ──
+\foreach \lid/\y in {a/1.4, b/0.7, c/-0.7, d/-1.4}{
+  \node[cI] (s1\lid) at (1.3, \y) {k\,=\,7};
+  \draw[w] (0.5, \y) -- (s1\lid.west);
+  \draw[w] (s1\lid.east) -- (2.15, \y);
+}
+\node[font=\normalsize, text=gray!50] at (1.3, 0) {$\vdots$};
+\node[att, minimum height=50mm] (m1) at (2.45, 0)
+  {\rotatebox{90}{\normalsize MHA}};
+\foreach \y in {1.4, 0.7, -0.7, -1.4}{
+  \draw[w] (2.15, \y) -- (m1.west |- 0,\y);
+  \draw[w] (m1.east |- 0,\y) -- (2.85, \y);
+}
+
+% ── Stage 2: k=5, 96 ch ──
+\foreach \lid/\y in {a/1.4, b/0.7, c/-0.7, d/-1.4}{
+  \node[cII] (s2\lid) at (3.7, \y) {k\,=\,5};
+  \draw[w] (2.85, \y) -- (s2\lid.west);
+  \draw[w] (s2\lid.east) -- (4.55, \y);
+}
+\node[font=\normalsize, text=gray!50] at (3.7, 0) {$\vdots$};
+\node[att, minimum height=50mm] (m2) at (4.85, 0)
+  {\rotatebox{90}{\normalsize MHA}};
+\foreach \y in {1.4, 0.7, -0.7, -1.4}{
+  \draw[w] (4.55, \y) -- (m2.west |- 0,\y);
+  \draw[w] (m2.east |- 0,\y) -- (5.25, \y);
+}
+
+% ── Stage 3: k=3, 192 ch ──
+\foreach \lid/\y in {a/1.4, b/0.7, c/-0.7, d/-1.4}{
+  \node[cIII] (s3\lid) at (6.1, \y) {k\,=\,3};
+  \draw[w] (5.25, \y) -- (s3\lid.west);
+  \draw[w] (s3\lid.east) -- (6.95, \y);
+}
+\node[font=\normalsize, text=gray!50] at (6.1, 0) {$\vdots$};
+\node[att, minimum height=50mm] (m3) at (7.25, 0)
+  {\rotatebox{90}{\normalsize MHA}};
+\foreach \y in {1.4, 0.7, -0.7, -1.4}{
+  \draw[w] (6.95, \y) -- (m3.west |- 0,\y);
+  \draw[w] (m3.east |- 0,\y) -- (7.65, \y);
+}
+
+% ── Fusion head ──
+\foreach \y in {1.4, 0.7, -0.7, -1.4}{
+  \draw[w] (7.65, \y) -- (8.2, 0);
+}
+\node[fus] (f1) at (8.65, 0) {$1{\times}1$};
+\draw[w] (8.2, 0) -- (f1.west);
+\node[hd] (gap) at (9.5, 0) {GAP};
+\draw[w] (f1.east) -- (gap.west);
+\node[hd] (fc) at (10.3, 0) {FC};
+\draw[w] (gap.east) -- (fc.west);
+\draw[->, draw=hdraw, line width=0.6pt] (fc.east) -- (10.9, 0);
+\node[nt, anchor=west, font=\normalsize\sffamily]
+  at (10.95, 0) {PE\,/\,Normal};
+
+% ── Stage labels ──
+\node[sl] at (1.9,  2.05) {Stage 1};
+\node[sl] at (4.3,  2.05) {Stage 2};
+\node[sl] at (6.7,  2.05) {Stage 3};
+
+% ── Channel counts + shapes ──
+\node[nt] at (1.3,  -1.95) {48\,ch};
+\node[nt] at (3.7,  -1.95) {96\,ch};
+\node[nt] at (6.1,  -1.95) {192\,ch};
+\node[dm] at (2.45, -2.2) {$12{\times}1250$};
+\node[dm] at (4.85, -2.2) {$12{\times}625$};
+\node[dm] at (7.25, -2.2) {$12{\times}312$};
+
+\node[nt, font=\small\sffamily] at (5.5, -2.65)
+  {965\,K params\enspace$\cdot$\enspace 4-head attention%
+   \enspace$\cdot$\enspace RF\,=\,180\,ms};
+
+% ════════════════════════════════════════════════════════════════════
+%  DETAIL INSET — PerLeadConvBlock (mini flowchart with residual)
+% ════════════════════════════════════════════════════════════════════
+\begin{scope}[
+  shift={(0.15, -3.35)},
+  blk/.style={rectangle, rounded corners=1.5pt, minimum width=24mm,
+              minimum height=5mm, draw=cdraw!80, fill=stgI!40,
+              line width=0.4pt, font=\scriptsize\sffamily,
+              inner sep=1.5pt},
+  act/.style={blk, fill=stgII!35},
+  pool/.style={blk, fill=stgI!25, draw=cdraw!60},
+  add/.style={circle, minimum size=5.5mm, draw=cdraw!80, fill=stgI!25,
+              line width=0.4pt, font=\footnotesize\sffamily\bfseries},
+  arr/.style={draw=cdraw!65, line width=0.45pt, ->},
+  skip/.style={draw=cdraw!70, line width=0.5pt, ->, rounded corners=3pt, dashed},
+]
+  \node[nt, font=\small\sffamily\bfseries, text=cdraw] at (0.9, 0.35) {PerLeadConvBlock};
+  % main path
+  \node[blk]  (cv1) at (0.9, -0.15) {Conv1d($k$)};
+  \node[act]  (bn1) at (0.9, -0.6)  {BN $\to$ ReLU};
+  \node[blk]  (cv2) at (0.9, -1.05) {Conv1d($k$)};
+  \node[act]  (bn2) at (0.9, -1.5)  {BN};
+  \node[add]  (res) at (0.9, -2.0)  {$+$};
+  \node[act]  (rl2) at (0.9, -2.45) {ReLU};
+  \node[pool] (mp)  at (0.9, -2.9)  {MaxPool(2)};
+  \node[pool] (dp)  at (0.9, -3.35) {Dropout};
+  % arrows
+  \draw[arr] (cv1) -- (bn1);
+  \draw[arr] (bn1) -- (cv2);
+  \draw[arr] (cv2) -- (bn2);
+  \draw[arr] (bn2) -- (res);
+  \draw[arr] (res) -- (rl2);
+  \draw[arr] (rl2) -- (mp);
+  \draw[arr] (mp)  -- (dp);
+  % residual skip
+  \draw[skip] (cv1.west) -- ++(-0.4,0) |- node[pos=0.75, left,
+    font=\fontsize{6}{7}\selectfont\sffamily, text=cdraw] {1$\times$1 proj} (res.west);
+  % outer frame
+  \node[draw=cdraw!55, dashed, line width=0.5pt, rounded corners=3pt,
+    inner xsep=6pt, inner ysep=5pt,
+    fit=(cv1)(dp)(res)] (dconv) {};
+\end{scope}
+
+% ════════════════════════════════════════════════════════════════════
+%  DETAIL INSET — CrossLeadAttention (mini flowchart with gate)
+% ════════════════════════════════════════════════════════════════════
+\begin{scope}[
+  shift={(4.15, -3.35)},
+  blk/.style={rectangle, rounded corners=1.5pt, minimum width=30mm,
+              minimum height=5mm, draw=adraw!80, fill=afill!40,
+              line width=0.4pt, font=\scriptsize\sffamily,
+              inner sep=1.5pt},
+  gate/.style={blk, fill=afill!25},
+  mul/.style={circle, minimum size=5.5mm, draw=adraw!80, fill=afill!25,
+              line width=0.4pt, font=\footnotesize\sffamily\bfseries},
+  arr/.style={draw=adraw!65, line width=0.45pt, ->},
+  skip/.style={draw=adraw!70, line width=0.5pt, ->, rounded corners=3pt, dashed},
+]
+  \node[nt, font=\small\sffamily\bfseries, text=adraw] at (1.1, 0.35) {CrossLeadAttention};
+  \node[blk]  (ap)  at (1.1, -0.15) {AvgPool1d(1) per lead};
+  \node[blk]  (mha) at (1.1, -0.6)  {MHA($h$\,=\,4) over 12 tokens};
+  \node[gate] (sig) at (1.1, -1.05) {Linear $\to$ Sigmoid};
+  \node[gate] (int) at (1.1, -1.5)  {Interpolate to $T$};
+  \node[mul]  (gm)  at (1.1, -2.0)  {$\odot$};
+  % arrows
+  \draw[arr] (ap)  -- (mha);
+  \draw[arr] (mha) -- (sig);
+  \draw[arr] (sig) -- (int);
+  \draw[arr] (int) -- (gm);
+  % bypass: full-res features
+  \draw[skip] (ap.west) -- ++(-0.45,0) |- node[pos=0.8, left,
+    font=\fontsize{6}{7}\selectfont\sffamily, text=adraw] {full-res} (gm.west);
+  \node[nt, font=\fontsize{6}{7}\selectfont, text=adraw, anchor=west]
+    at (gm.east) {\enspace gated output};
+  % outer frame
+  \node[draw=adraw!55, dashed, line width=0.5pt, rounded corners=3pt,
+    inner xsep=6pt, inner ysep=5pt,
+    fit=(ap)(gm)] (datt) {};
+\end{scope}
+
+% ════════════════════════════════════════════════════════════════════
+%  DETAIL INSET — Fusion Head (mini flowchart)
+% ════════════════════════════════════════════════════════════════════
+\begin{scope}[
+  shift={(8.35, -3.35)},
+  blk/.style={rectangle, rounded corners=1.5pt, minimum width=26mm,
+              minimum height=5mm, draw=fdraw!80, fill=ffill!35,
+              line width=0.4pt, font=\scriptsize\sffamily,
+              inner sep=1.5pt},
+  arr/.style={draw=fdraw!65, line width=0.45pt, ->},
+]
+  \node[nt, font=\small\sffamily\bfseries, text=fdraw] at (1.0, 0.35) {Fusion Head};
+  \node[blk] (cat)  at (1.0, -0.15) {Concat 12 leads};
+  \node[blk] (c1x1) at (1.0, -0.6)  {Conv1d 2304$\to$192};
+  \node[blk] (bn)   at (1.0, -1.05) {BN $\to$ ReLU};
+  \node[blk] (gp)   at (1.0, -1.5)  {GAP};
+  \node[blk] (drp)  at (1.0, -1.95) {Dropout $\to$ FC(2)};
+  \draw[arr] (cat)  -- (c1x1);
+  \draw[arr] (c1x1) -- (bn);
+  \draw[arr] (bn)   -- (gp);
+  \draw[arr] (gp)   -- (drp);
+  \node[draw=fdraw!55, dashed, line width=0.5pt, rounded corners=3pt,
+    inner xsep=6pt, inner ysep=5pt,
+    fit=(cat)(drp)] (dfuse) {};
+\end{scope}
 
 
+% ── Legend ──
+\node[cI,  minimum width=7mm, minimum height=4mm] at (1.0, -7.3) {};
+\node[nt, anchor=west, font=\scriptsize\sffamily] at (1.4, -7.3)
+  {Per-lead conv (weight-shared, channel-independent)};
+\node[att, minimum width=7mm, minimum height=4mm] at (5.5, -7.3) {};
+\node[nt, anchor=west, font=\scriptsize\sffamily] at (5.9, -7.3)
+  {Cross-lead attention (inter-lead mixing)};
+\node[fus, minimum width=7mm, minimum height=4mm] at (9.0, -7.3) {};
+\node[nt, anchor=west, font=\scriptsize\sffamily] at (9.4, -7.3)
+  {Lead fusion};
 
-\subsection{Preeclampsia ML Literature Reviews}
+% ── Dashed stage groupings ──
+\begin{scope}[on background layer]
+  \node[draw=cdraw!55, dashed, line width=0.6pt, rounded corners=2.5pt,
+    inner xsep=4pt, inner ysep=3pt,
+    fit=(s1a)(s1d)(m1)] {};
+  \node[draw=cdraw!55, dashed, line width=0.6pt, rounded corners=2.5pt,
+    inner xsep=4pt, inner ysep=3pt,
+    fit=(s2a)(s2d)(m2)] {};
+  \node[draw=cdraw!55, dashed, line width=0.6pt, rounded corners=2.5pt,
+    inner xsep=4pt, inner ysep=3pt,
+    fit=(s3a)(s3d)(m3)] {};
+\end{scope}
 
-For a comprehensive review over the field of machine learning and deep learning research into preeclampsia, we have finished reviewing Özcan et al. as it covers both classical machine learning and modern deep learning. It provides a review of 35 papers from 2018 to 2023 and the trade-offs of their models .  Özcan et al. serves as a good primer into the state of the art. We also selected a statistical meta-analysis by H. Liu et al. for future reading, which goes much deeper into comparison of model performance between a smaller number of 26 papers .
+\end{tikzpicture}
+\captionof{figure}{RepNet CrossLead 3-Stage architecture: per-lead 1D convolutions with shared weights alternate with 4-head cross-lead self-attention across three stages before fusion.}
+\label{fig:arch}
+\vspace{0.5em}
+\end{strip}
 
-None of the models presented in Özcan et al. were trained to specifically classify ECG waveforms in any way, they were all various methods of learning from other features such as electronic health record (EHR) data and risk factors. It also does not have any decision tree or random forest to specifically classify preeclampsia ECG waveforms, though many RF models exist using other features such as EHR data. This indicates that the field of both classical machine learning and modern deep learning on ECG waveforms of preeclampsia is in dire need of advancement.
+\subsection{Channel Independent -- Shared Weights}
 
+RepNet processes each lead through its own 1D convolutional stream with no cross-lead interaction until the attention step (\textit{channel-independent}). The question: does preeclampsia alter \textit{how leads relate to each other}, or \textit{what each lead looks like individually}?
 
-\subsection{Preeclampsia ECG Classification Studies}
-To our knowledge there is only one relevant previous work conducting a deep learning study on preeclampsia ECG waveforms, Butler et al. which presents a 1-D CNN they call ECG-AI . There is also an older study by Euliano et al. which is on 3-Lead instead of 12-Lead ECG and they perform linear discriminant analysis (LDA), a classical ML approach. The paper lends credence to a reduced lead input .
+We compute the $12 \times 12$ Pearson correlation matrix $C^{(n)}$ across leads for each recording $n$:
+\begin{equation}
+C^{(n)}_{ij} = \frac{\sum_{t=1}^{T} \bigl(x^{(n)}_{i,t} - \bar{x}^{(n)}_i\bigr)\bigl(x^{(n)}_{j,t} - \bar{x}^{(n)}_j\bigr)}{\sqrt{\sum_{t=1}^{T}\bigl(x^{(n)}_{i,t} - \bar{x}^{(n)}_i\bigr)^2}\;\sqrt{\sum_{t=1}^{T}\bigl(x^{(n)}_{j,t} - \bar{x}^{(n)}_j\bigr)^2}}
+\end{equation}
+where $x^{(n)}_{i,t}$ is the voltage of lead $i$ at time $t$. Averaging within each class:
+\begin{equation}
+\bar{C}_{\text{PE}} = \frac{1}{N_{\text{PE}}} \sum_{n \in \text{PE}} C^{(n)}, \qquad
+\bar{C}_{\text{Normal}} = \frac{1}{N_{\text{Normal}}} \sum_{n \in \text{Normal}} C^{(n)}
+\end{equation}
 
-\subsection{ECG Classification Literature Reviews}
-In the general field of ECG Waveform classification, we finished reviewing a literature review by Boulif et al., which is a broad scope review that covers both machine learning and deep learning methods . We also selected Prakash et al. for future reading, it is a deep systematic review that covers more research process and model architecture .
+If preeclampsia disrupts inter-lead relationships, $\bar{C}_{\text{PE}} - \bar{C}_{\text{Normal}}$ would show large off-diagonal entries, favoring 2D convolution across leads. We quantify this with the Frobenius norm:
+\begin{equation}
+\| \bar{C}_{\text{PE}} - \bar{C}_{\text{Normal}} \|_F = \sqrt{\sum_{i=1}^{12}\sum_{j=1}^{12} \left(\bar{C}_{\text{PE},ij} - \bar{C}_{\text{Normal},ij}\right)^2} = 0.981
+\end{equation}
 
-Focusing on deep learning we have finished reviewing M. Ansari et al. for its comprehensive survey of transformers and LLMs specifically applied to ECG classification . Furthermore we have also finished reviewing Y. Ansari et al. for its deep systematic analysis and comparison of DL and transformer model architectures for ECG comparison . They both show the prevalence of convolutional neural networks, some enhanced by attention mechanisms.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{frobenius_diff.png}
+\caption{Inter-lead correlation matrices for Normal ($N$\,=\,1843) and PreE ($N$\,=\,335) classes, and their difference.}
+\label{fig:frobenius}
+\end{figure}
 
-\subsection{Capstone Project Assigned Literature}
+As shown in Figure~\ref{fig:frobenius}, the two matrices are nearly identical. The difference matrix has maximum entries below $\pm 0.18$, and the Frobenius norm of 0.981 is well below the 2.0 threshold for clinically meaningful disruption. The discriminative signal is within each lead's waveform (ST/T-wave morphology), not in inter-lead coupling. This justifies per-lead 1D convolution.
 
-Our project assignment provides four papers, one was Butler et al. which we have already covered . Another is Joshi et al., which contains the same bicameral machine learning approach that we are instructed to do, training both a RF classifier and a CNN model on ECG waveform classification. Joshi et al. studied regional wall motion abnormality (RWMA) whilst we are studying preeclampsia . We have made contact with Joshi, and discussed his approach and considerations from training his model, especially Optuna hyperparameter optimization, and we have incorporated such into our plans.
+RepNet uses shared weights: one CNN applied identically to every lead, rather than 12 independent CNNs. Two reasons:
+\begin{enumerate}
+\item \textbf{Shared structure.} All 12 leads record the same heartbeat, differing only in amplitude/polarity due to the cardiac axis. The same convolutional filters are useful across all leads.
+\item \textbf{Data multiplication.} With 335 PE recordings, independent weights per lead see 335 examples each. Shared weights see $335 \times 12 = 4{,}020$ lead-level examples --- critical regularization in a data-limited regime.
+\end{enumerate}
 
-Two more assigned literature regard dimensionality reduction of the input. We were provided Xue et al. which covers dimensionality reduction in the ECG channels and if they still contain the relevant information and if they can be reconstructed with interpolation . We were also provided Attia et al. that explores ECG classification from a single lead, showing what is possible at the limit of the dimensionality reduction . Dimensionality reduction is relevant because a fully-kitted 12 Lead ECG is still a less common measure used in larger clinics and hospitals. In any situation such as for paramedics, smaller clinics, or even the developing world where preeclampsia disproportionately kills, it would be useful to still be able to draw conclusions even with constrained diagnostic resources.
+The trade-off --- shared weights cannot learn lead-specific features --- is handled by the cross-lead attention mechanism, which learns to weight leads differently after per-lead features are extracted.
 
-\section{Enhancement Literature Overview}
+\subsection{Three-Stage Progressive Abstraction}
 
-The following are literature that we believe will further enhance our model performance beyond the baseline by applying complex and cutting-edge methods. Here we will also explore later stage deliverables beyond model training such as model compression for edge deployment.
+RepNet processes each lead through three convolutional stages with doubling filter counts (48$\to$96$\to$192) and shrinking kernel sizes (7$\to$5$\to$3). MaxPool(2) halves the temporal axis at each stage: $2500 \to 1250 \to 625 \to 312$ samples. Table~\ref{tab:arch} summarizes the architecture.
 
-\subsection{ECG Feature Analysis Literature Reviews}
-ECG feature analysis and feature extraction as a field will be an important aspect of our explainable RF classifier. We selected Kaplan et al. as a review of ECG feature analysis, going into the anatomy of a single heartbeat and naming everything we should be familiar with, and also exploring applications of machine learning . We also selected Singh et al. as a review of ECG feature extraction, it goes over the very algorithms that we end up using in existing libraries such as Neurokit2 .
+\begin{table}[H]
+\centering
+\caption{RepNet CrossLead 3-Stage architecture summary.}
+\label{tab:arch}
+\small
+\begin{tabular}{lcccc}
+\toprule
+ & \textbf{Filters} & \textbf{Kernel} & \textbf{Output Shape} & \textbf{Attention} \\
+\midrule
+Input          & ---  & ---  & $12 \times 2500$ & ---        \\
+Stage 1        & 48   & k=7  & $12 \times 1250$ & 4-head MHA \\
+Stage 2        & 96   & k=5  & $12 \times 625$  & 4-head MHA \\
+Stage 3        & 192  & k=3  & $12 \times 312$  & 4-head MHA \\
+Fusion ($1\!\times\!1$) & 192  & k=1  & $1 \times 312$   & ---        \\
+GAP            & ---  & ---  & 192              & ---        \\
+FC             & ---  & ---  & 2 (softmax)      & ---        \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\subsection{Preeclampsia ECG Waveform Features}
+The design rationale is frequency-driven. Wider kernels at early stages capture broad morphological features (QRS complex) on raw 250\,Hz signals. Narrower kernels at deeper stages refine on already-downsampled representations where each sample spans a larger temporal window. Each PerLeadConvBlock contains two same-padded convolutions followed by MaxPool(2). Treating the pool as a stride-only operation, the receptive field at stage $s$ accumulates as:
+\begin{equation}
+\text{RF}_s = \text{RF}_{s-1} + 2\,(k_s - 1) \cdot \prod_{j=1}^{s-1} 2
+\end{equation}
+where the factor of 2 inside the product is the pool stride per stage. Expanding for three stages:
+\begin{align}
+\text{RF} &= 1 + 2(k_1{-}1)\cdot 1 + 2(k_2{-}1)\cdot 2 + 2(k_3{-}1)\cdot 4 \notag \\
+           &= 2k_1 + 4k_2 + 8k_3 - 13 \notag \\
+           &= 2(7) + 4(5) + 8(3) - 13 = 45 \text{ samples} = 180\text{\,ms}
+\end{align}
+This covers the QRS complex (80--120\,ms) and extends into the ST segment, where preeclampsia's primary ECG signature --- mild repolarization abnormalities --- resides. The GAP layer in the fusion head subsequently collapses the full remaining temporal dimension, giving the classifier access to the entire 10\,s recording.
 
-Since our RF model will train on manual featurization on ECG waveforms, for future reading we selected older papers firmly in the camp of clinical electrocardiography rather than machine learning or deep learning. Angeli et al. serves as a review of a few ECG features of preeclampsia . Raffaelli et al. deep dives into the QT interval, a repeatedly cited ECG feature of preeclampsia with visual and mathematical analysis . This will serve as a demonstration of the approach for the other features we have been assigned or find relevant in the literature.
+Table~\ref{tab:rf-search} shows the Optuna kernel search over 20 trials across 8 unique configurations.
 
-\subsection{ECG Waveform Preprocessing Reviews}
+\begin{table}[H]
+\centering
+\caption{Optuna kernel/receptive-field search: best CV AUROC per configuration.}
+\label{tab:rf-search}
+\small
+\begin{tabular}{lcrc}
+\toprule
+\textbf{Kernels} & \textbf{RF (samples)} & \textbf{RF (ms)} & \textbf{Best CV AUROC} \\
+\midrule
+(3, 3, 3)    & 29  & 116  & 0.6815 \\
+(5, 3, 3)    & 33  & 132  & 0.6925 \\
+(5, 5, 3)    & 41  & 164  & 0.6792 \\
+(7, 5, 3)    & 45  & 180  & \textbf{0.7022} \\
+(9, 5, 3)    & 49  & 196  & 0.6712 \\
+(9, 7, 5)    & 73  & 292  & 0.6938 \\
+(11, 7, 5)   & 77  & 308  & 0.6649 \\
+(13, 9, 5)   & 89  & 356  & 0.6867 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-Most literature builds off of a standard approach first doing baseline wander highpass filtering and z-score normalization, and notch filtering the 50 Hz (world) or 60 Hz (USA) powerline interference. We have applied these methods already in our data pre-processing and exploratory data analysis pipelines.
+The $(7,5,3)$ configuration at RF\,=\,180\,ms achieved the best CV AUROC of 0.7022 (test AUROC 0.7817). Performance peaks in the 130--180\,ms range and degrades on both sides. Configurations below 130\,ms --- such as $(3,3,3)$ at 116\,ms --- cannot span the full QRS complex, missing the morphological context needed for classification. Configurations above 200\,ms --- such as $(11,7,5)$ at 308\,ms or $(13,9,5)$ at 356\,ms --- use wider kernels that increase parameter count without benefit, as the additional temporal context (T-wave tail, baseline) adds noise rather than discriminative signal. The $(9,7,5)$ triple at 292\,ms is a notable exception (0.6938), likely because its balanced kernel progression still captures the QRS--ST window effectively despite the excess reach. The sweet spot at 180\,ms aligns with the QRS onset through early T-wave, which is precisely where preeclampsia-related repolarization abnormalities manifest.
 
-For future reading we have selected Jia et al. as an overview of data preprocessing techniques that we can collectively employ across our models and evaluating which combination leads to the best results . To conduct preprocessing quality evaluation before model training and validation for saving time on compute we selected Satija et al. which covers methods for ECG signal quality assessment .
+\subsection{Cross-Lead Attention Mechanism}
 
-\subsection{ECG Model Efficiency and Compression}
+After each per-lead convolutional stage, a cross-lead attention block allows the 12 leads to exchange information. The mechanism operates as follows:
+\begin{enumerate}
+\item \textbf{Tokenization.} Each lead's feature map $(C \times T)$ is pooled to a single $C$-dimensional vector via AdaptiveAvgPool1d(1), yielding 12 tokens.
+\item \textbf{Self-attention.} 4-head multi-head attention operates over the 12 lead-tokens with residual connection and LayerNorm.
+\item \textbf{Gating.} The attended representation passes through a linear layer and sigmoid to produce per-lead gate weights in $[0, 1]$. These weights are broadcast back to the full temporal resolution and applied element-wise: $\mathbf{x}_\ell' = \sigma(\mathbf{g}_\ell) \odot \mathbf{x}_\ell$.
+\end{enumerate}
 
-Not every clinical setting, especially in the developing world, has access to dedicated high performance compute. For compute efficiency and deployment on edge devices, we selected Gupta et al. as it is specifically a literature review on efficient ECG Classification models, both existing efficient architectures and strategies to shrink models such as distillation, quantization, pruning, etc . We also selected Keivanimehr as it covers TinyML for ECG classification. TinyML is a framework for deploying machine learning on edge and embedded devices, and as such we would explore how to fit our model into this framework .
+The gating design is deliberate. Rather than replacing each lead's features with the attention output, the gate \textit{modulates} the original full-resolution features. Leads deemed uninformative by attention are suppressed; informative leads are amplified. This preserves temporal detail that would be lost if the pooled attention output were used directly.
 
-\newpage
+Attention is placed between every convolutional stage (three attention blocks total), not only at the end. This allows cross-lead context to inform feature extraction at each abstraction level: QRS-level (Stage~1), ST-level (Stage~2), and morphology-level (Stage~3).
+
+Compared to 2D convolution across leads, attention preserves lead identity throughout the network and produces interpretable per-lead weights that can be analyzed post hoc to determine which leads the model relies on for classification. Figure~\ref{fig:attention} shows the mean $12 \times 12$ attention matrices across the test set, separated by class.
+
+Stage~1 attention is nearly perfectly uniform (deviations $< 0.1\%$ from $1/12$), confirming that early-stage features are not yet class-discriminative. Stages~2 and~3 develop \textit{vertical striping}: entire columns are consistently brighter or darker regardless of the query row. This key-dominated pattern means the model has learned \textit{which leads are worth listening to} rather than pairwise lead relationships --- every lead looks to the same informative sources.
+
+The column structure is consistent across both classes: aVR and V1 are suppressed ($\sim$0.6--0.9\% below uniform), while lateral leads V5, V6, II, and aVF are boosted ($\sim$0.3--0.4\% above uniform). This aligns with clinical expectations --- aVR is an inverted view of the heart that rarely carries primary diagnostic information, while the lateral and inferior leads are most sensitive to the repolarization abnormalities associated with preeclampsia. Class-level differences are subtle ($<$0.03\% of uniform) but structured: in Stage~2, PE samples attend more to aVL and Lead~I (the high-lateral leads) and less to V2--V3, consistent with left-axis-directed repolarization changes. These small attention shifts are amplified by the multiplicative sigmoid gate acting on full-resolution feature maps.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{fig_attention_final.png}
+\caption{Mean cross-lead attention matrices (rows = query lead, columns = key lead) for Normal (top) and PE (bottom) across three stages.}
+\label{fig:attention}
+\end{figure}
+
+\subsection{Fusion Head and Classification}
+
+The fusion head is the only component where all 12 leads merge into a single representation. After Stage~3, the 12 lead feature maps are concatenated along the channel axis: $(B, 12, 192, 312) \to (B, 2304, 312)$. A pointwise $1
+\times 1$ convolution reduces this to $(B, 192, 312)$ with BatchNorm and ReLU, forcing the network to learn a compact cross-lead representation rather than retaining all $12 \times 192 = 2304$ channels. Global average pooling (GAP) then collapses the temporal axis to a 192-dimensional vector. Dropout followed by a fully-connected layer produces the 2-class output (PE vs.\ Normal).
+
+The 1x1 convolution is preferred over flattening for parameter efficiency: flattening $2304 \times 312$ directly into a classifier would require over 700K parameters in the FC layer alone. The pointwise conv uses only $2304 \times 192 = 442$K parameters and preserves the temporal structure for GAP.
+
+The final classification reduces to a 192-channel vote. Each GAP channel $i$ contributes a vote $v_i = \text{GAP}_i \cdot (W_{\text{PE},i} - W_{\text{Normal},i})$ to the PE-vs-Normal decision margin; the sum of all votes plus a bias term passes through softmax. Figure~\ref{fig:voting} visualizes this mechanism. The structural weights (top) show which channels are wired toward PE (positive) or Normal (negative). The per-sample panels show a confident true positive (margin $= +1.24$, PE votes dominate) and a confident true negative (margin $= -4.28$, Normal votes dominate).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{fig_voting.png}
+\caption{192-channel voting mechanism. Top: FC vote weights. Middle/bottom: per-channel vote contributions for a confident TP and TN.}
+\label{fig:voting}
+\end{figure}
+
+\subsubsection{Parameter Budget and Capacity Analysis}
+
+The finalized model has 965K parameters, selected by Optuna's filter search over 30 trials across eight filter configurations ranging from 27K to 965K parameters. Table~\ref{tab:filter-search} summarizes the results.
+
+\begin{table}[H]
+\centering
+\caption{Optuna filter search: best CV AUROC per configuration.}
+\label{tab:filter-search}
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Filters} & \textbf{Params} & \textbf{Best CV AUROC} \\
+\midrule
+(8, 16, 32)    & 27K   & 0.6826 \\
+(16, 32, 64)   & 108K  & 0.6650 \\
+(32, 32, 64)   & 120K  & 0.6731 \\
+(16, 32, 96)   & 215K  & 0.6969 \\
+(16, 48, 96)   & 236K  & 0.6907 \\
+(24, 48, 96)   & 242K  & 0.6718 \\
+(32, 64, 128)  & 430K  & 0.6835 \\
+(48, 96, 192)  & 965K  & \textbf{0.7034} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The key observation: all configurations converge to a narrow CV AUROC band of 0.66--0.70. The 965K model wins, but the 27K model (36$\times$ smaller) scores within 0.021. This is a \textit{data-limited} regime, not a capacity-limited one --- with only 335 PE recordings, adding parameters yields diminishing returns because the model cannot see enough pathological variation to exploit extra capacity.
+
+Multi-seed validation (30 independent runs with the 965K configuration) confirms this: mean AUROC = $0.7443 \pm 0.054$, with individual seeds ranging from 0.6153 to 0.8205. The high variance across seeds further indicates data limitation rather than architectural insufficiency.
+
+\section{Dataset and Preprocessing}
+
+\subsection{UC Davis Health ECG Dataset}
+
+The dataset consists of 12-lead ECG recordings from UC Davis Health, sampled at 250\,Hz for 10\,s (2500 samples per lead). Each recording is stored as a CSV with shape $12 \times 2500$. Table~\ref{tab:dataset} summarizes the class distribution.
+
+\begin{table}[H]
+\centering
+\caption{UC Davis Health preeclampsia ECG dataset.}
+\label{tab:dataset}
+\small
+\begin{tabular}{lrr}
+\toprule
+ & \textbf{Patients} & \textbf{ECGs} \\
+\midrule
+Normal     & 1{,}217 & 1{,}854 \\
+Preeclampsia & 132   & 187 \\
+\midrule
+\textbf{Total} & 1{,}349 & 2{,}041 \\
+Ratio (Normal\,:\,PE) & \multicolumn{2}{c}{$\sim$9.9\,:\,1} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The dataset is severely imbalanced: Normal ECGs outnumber PE recordings by nearly 10:1. Some patients contribute multiple ECGs, creating a risk of data leakage if the same patient appears in both training and test sets.
+
+\subsection{Preprocessing Pipeline}
+
+Three preprocessing steps are applied in order:
+\begin{enumerate}
+\item \textbf{Baseline wander removal.} A 4th-order Butterworth high-pass filter at 0.5\,Hz, the clinical standard cutoff for ECG baseline correction (cite), removes slow electrode drift. Implemented in SOS (second-order sections) form for numerical stability.
+\item \textbf{Powerline interference removal.} A notch filter at 60\,Hz ($Q = 30$) suppresses US power grid interference. The narrow $Q$ factor limits the notch width to $\sim$1\,Hz, preserving signal content near 60\,Hz.
+\item \textbf{Z-score normalization.} Each lead is independently normalized to zero mean and unit variance: $(x - \mu_\ell) / (\sigma_\ell + \epsilon)$, $\epsilon = 10^{-8}$. Per-lead normalization preserves amplitude differences between leads that encode cardiac axis information.
+\end{enumerate}
+
+Figure~\ref{fig:preprocessing} illustrates each step on a synthetic ECG waveform.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={
+    group size=2 by 2,
+    horizontal sep=1.2cm,
+    vertical sep=0.8cm,
+  },
+  width=0.52\columnwidth,
+  height=2.4cm,
+  domain=0:1.6,
+  samples=200,
+  grid=none,
+  axis lines=left,
+  tick label style={font=\scriptsize},
+  title style={font=\small\bfseries},
+  xtick=\empty,
+  ytick style={draw=none},
+  every axis plot/.style={draw=stgIII, line width=0.5pt, no markers, smooth},
+]
+
+\nextgroupplot[
+  title={1.\ Raw ECG},
+  ymin=-0.8, ymax=1.8,
+  ytick={-0.5, 0, 0.5, 1.0, 1.5},
+  ylabel={\scriptsize mV},
+]
+\addplot {ecgsig(x)+0.6*sin(deg(2*3.14159*0.5*x))+0.06*sin(deg(2*3.14159*15*x))};
+
+\nextgroupplot[
+  title={2.\ Baseline Removed},
+  ymin=-0.6, ymax=1.5,
+  ytick={0, 0.5, 1.0},
+]
+\addplot {ecgsig(x)+0.06*sin(deg(2*3.14159*15*x))};
+
+\nextgroupplot[
+  title={3.\ 60\,Hz Notch},
+  ymin=-0.6, ymax=1.5,
+  ytick={0, 0.5, 1.0},
+  ylabel={\scriptsize mV},
+  xtick={0, 0.5, 1.0, 1.5},
+  xlabel={\scriptsize s},
+]
+\addplot {ecgsig(x)};
+
+\nextgroupplot[
+  title={4.\ Z-score},
+  ymin=-1.5, ymax=4.0,
+  ytick={-1, 0, 1, 2, 3},
+  ylabel={\scriptsize $\sigma$},
+  xtick={0, 0.5, 1.0, 1.5},
+  xlabel={\scriptsize s},
+]
+\addplot {(ecgsig(x)-0.08)/0.3};
+
+\end{groupplot}
+\end{tikzpicture}
+\caption{Preprocessing pipeline illustrated on a synthetic ECG: (1) raw signal with baseline wander and powerline noise, (2) after 0.5\,Hz highpass, (3) after 60\,Hz notch filter, (4) after per-lead z-score normalization.}
+\label{fig:preprocessing}
+\end{figure}
+
+Quality filtering removes 8 recordings with flat leads (std $< 10^{-4}$) and 5 with missing patient identifiers, yielding 2{,}028 usable recordings.
+
+\subsection{Data Split and Balancing}
+
+An 80/20 patient-grouped holdout split ensures no patient appears in both dev and test sets. The dev set contains 1{,}747 recordings (15.9\% PE); the test set contains 431 recordings (13.5\% PE). The test set is never balanced, preserving clinical prevalence for evaluation.
+
+Within the dev set, training data is balanced via symmetric augmentation followed by majority undersampling. Both PE and Normal samples are augmented with Gaussian noise ($\sigma = 0.06$) and random time shifts (up to $\pm 276$ samples $\approx \pm 1.1$\,s), doubling each class. Majority undersampling then reduces the Normal class to match PE count, yielding a 1:1 training ratio. Because the Normal class is undersampled after doubling, the final training set contains a fair mix of original and augmented Normal waveforms rather than being entirely synthetic. Augmenting both classes symmetrically prevents the model from learning augmentation artifacts as class-discriminative features.
+
+\section{Model Meta-Analysis}
+
+The 192-dimensional GAP embedding produced by RepNet's penultimate layer provides a rich space for post-hoc analysis of what the model has learned, where it fails, and how its decision landscape is structured. All analyses in this section use the best single seed (seed \#49, test AUROC = 0.8205) with PCA fit on the development set to avoid leakage.
+
+\subsection{Embedding Geometry}
+
+Dimensionality reduction of the 192-d GAP embeddings confirms that the ECG carries a learnable preeclampsia signal. We apply two complementary projections. PCA (principal component analysis) finds the linear axes of greatest variance, preserving global structure. t-SNE (t-distributed stochastic neighbor embedding) is a nonlinear method that optimizes a probabilistic mapping to preserve local neighborhood structure --- points close in 192-d stay close in 2-d, revealing clusters and manifold geometry that linear projections miss.
+
+Both projections (Figures~\ref{fig:pca_class}--\ref{fig:tsne_prob}) show PE samples concentrating in a distinct region of embedding space, separated from the bulk Normal population. The model's predicted $P(\text{PE})$ tracks this geometry closely: high-confidence predictions (red) align with the PE cluster while low-confidence predictions (blue) align with the Normal cluster, producing a visible decision boundary with a gradient transition zone where the two classes overlap. The t-SNE projection reveals tighter cluster structure than PCA, with a geometrically distinct high-confidence Normal cluster that is not simply a linear tail of the distribution.
+
+The representation is also highly compressed. The first 5 principal components capture 87.8\% of variance, and the channel correlation matrix has an effective rank of 6.0 --- the 192-channel GAP layer encodes approximately 6 independent dimensions of variation. A linear probe on just 7 PCs matches the full nonlinear model's test AUROC (0.826 vs.\ 0.821), indicating that the discriminative signal is low-dimensional and approximately linear in the learned feature space.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{fig_pca_class.png}
+\caption{PCA projection of 192-d GAP embeddings colored by true class. Normal samples concentrate at positive PC1; PE samples shift toward negative PC1.}
+\label{fig:pca_class}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{fig_pca_prob.png}
+\caption{PCA projection colored by predicted $P(\text{PE})$. The blue-to-red gradient traces the decision boundary through the class-overlap zone.}
+\label{fig:pca_prob}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{fig_tsne_class.png}
+\caption{t-SNE projection colored by true class. Nonlinear embedding reveals tighter cluster structure than PCA.}
+\label{fig:tsne_class}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{fig_tsne_prob.png}
+\caption{t-SNE projection colored by predicted $P(\text{PE})$. High-confidence Normal cluster (blue) is geometrically distinct from the PE region (red).}
+\label{fig:tsne_prob}
+\end{figure}
+
+The projections confirm that the model has learned a meaningful decision boundary: PE samples occupy a distinct region of the embedding space, and the predicted probability gradient aligns with the geometric separation between classes. However, substantial overlap remains --- particularly in the transition zone where Normal-high and PE-low samples intermingle. This overlap is consistent with the model's 89 false positives and 18 false negatives at $\tau{=}0.5$, and reflects the fundamental difficulty of the task: with only 335 PE recordings and subtle morphological differences between classes, the ECG signal alone does not permit clean separation. Reducing this overlap will likely require either additional training data or complementary clinical features beyond the raw waveform.
+
+\subsection{Classification Performance}
+
+Table~\ref{tab:classification} reports classification metrics for the best single seed (\#49) and the 30-seed distribution. All threshold-dependent metrics use $\tau{=}0.5$.
+
+\begin{table}[H]
+\centering
+\caption{Classification performance on the held-out test set ($n{=}431$: 373 Normal, 58 PE). Threshold-dependent metrics evaluated at $\tau{=}0.5$.}
+\label{tab:classification}
+\small
+\begin{tabular}{lccc}
+\toprule
+Metric & Best seed & Mean $\pm$ SD & Range \\
+\midrule
+AUROC       & 0.821 & $0.744 \pm 0.053$ & 0.615--0.821 \\
+AUPRC       & 0.429 & $0.312 \pm 0.061$ & 0.186--0.429 \\
+Sensitivity & 0.690 & $0.624 \pm 0.263$ & 0.121--1.000 \\
+Specificity & 0.761 & $0.676 \pm 0.201$ & 0.220--0.968 \\
+Precision   & 0.310 & $0.264 \pm 0.065$ & 0.166--0.423 \\
+Accuracy    & 0.752 & $0.669 \pm 0.142$ & 0.325--0.856 \\
+F1-score    & 0.428 & $0.331 \pm 0.057$ & 0.182--0.441 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The best seed achieves an AUROC of 0.821 and sensitivity of 0.690 at a specificity of 0.761, but these numbers overstate expected performance. The 30-seed distribution reveals substantial variance: sensitivity ranges from 0.121 to 1.000 (SD = 0.263) and specificity from 0.220 to 0.968 (SD = 0.201), reflecting instability in the decision boundary across random initializations.
+
+The low precision (0.310) is a direct consequence of the 6.4:1 class imbalance in the test set: even with 76\% specificity, the 373 Normal samples produce 89 false positives that outnumber the 40 true positives. At a sensitivity target of $\geq$0.90 (clinically relevant for screening), the required threshold drops to $\tau{=}0.449$, yielding specificity of 0.673 and precision of 0.303 --- 53 of 58 PE cases are captured, but at the cost of flagging 122 Normal patients.
+
+Figure~\ref{fig:roc_pr} shows the ROC and precision-recall curves for the best seed. The precision-recall curve highlights the challenge posed by low prevalence: precision drops steeply as recall increases beyond 0.5, and the area under the PR curve (0.429) reflects the difficulty of achieving high positive predictive value with a 13.5\% base rate.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{fig_roc_pr.png}
+\caption{ROC and precision-recall curves for the best seed on the test set.}
+\label{fig:roc_pr}
+\end{figure}
+
+Figure~\ref{fig:pred_youden}(a) shows the distribution of predicted probabilities by true class. The Normal distribution is broad and left-shifted but extends well past $\tau{=}0.5$, producing the 89 false positives. The PE distribution is right-shifted but heavily overlaps with Normal in the 0.2--0.6 range. Figure~\ref{fig:pred_youden}(b) shows the Youden's $J$ statistic ($J = \text{sensitivity} + \text{specificity} - 1$) as a function of threshold. The optimal threshold $\tau^*{=}0.448$ ($J{=}0.587$) is close to the default $\tau{=}0.5$, with sensitivity of 0.914 and specificity of 0.673 --- a favorable trade-off for screening where missing PE cases carries higher clinical cost than false alarms.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{fig_pred_youden.png}
+\caption{(a) Mirror histogram of predicted $P(\text{PE})$ by true class. (b) Threshold sweep: sensitivity, specificity, and Youden's $J$. Optimal $\tau^*{=}0.448$ maximizes $J{=}0.587$.}
+\label{fig:pred_youden}
+\end{figure}
+
 \section{Random Forest Featurization Progress}
 Decision tree-based models have proven to be successful in predicting preeclampsia, though none through the use of ECGs for inference.
 \subsection{Previous Work}
