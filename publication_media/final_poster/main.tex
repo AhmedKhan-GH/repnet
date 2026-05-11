@@ -1,0 +1,308 @@
+% UC Davis poster built from the Gemini theme
+% (https://github.com/anishathalye/gemini) and inspired by
+% Rylan Schaeffer's Stanford template
+% (https://github.com/RylanSchaeffer/Stanford-LaTeX-Poster-Template).
+%
+% COMPILE WITH XeLaTeX (Overleaf: Menu > Settings > Compiler > XeLaTeX).
+% The Gemini theme uses fontspec, which requires XeLaTeX or LuaLaTeX.
+
+\documentclass[final]{beamer}
+
+% ====================
+% Packages
+% ====================
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[size=custom,width=120,height=72,scale=1.0]{beamerposter}
+\usetheme{gemini}
+\usecolortheme{ucdavis}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+
+% ====================
+% Lengths
+% ====================
+
+% Three-column layout: 4 separators + 3 cols = paperwidth
+\newlength{\sepwidth}
+\newlength{\colwidth}
+\setlength{\sepwidth}{0.025\paperwidth}
+\setlength{\colwidth}{0.3\paperwidth}
+
+\newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
+
+% ====================
+% Title / authors
+% ====================
+
+\title{Risk Estimation of Preeclampsia}
+
+\author{Ahmed Khan \and Lawrencedel Legaspi \and Selena Phu}
+
+\institute[shortinst]{Department of Electrical and Computer Engineering}
+
+% ====================
+% Footer
+% ====================
+
+\footercontent{
+  \href{https://github.com/AhmedKhan-GH/repnet}{github.com/AhmedKhan-GH/repnet} \hfill
+  UC Davis Senior Design Showcase 2026 \hfill
+  \href{mailto:aekhan@ucdavis.edu}{aekhan@ucdavis.edu}}
+
+% ====================
+% Logos: UC Davis ECE logo (left), RUbiNet project logo (right)
+% ====================
+
+\logoleft{\includegraphics[height=9cm]{logo.png}}
+\logoright{\includegraphics[height=5.5cm]{ece_header_white_text.png}}
+
+% ====================
+% Body
+% ====================
+
+\begin{document}
+
+\begin{frame}[t]
+\begin{columns}[t]
+\separatorcolumn
+
+% =========================================================
+% Column 1
+% =========================================================
+\begin{column}{\colwidth}
+
+  \begin{block}{Introduction}
+
+    Preeclampsia is a time-sensitive hypertensive disorder of pregnancy that
+    can escalate to eclamptic seizures within days if undiagnosed. It is
+    currently identified clinically only after $\geq$20 weeks of gestation
+    via elevated blood pressure and end-organ markers such as proteinuria.
+    Because the only definitive treatment is delivery, \textbf{early
+    prediction is critical} --- it opens a window for monitoring, lifestyle
+    change, and pharmaceutical intervention before the disease progresses.
+
+    \heading{Goal}
+
+    Predict preeclampsia risk weeks to months before clinical diagnosis
+    using \textbf{quantitative features extracted from 12-lead ECGs} paired
+    with interpretable tree-based and attention-based models.
+
+  \end{block}
+
+  \begin{block}{Related Work}
+
+    \begin{itemize}
+      \item \textbf{ECG + deep learning:} A modified 1D-ResNet on raw
+        12-lead signals can flag preeclampsia 30--90 days before diagnosis,
+        but was validated primarily on an African-American cohort, leaving
+        demographic generalization open.
+      \item \textbf{Tree-based EHR models:} LightGBM and XGBoost on blood,
+        urine, and vitals highlight age and lab biomarkers as dominant
+        features --- strong baselines, but not wearable-friendly.
+      \item \textbf{Lead reduction:} Prior work shows leads I, II, V2, V4
+        can retain most diagnostic morphology, motivating a path toward
+        single-lead smart-wearable deployment.
+    \end{itemize}
+
+  \end{block}
+
+  \begin{alertblock}{Contribution}
+
+    We build an \textbf{explainable} preeclampsia risk pipeline that pairs
+    \emph{engineered} ECG features (dispersions, Tp-e, QRS-T angle,
+    ST deviations) with \emph{learned} representations, so each prediction
+    can be traced back to a cardiologically meaningful quantity.
+
+    \begin{itemize}
+      \item Feature extraction built on top of the NeuroKit2 library,
+        cross-validated against MUSE values from UC Davis Health.
+      \item Decision-tree baselines (RF, LightGBM, XGBoost) with SMOTE
+        balancing and $\chi^2$/PCA feature-importance analysis.
+      \item Attention-based extension mapping transformer attention back
+        onto the engineered features for interpretability.
+    \end{itemize}
+
+  \end{alertblock}
+
+\end{column}
+
+\separatorcolumn
+
+% =========================================================
+% Column 2
+% =========================================================
+\begin{column}{\colwidth}
+
+  \begin{block}{Engineered ECG Features}
+
+    From delineated P, QRS, and T events across 12 leads we compute a
+    compact feature vector emphasizing \textbf{repolarization heterogeneity}
+    and \textbf{ST-segment morphology}, both implicated in hypertensive
+    cardiac stress.
+
+    \begin{table}
+      \centering
+      \small
+      \begin{tabular}{l l}
+        \toprule
+        \textbf{Feature} & \textbf{Definition} \\
+        \midrule
+        P-wave dispersion     & $P_{\max} - P_{\min}$ across 12 leads \\
+        QT dispersion         & $QT_{\max} - QT_{\min}$ across 12 leads \\
+        Tp-e interval         & mean($T_{\text{offset}} - T_{\text{peak}}$) \\
+        Tp-e / QTc            & rate-corrected Tp-e ratio \\
+        ST elevation / depr.  & $>$ 50\% threshold indicators \\
+        Amplitude diffs       & avg / med / max / min (ST $-$ PR) \\
+        QRS axis              & isoelectric-lead \& Novosel arctan \\
+        T axis                & analogous to QRS axis \\
+        Frontal QRS-T angle   & $|\text{QRS axis} - \text{T axis}|$ \\
+        \bottomrule
+      \end{tabular}
+      \caption{Core engineered ECG features.}
+    \end{table}
+
+  \end{block}
+
+  \begin{block}{Pipeline}
+
+    \begin{figure}
+      \centering
+      \begin{tikzpicture}[
+          font=\small,
+          node distance=1.2cm,
+          stage/.style={rectangle,rounded corners,draw=aggieblue,
+                        fill=aggiegold,text=aggieblue,
+                        minimum width=5.5cm,minimum height=1.2cm,
+                        align=center,thick},
+          arr/.style={-latex,thick,draw=aggieblueDark}
+        ]
+        \node[stage] (ecg)   {Raw 12-lead ECG};
+        \node[stage,below of=ecg] (clean) {NeuroKit2 clean + delineate};
+        \node[stage,below of=clean] (feat) {Feature extraction};
+        \node[stage,below of=feat] (model) {RF / LightGBM / XGBoost};
+        \node[stage,below of=model] (risk)  {Preeclampsia risk score};
+        \draw[arr] (ecg)   -- (clean);
+        \draw[arr] (clean) -- (feat);
+        \draw[arr] (feat)  -- (model);
+        \draw[arr] (model) -- (risk);
+      \end{tikzpicture}
+      \caption{End-to-end inference pipeline.}
+    \end{figure}
+
+  \end{block}
+
+  \begin{block}{Validation Strategy}
+
+    \begin{itemize}
+      \item \textbf{Nightingale ECG dataset} for pipeline sanity-checking
+        (per-lead CSV ingestion path).
+      \item \textbf{UCDH Echo dataset} (balanced, MUSE-annotated) for
+        comparing NeuroKit-derived features against clinical MUSE values.
+      \item Three ECGs dropped for zero-filled leads or NaNs after
+        delineation; all drops logged for reproducibility.
+    \end{itemize}
+
+  \end{block}
+
+\end{column}
+
+\separatorcolumn
+
+% =========================================================
+% Column 3
+% =========================================================
+\begin{column}{\colwidth}
+
+  \begin{block}{Evaluation Metrics}
+
+    Preeclampsia prediction is framed as a \textbf{binary classification}
+    problem. We report a balanced metric suite to expose both class-imbalance
+    behavior and clinical usefulness:
+
+    $$
+      \text{AUC}, \;\; \text{Accuracy}, \;\; \text{Precision}, \;\;
+      \text{Recall}, \;\; F_1
+    $$
+
+    Since the positive class is rare, we prioritize \textbf{AUC and recall}
+    and treat accuracy alone as misleading. All experiments run with
+    stratified $k$-fold cross-validation.
+
+  \end{block}
+
+  \begin{block}{Preliminary Results}
+
+    \begin{figure}
+      \centering
+      \begin{tikzpicture}
+        \begin{axis}[
+            width=0.95\colwidth,
+            height=6.5cm,
+            ybar,
+            bar width=18pt,
+            ymin=0, ymax=1.0,
+            ylabel={Score},
+            symbolic x coords={AUC, Accuracy, Precision, Recall, F1},
+            xtick=data,
+            nodes near coords,
+            nodes near coords style={font=\small,color=aggieblueDark},
+            enlarge x limits=0.12,
+            axis y line*=left,
+            axis x line*=bottom,
+            every axis plot/.append style={fill=aggiegold,draw=aggieblue},
+          ]
+          \addplot coordinates {
+            (AUC,0.82) (Accuracy,0.78) (Precision,0.71)
+            (Recall,0.74) (F1,0.72)
+          };
+        \end{axis}
+      \end{tikzpicture}
+      \caption{Placeholder: RF baseline on balanced UCDH Echo subset.}
+    \end{figure}
+
+    \textbf{Open issue:} QRS- and T-axis calculation. Two implementations
+    are currently under evaluation ---
+    (1) the \emph{isoelectric-lead method} ($\pm 90^{\circ}$ from the
+    perpendicular pair) and
+    (2) the \emph{Novosel formula}
+    $\text{QRS axis} = \pm \arctan\!\left(\tfrac{2 \cdot aVF - III}{I}\right)$.
+    Clinically, small degree differences are rarely actionable, so the
+    pipeline will lean on the simpler isoelectric estimate unless axis is
+    flagged as high-importance.
+
+  \end{block}
+
+  \begin{block}{Future Work}
+
+    \begin{itemize}
+      \item Feature-importance analysis ($\chi^2$, PCA) to prune the
+        engineered feature set.
+      \item Compare RF vs.\ LightGBM vs.\ XGBoost on the balanced UCDH
+        Echo dataset, with SMOTE on training folds only.
+      \item Extend to a \textbf{single-lead} model compatible with smart
+        wearables (Apple Watch-style lead-I signals).
+      \item Add transformer attention maps projected back onto the
+        engineered features for clinician-facing explanations.
+    \end{itemize}
+
+  \end{block}
+
+  \begin{block}{References}
+
+    \nocite{*}
+    \footnotesize{\bibliographystyle{plain}\bibliography{poster}}
+
+  \end{block}
+
+\end{column}
+
+\separatorcolumn
+\end{columns}
+\end{frame}
+
+\end{document}

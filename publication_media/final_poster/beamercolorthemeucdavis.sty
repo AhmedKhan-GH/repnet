@@ -1,0 +1,86 @@
+% UC Davis color theme for the Gemini beamer poster theme.
+% Adapted from Rylan Schaeffer's Stanford-LaTeX-Poster-Template
+% (https://github.com/RylanSchaeffer/Stanford-LaTeX-Poster-Template).
+%
+% Primary palette per UC Davis brand guidelines (digital):
+%   Aggie Blue  #022851
+%   Aggie Gold  #FFBF00
+
+\ProvidesPackage{beamercolorthemeucdavis}[2026/04/20 UC Davis color theme]
+
+% Primary UC Davis brand colors (digital)
+\definecolor{aggieblue}{HTML}{022851}
+\definecolor{aggiegold}{HTML}{FFBF00}
+
+% Supporting neutrals
+\definecolor{aggieblueDark}{HTML}{011936}   % deeper blue for tertiary/accents
+\definecolor{aggiegoldDark}{HTML}{C99700}   % darker gold for hover/accents
+\definecolor{coolgray}{RGB}{77,79,83}
+\definecolor{boxgray}{RGB}{238,235,233}
+\definecolor{footergold}{HTML}{FFE9A8}      % soft gold wash for footer background
+\definecolor{aggieWhite}{RGB}{255,255,255}
+
+\mode<presentation>
+
+% Palette
+\setbeamercolor*{palette primary}{use=structure,fg=white,bg=aggieblue}
+\setbeamercolor*{palette secondary}{use=structure,fg=white,bg=coolgray}
+\setbeamercolor*{palette tertiary}{use=structure,fg=white,bg=aggieblueDark}
+\setbeamercolor*{palette quaternary}{fg=aggieblue,bg=aggiegold}
+
+% Headline / footer
+\setbeamercolor{headline}{bg=aggieblue,fg=white}
+\setbeamercolor{headline rule}{bg=aggiegold}
+\setbeamercolor*{footer}{use=structure,bg=aggieblue,fg=white}
+
+% Headline text pieces
+\setbeamercolor{headline title}{fg=white}
+\setbeamercolor{headline author}{fg=aggiegold}
+\setbeamercolor{headline institute}{fg=white}
+
+% Standard blocks: Stanford-style — white background, Aggie Blue title
+% text, Aggie Gold thin separator bar beneath the title.
+\setbeamercolor{block title}{fg=aggieblue,bg=white}
+\setbeamercolor{block separator}{bg=aggiegold}
+\setbeamercolor{block body}{fg=black,bg=white}
+
+% Alert blocks: same Stanford-style header as normal blocks, but with
+% a subtle light-gray body wash so the block still reads as emphasized.
+\setbeamercolor{block alerted title}{fg=aggieblue,bg=white}
+\setbeamercolor{block alerted separator}{bg=aggiegold}
+\setbeamercolor{block alerted body}{fg=black,bg=boxgray}
+
+% Sidebars
+\setbeamercolor*{sidebar}{use=structure,bg=aggiegold}
+\setbeamercolor*{palette sidebar primary}{use=structure,fg=aggieblue}
+\setbeamercolor*{palette sidebar secondary}{fg=aggieblue}
+\setbeamercolor*{palette sidebar tertiary}{use=structure,fg=aggieblueDark}
+\setbeamercolor*{palette sidebar quaternary}{fg=aggieblue}
+
+\setbeamercolor*{titlelike}{parent=palette primary}
+\setbeamercolor*{foot line}{parent=palette secondary}
+
+\setbeamercolor*{separation line}{}
+\setbeamercolor*{fine separation line}{}
+
+% Lists & misc. accents use Aggie Blue so bullets read as brand color
+\setbeamercolor{itemize item}{fg=aggieblue}
+\setbeamercolor{itemize subitem}{fg=aggieblue}
+\setbeamercolor{itemize subsubitem}{fg=aggieblue}
+\setbeamercolor{enumerate item}{fg=aggieblue}
+\setbeamercolor{enumerate subitem}{fg=aggieblue}
+\setbeamercolor{enumerate subsubitem}{fg=aggieblue}
+\setbeamercolor{description item}{fg=aggieblue}
+
+% Section-like headings in blocks (\heading{...}) in blue
+\setbeamercolor{heading}{fg=aggieblue}
+
+\setbeamertemplate{bibliography item}[text]
+\setbeamertemplate{frametitle continuation}[from second]
+\setbeamercolor{bibliography entry title}{fg=black}
+\setbeamercolor{bibliography entry author}{fg=black}
+\setbeamercolor*{bibliography entry location}{fg=black}
+\setbeamercolor*{bibliography entry note}{fg=black}
+
+\mode
+<all>
