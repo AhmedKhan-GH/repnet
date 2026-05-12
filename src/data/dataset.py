@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.signal import decimate
 from sklearn.model_selection import (
     GroupShuffleSplit,
     StratifiedGroupKFold,
@@ -20,7 +21,8 @@ SD_LEAD_ORDER = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", 
 
 SD_LABEL_POS = "Preeclampsia or Other Hypertensive Disorders of Pregnancy"
 SD_LABEL_NEG = "Normal_All"
-SD_N_SAMPLES = 2500   # crop all recordings to 2500 samples (10 s @ 250 Hz)
+SD_N_SAMPLES = 2500   # target length: 10 s @ 250 Hz
+SD_N_SAMPLES_500HZ = 5000  # 10 s @ 500 Hz — decimate to 250 Hz
 
 
 
@@ -86,12 +88,23 @@ def load_seniordesign(
 
     X_list, y_list, pat_list = [], [], []
     n_skip = 0
+    n_decimated = 0
     for _, row in meta.iterrows():
         path = ekg_dir / f"{int(row['ECGTestID'])}.csv"
         try:
             df = pd.read_csv(path, skipinitialspace=True,
-                             usecols=SD_LEAD_ORDER, nrows=SD_N_SAMPLES)
+                             usecols=SD_LEAD_ORDER)
             arr = df[SD_LEAD_ORDER].values.T.astype(np.float32)  # (12, T)
+            n_timepoints = arr.shape[1]
+            if arr.shape[0] != 12:
+                n_skip += 1
+                continue
+            if n_timepoints == SD_N_SAMPLES_500HZ:
+                arr = decimate(arr, q=2, axis=1).astype(np.float32)
+                n_decimated += 1
+            elif n_timepoints != SD_N_SAMPLES:
+                n_skip += 1
+                continue
             if arr.shape != (12, SD_N_SAMPLES):
                 n_skip += 1
                 continue
@@ -103,6 +116,8 @@ def load_seniordesign(
             logger.warning("Skipping %s: %s", path.name, exc)
             n_skip += 1
 
+    if n_decimated:
+        logger.info("Decimated %d recordings from 500 Hz to 250 Hz", n_decimated)
     if n_skip:
         logger.info("Skipped %d recordings (wrong shape or read error)", n_skip)
 
