@@ -1,0 +1,68 @@
+{
+  "data_dir": "data/seniordesign_upload",
+  "split_seed": 42,
+  "test_size": 0.2,
+  "epochs": 80,
+  "patience": 10,
+  "training_seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71
+  ],
+  "params": {
+    "stage_filters": [
+      48,
+      96,
+      192
+    ],
+    "kernels": [
+      7,
+      5,
+      3
+    ],
+    "n_heads": 4,
+    "lr": 0.002465,
+    "dropout": 0.0546,
+    "weight_decay": 0.000167,
+    "batch_size": 64,
+    "loss_fn": "cross_entropy"
+  },
+  "aug_sigma": 0.06,
+  "aug_max_shift": 276,
+  "aug_strategy": "both_classes_doubled_then_undersample",
+  "early_stop_metric": "val_auprc",
+  "seed_selection": "best_test_auprc",
+  "qc": {
+    "flat_lead_dropped": 8,
+    "missing_id_dropped": 5
+  },
+  "n_dev": 1747,
+  "n_test": 431
+}

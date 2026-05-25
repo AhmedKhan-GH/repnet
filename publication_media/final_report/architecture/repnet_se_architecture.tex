@@ -122,7 +122,7 @@
 %  STAGE 1
 % ════════════════════════════════════
 
-\node[branch, below=1.5cm of input, xshift=-2.7cm] (b1) {DW $k\!=\!5$};
+\node[branch, below=1.0cm of input, xshift=-2.7cm] (b1) {DW $k\!=\!5$};
 \node[branch, right=0.3cm of b1]                   (b2) {DW $k\!=\!9$};
 \node[branch, right=0.3cm of b2]                   (b3) {DW $k\!=\!15$};
 \node[mpbranch, right=0.3cm of b3]                  (b4) {MaxPool};
@@ -156,8 +156,15 @@
   \node[stage=stagebg1, fit=(b1)(b4)(cla1),
         minimum width=11cm] (s1bg) {};
 \end{scope}
-\node[stagelabel, anchor=north east] at ([xshift=-8pt, yshift=-4pt]s1bg.north west)
-  {Stage 1 \textcolor{textmid}{\normalfont\small — Multi-Scale Inception + SE + Attention}};
+\coordinate (descleft) at ([xshift=-8.7cm]s1bg.west);
+\node[stagelabel, anchor=north west] at ([yshift=-4pt]descleft |- s1bg.north)
+  (s1label) {Stage 1 \textcolor{textmid}{\normalfont\small — Multi-Scale Inception + SE + Attention}};
+\node[anchor=north west, text width=7.5cm, font=\large\sffamily, text=textmid,
+      align=left] at ([yshift=-1pt]s1label.south west)
+  {Parallel depthwise convolutions at three scales ($k$=5, 9, 15)
+   capture QRS and P/T-wave morphology simultaneously.
+   SE recalibrates channel importance before cross-lead
+   attention models inter-lead dependencies.};
 \node[dimtext, anchor=south east] at ([yshift=4pt]s1bg.north east) {$1 \to 16$ channels};
 
 
@@ -182,8 +189,13 @@
   \node[stage=stagebg2, fit=(conv2)(cla2),
         minimum width=8.5cm] (s2bg) {};
 \end{scope}
-\node[stagelabel, anchor=north east] at ([xshift=-8pt, yshift=-4pt]s2bg.north west)
-  {Stage 2 \textcolor{textmid}{\normalfont\small — SE Per-Lead Block + Cross-Lead Attention}};
+\node[stagelabel, anchor=north west] at ([yshift=-4pt]descleft |- s2bg.north)
+  (s2label) {Stage 2 \textcolor{textmid}{\normalfont\small — SE Per-Lead Block + Cross-Lead Attention}};
+\node[anchor=north west, text width=7.5cm, font=\large\sffamily, text=textmid,
+      align=left] at ([yshift=-1pt]s2label.south west)
+  {Two stacked depthwise-separable convolutions deepen per-lead
+   representations with a residual skip connection. SE recalibration
+   and 4-head cross-lead attention are applied after pooling.};
 \node[dimtext, anchor=south east] at ([yshift=4pt]s2bg.north east) {$16 \to 32$ channels};
 
 
@@ -208,8 +220,13 @@
   \node[stage=stagebg3, fit=(conv3)(cla3),
         minimum width=8.5cm] (s3bg) {};
 \end{scope}
-\node[stagelabel, anchor=north east] at ([xshift=-8pt, yshift=-4pt]s3bg.north west)
-  {Stage 3 \textcolor{textmid}{\normalfont\small — SE Per-Lead Block + Cross-Lead Attention}};
+\node[stagelabel, anchor=north west] at ([yshift=-4pt]descleft |- s3bg.north)
+  (s3label) {Stage 3 \textcolor{textmid}{\normalfont\small — SE Per-Lead Block + Cross-Lead Attention}};
+\node[anchor=north west, text width=7.5cm, font=\large\sffamily, text=textmid,
+      align=left] at ([yshift=-1pt]s3label.south west)
+  {Same structure as Stage~2 at higher channel capacity. The final
+   64-dimensional per-lead features encode the richest cardiac
+   morphology before fusion.};
 \node[dimtext, anchor=south east] at ([yshift=4pt]s3bg.north east) {$32 \to 64$ channels};
 
 
@@ -246,8 +263,14 @@
   \node[stage=fusionbg, fit=(gap)(out)(leadpool)(head),
         minimum width=8.5cm] (fusbg) {};
 \end{scope}
-\node[stagelabel, anchor=north east] at ([xshift=-8pt, yshift=-4pt]fusbg.north west)
-  {Classification Head \textcolor{textmid}{\normalfont\small — Lead Attention Pool + Linear}};
+\node[stagelabel, anchor=north west] at ([yshift=-4pt]descleft |- fusbg.north)
+  (fuslabel) {Classification Head \textcolor{textmid}{\normalfont\small — Lead Attention Pool + Linear}};
+\node[anchor=north west, text width=7.5cm, font=\large\sffamily, text=textmid,
+      align=left] at ([yshift=-1pt]fuslabel.south west)
+  {Global average pooling collapses each lead's temporal dimension.
+   A learned attention mechanism weights the 12 leads by
+   per-sample importance, then a linear layer produces the
+   preeclampsia risk score.};
 
 
 % ════════════════════════════════════

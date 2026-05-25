@@ -1,0 +1,36 @@
+\documentclass[border=8pt]{standalone}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{siunitx}
+\definecolor{bestrow}{HTML}{E8F5E9}
+\definecolor{headerblue}{HTML}{1565C0}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}p}
+\begin{document}
+
+\begin{tabular}{l cc}
+\toprule
+\textbf{Metric} & $\boldsymbol{\tau = 0.500}$ & $\boldsymbol{\tau = 0.621}$ \textbf{(Youden)} \\
+\midrule
+AUROC          & 0.7564 & 0.7564 \\
+AUPRC          & 0.3362 & 0.3362 \\
+Sensitivity    & 0.896 & 0.836 \\
+Specificity    & 0.444 & 0.615 \\
+Precision (PPV) & 0.226 & 0.283 \\
+NPV            & 0.959 & 0.954 \\
+F1-Score       & 0.361 & 0.423 \\
+Accuracy       & 0.514 & 0.649 \\
+Youden's $J$   & --- & 0.451 \\
+\midrule
+\multicolumn{3}{l}{\textit{Confusion Matrix}} \\
+\quad TP / FP  & 60 / 205 & 56 / 142 \\
+\quad FN / TN  & 7 / 164 & 11 / 227 \\
+\bottomrule
+\multicolumn{3}{l}{\footnotesize Test set: $N=436$ (PE+ $n=67$, Normal $n=369$, prevalence $=15.4\%$)} \\
+\end{tabular}
+
+\end{document}

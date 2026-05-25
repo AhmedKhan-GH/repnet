@@ -1,0 +1,27 @@
+{
+  "data_dir": "data/seniordesign_upload",
+  "n_folds": 3,
+  "epochs": 50,
+  "seed": 42,
+  "params": {
+    "stage_filters": [
+      32,
+      64
+    ],
+    "wide_kernel": 7,
+    "narrow_kernel": 5,
+    "dropout": 0.0636,
+    "n_heads": 4,
+    "lr": 0.000876,
+    "batch_size": 64,
+    "loss_fn": "cross_entropy"
+  },
+  "qc": {
+    "flat_lead_dropped": 8,
+    "missing_id_dropped": 5
+  },
+  "n_dev": 1747,
+  "n_test": 431,
+  "dev_pos_rate": 0.15855752718946767,
+  "test_pos_rate": 0.1345707656612529
+}
