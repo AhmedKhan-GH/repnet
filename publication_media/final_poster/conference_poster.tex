@@ -21,17 +21,17 @@
 \usepackage{booktabs}
 \usepackage{tikz}
 \usepackage{pgfplots}
+\usepackage[most]{tcolorbox}
 \pgfplotsset{compat=1.17}
 
 % ====================
-% Lengths
+% Lengths — 4 equal columns
 % ====================
 
-% Three-column layout: 4 separators + 3 cols = paperwidth
 \newlength{\sepwidth}
 \newlength{\colwidth}
-\setlength{\sepwidth}{0.025\paperwidth}
-\setlength{\colwidth}{0.3\paperwidth}
+\setlength{\sepwidth}{0.02\paperwidth}
+\setlength{\colwidth}{0.22\paperwidth}
 
 \newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
 
@@ -49,10 +49,12 @@
 % Footer
 % ====================
 
-\footercontent{
-  \href{https://github.com/AhmedKhan-GH/repnet}{github.com/AhmedKhan-GH/repnet} \hfill
-  UC Davis Senior Design Showcase 2026 \hfill
-  \href{mailto:aekhan@ucdavis.edu}{aekhan@ucdavis.edu}}
+\footercontent{%
+  \rlap{\href{https://github.com/AhmedKhan-GH/repnet}{github.com/AhmedKhan-GH/repnet}}%
+  \hfill
+  UC Davis Senior Design Showcase 2026%
+  \hfill
+  \llap{\href{mailto:aekhan@ucdavis.edu}{aekhan@ucdavis.edu} | \href{mailto:lawlegaspi@ucdavis.edu}{lawlegaspi@ucdavis.edu} | \href{mailto:slphu@ucdavis.edu}{slphu@ucdavis.edu}}}
 
 % ====================
 % Logos: UC Davis ECE logo (left), RUbiNet project logo (right)
@@ -68,144 +70,214 @@
 \begin{document}
 
 \begin{frame}[t]
+\begin{tikzpicture}[remember picture, overlay]
+  \node[anchor=north east, font=\fontsize{100}{100}\selectfont\bfseries,
+        text=white, fill=white, rounded corners=8pt, inner sep=10pt,
+        text=black] at ([xshift=-3cm, yshift=-2cm]current page.north east) {117};
+\end{tikzpicture}
 \begin{columns}[t]
 \separatorcolumn
 
 % =========================================================
-% Column 1
+% Column 1 — Introduction & Methods
 % =========================================================
 \begin{column}{\colwidth}
 
   \begin{block}{Introduction}
 
-    Preeclampsia is a time-sensitive hypertensive disorder of pregnancy that
-    can escalate to eclamptic seizures within days if undiagnosed. It is
-    currently identified clinically only after $\geq$20 weeks of gestation
-    via elevated blood pressure and end-organ markers such as proteinuria.
-    Because the only definitive treatment is delivery, \textbf{early
-    prediction is critical} --- it opens a window for monitoring, lifestyle
-    change, and pharmaceutical intervention before the disease progresses.
+    Preeclampsia is a hypertensive disorder of pregnancy that can occur after 20 weeks of
+    gestation~\cite{mayoclinic_preeclampsia}. It can cause complications including
+    liver damage, low platelet count, and preterm birth. The disorder can worsen to eclampsia, affecting brain
+    function and putting the mother at risk of comas and seizures.
+    Delivery is the only definitive treatment, so it is
+    imperative to predict a mother's risk of preeclampsia so preventive
+    measures can be taken to ensure the health of the mother and the
+    fetus. We use different methods of machine learning on 12-lead ECGs
+    to estimate risk.
 
-    \heading{Goal}
-
-    Predict preeclampsia risk weeks to months before clinical diagnosis
-    using \textbf{quantitative features extracted from 12-lead ECGs} paired
-    with interpretable tree-based and attention-based models.
-
-  \end{block}
-
-  \begin{block}{Related Work}
-
-    \begin{itemize}
-      \item \textbf{ECG + deep learning:} A modified 1D-ResNet on raw
-        12-lead signals can flag preeclampsia 30--90 days before diagnosis,
-        but was validated primarily on an African-American cohort, leaving
-        demographic generalization open.
-      \item \textbf{Tree-based EHR models:} LightGBM and XGBoost on blood,
-        urine, and vitals highlight age and lab biomarkers as dominant
-        features --- strong baselines, but not wearable-friendly.
-      \item \textbf{Lead reduction:} Prior work shows leads I, II, V2, V4
-        can retain most diagnostic morphology, motivating a path toward
-        single-lead smart-wearable deployment.
-    \end{itemize}
+    We present RepNet, a pair of machine-learning models for risk
+    estimation of preeclampsia from 12-lead ECGs. RepNet-SE is a
+    lightweight CNN (65,748 parameters) with multi-scale
+    depthwise-separable convolutions, squeeze-and-excitation, and
+    cross-lead self-attention. RepNet-RF is a decision-tree ensemble
+    trained on hand-engineered features extracted via NeuroKit2 and GE
+    MUSE-reported measurements.
 
   \end{block}
 
-  \begin{alertblock}{Contribution}
+  \begin{block}{Prior Work}
 
-    We build an \textbf{explainable} preeclampsia risk pipeline that pairs
-    \emph{engineered} ECG features (dispersions, Tp-e, QRS-T angle,
-    ST deviations) with \emph{learned} representations, so each prediction
-    can be traced back to a cardiologically meaningful quantity.
+    Preeclampsia induces measurable cardiac changes: Raffaelli et al.\
+    documented altered ventricular repolarization and QT
+    dispersion~\cite{raffaelli2014repolarization}, Angeli et al.\ linked
+    left atrial ECG abnormalities to a fourfold increased risk of
+    hypertensive disorders~\cite{angeli2015ecg}, and a recent
+    meta-analysis found preeclampsia prolongs QTc by 21.7\,ms beyond
+    normal third-trimester values~\cite{aboshady2025qtc}. Butler et al.\
+    showed a ResNet CNN can detect preeclampsia from raw ECG
+    waveforms~\cite{butler2024preeclampsia}.
 
-    \begin{itemize}
-      \item Feature extraction built on top of the NeuroKit2 library,
-        cross-validated against MUSE values from UC Davis Health.
-      \item Decision-tree baselines (RF, LightGBM, XGBoost) with SMOTE
-        balancing and $\chi^2$/PCA feature-importance analysis.
-      \item Attention-based extension mapping transformer attention back
-        onto the engineered features for interpretability.
-    \end{itemize}
+  \end{block}
 
-  \end{alertblock}
+  \begin{block}{Dataset Analysis}
+
+    2,178 clinical 12-lead ECGs (335 PreE+, 15.4\%) from 1,383
+    patients at UC Davis Health. 403 at 250\,Hz natively; 1,788
+    at 500\,Hz decimated to 250\,Hz ($q{=}2$, Chebyshev I
+    anti-aliasing). Class ratio 5.5:1.
+
+    Power spectral density peaks at 1.0\,Hz, indicating
+    low-frequency morphological differences. Silhouette score of
+    0.015 confirms classes are inseparable by simple statistics.
+    Frobenius norm of the inter-lead correlation difference
+    $\|\mathbf{C}_{\mathrm{PE}} - \mathbf{C}_{\mathrm{N}}\|_F = 1.026$
+    --- lead coupling preserved in preeclampsia, motivating
+    per-lead weight sharing to multiply effective training samples
+    by 12$\times$.
+    $\mathrm{CV}_{-\log_{10}(p)} = 2.236$ --- unequal lead
+    significance, motivating cross-lead self-attention.
+
+  \end{block}
+
+  \begin{block}{RepNet-SE: Neural Network Methods}
+
+    RepNet-SE is a lightweight CNN (65,748 parameters) with three
+    stages of multi-scale depthwise-separable convolutions,
+    squeeze-and-excitation blocks, and 4-head cross-lead
+    multi-head attention, fused via per-lead global average pooling
+    and a lead-attention gate.
+
+    Preprocessing applies baseline wander removal, 60\,Hz notch
+    filtering, and per-lead z-score normalization. Training uses
+    5-model bagging with patient-grouped stratified splits, Adam
+    optimizer, class-weighted cross-entropy, and AUROC-based early
+    stopping. Evaluation spans 20 seeds with 80/20 splits.
+
+  \end{block}
 
 \end{column}
 
 \separatorcolumn
 
 % =========================================================
-% Column 2
+% Column 2 — RepNet-SE Methods & Interpretability
 % =========================================================
 \begin{column}{\colwidth}
 
-  \begin{block}{Engineered ECG Features}
+  \begin{block}{RepNet-SE: Neural Network Results}
 
-    From delineated P, QRS, and T events across 12 leads we compute a
-    compact feature vector emphasizing \textbf{repolarization heterogeneity}
-    and \textbf{ST-segment morphology}, both implicated in hypertensive
-    cardiac stress.
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.95\colwidth]{../final_report/figures/roc_pr_curves.png}
+    \end{figure}
+    \vspace{-1em}
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.95\colwidth]{../final_report/figures/pred_histogram.png}
+    \end{figure}
+
+    RepNet-SE achieves a best AUROC of 0.787, AUPRC of 0.362,
+    and Brier score of 0.275. The predicted probability
+    distribution shows clear rightward shift for preeclamptic
+    cases, with Youden's optimal threshold at $\tau = 0.621$.
+
+  \end{block}
+
+  \begin{block}{RepNet-SE: Model Interpretability}
+
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.95\colwidth]{../final_report/figures/saliency_poster_lead_II.png}
+    \end{figure}
+    \vspace{-1em}
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.95\colwidth]{../final_report/figures/crosslead_attention_stages.png}
+    \end{figure}
+
+    Grad-CAM saliency on Lead II highlights QRS and ST-segment
+    regions for true positives, confirming the model focuses on
+    clinically relevant morphology. Cross-lead attention shows
+    increasing specialization across stages, with lateral and
+    inferior leads receiving stronger weight. Vertical stripes
+    indicate all query leads attend to the same informative keys.
+
+  \end{block}
+
+\end{column}
+
+\separatorcolumn
+
+% =========================================================
+% Column 3 — RepNet-RF
+% =========================================================
+\begin{column}{\colwidth}
+
+  \begin{block}{RepNet-RF: Decision-Tree Methods}
+
+    \begin{enumerate}
+      \item Preprocess ECG data using NeuroKit2 to extract features
+      \item Add extracted NeuroKit2 features to the MUSE-reported dataset
+      \item Apply feature importance methods:
+        Pearson Correlation, ANOVA, RFE
+      \item Train decision-tree models with ensemble methods
+    \end{enumerate}
+
+    Original modeling used a Random Forest with 5-fold
+    StratifiedGroupKFold and RandomUnderSampler. Further ensemble
+    methods were tested to improve performance.
+
+    \vspace{-0.5em}
+    \begin{figure}
+      \centering
+      \resizebox{\colwidth}{!}{\includegraphics{neurokit_table.pdf}}
+      \vspace{-1em}
+      \caption{NeuroKit2-derived features (per lead).}
+    \end{figure}
+    \vspace{-1.5em}
+
+  \end{block}
+
+  \begin{block}{RepNet-RF: Decision-Tree Results}
+
+    Unweighted Voting with SVM and Logistic Regression proved best
+    when focusing on sensitivity and balanced accuracy --- metrics that
+    reveal how well the model identifies preeclamptic ECGs and genuinely
+    distinguishes between classes.
 
     \begin{table}
       \centering
-      \small
-      \begin{tabular}{l l}
+      \footnotesize
+      \resizebox{0.95\colwidth}{!}{%
+      \begin{tabular}{l c c c c c}
         \toprule
-        \textbf{Feature} & \textbf{Definition} \\
+        \textbf{Ensemble} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Sens.} & \textbf{Bal.\ Acc.} & \textbf{F1} \\
         \midrule
-        P-wave dispersion     & $P_{\max} - P_{\min}$ across 12 leads \\
-        QT dispersion         & $QT_{\max} - QT_{\min}$ across 12 leads \\
-        Tp-e interval         & mean($T_{\text{offset}} - T_{\text{peak}}$) \\
-        Tp-e / QTc            & rate-corrected Tp-e ratio \\
-        ST elevation / depr.  & $>$ 50\% threshold indicators \\
-        Amplitude diffs       & avg / med / max / min (ST $-$ PR) \\
-        QRS axis              & isoelectric-lead \& Novosel arctan \\
-        T axis                & analogous to QRS axis \\
-        Frontal QRS-T angle   & $|\text{QRS axis} - \text{T axis}|$ \\
+        Unweighted Voting & 74.54$\pm$4.16 & 41.81$\pm$7.86 & 59.32$\pm$10.70 & 66.79$\pm$3.60 & 38.94 \\
+        Weighted Voting & 74.75$\pm$4.48 & 42.26$\pm$7.92 & 60.23$\pm$10.88 & 67.49$\pm$3.45 & 39.80 \\
+        \textbf{Unwtd.\ + SVM/LR} & \textbf{75.72$\pm$3.94} & 41.58$\pm$8.03 & \textbf{62.35$\pm$10.93} & \textbf{68.50$\pm$3.22} & \textbf{40.85} \\
+        Stacking & 74.77$\pm$4.35 & \textbf{42.43$\pm$7.59} & 59.62$\pm$10.80 & 67.00$\pm$3.46 & 39.17 \\
+        Bagging CatBoost & 74.81$\pm$4.98 & 41.96$\pm$8.86 & 59.62$\pm$15.19 & 67.16$\pm$5.59 & 39.10 \\
         \bottomrule
-      \end{tabular}
-      \caption{Core engineered ECG features.}
+      \end{tabular}%
+      }
+      \caption{Performance of tree-based ensemble methods on the UCDH dataset.}
     \end{table}
 
-  \end{block}
-
-  \begin{block}{Pipeline}
+    To identify the most robust cardiological markers and eliminate noisy
+    variables, we evaluated our feature space across multiple selection
+    methods: Pearson Correlation, ANOVA, and RFE (scoring on balanced
+    accuracy, AUROC, and average precision).
 
     \begin{figure}
       \centering
-      \begin{tikzpicture}[
-          font=\small,
-          node distance=1.2cm,
-          stage/.style={rectangle,rounded corners,draw=aggieblue,
-                        fill=aggiegold,text=aggieblue,
-                        minimum width=5.5cm,minimum height=1.2cm,
-                        align=center,thick},
-          arr/.style={-latex,thick,draw=aggieblueDark}
-        ]
-        \node[stage] (ecg)   {Raw 12-lead ECG};
-        \node[stage,below of=ecg] (clean) {NeuroKit2 clean + delineate};
-        \node[stage,below of=clean] (feat) {Feature extraction};
-        \node[stage,below of=feat] (model) {RF / LightGBM / XGBoost};
-        \node[stage,below of=model] (risk)  {Preeclampsia risk score};
-        \draw[arr] (ecg)   -- (clean);
-        \draw[arr] (clean) -- (feat);
-        \draw[arr] (feat)  -- (model);
-        \draw[arr] (model) -- (risk);
-      \end{tikzpicture}
-      \caption{End-to-end inference pipeline.}
+      \includegraphics[width=0.95\colwidth]{Heatmap12leads.png}
+      \caption{Feature selection consensus heatmap across 12 ECG leads.}
     \end{figure}
 
-  \end{block}
-
-  \begin{block}{Validation Strategy}
-
-    \begin{itemize}
-      \item \textbf{Nightingale ECG dataset} for pipeline sanity-checking
-        (per-lead CSV ingestion path).
-      \item \textbf{UCDH Echo dataset} (balanced, MUSE-annotated) for
-        comparing NeuroKit-derived features against clinical MUSE values.
-      \item Three ECGs dropped for zero-filled leads or NaNs after
-        delineation; all drops logged for reproducibility.
-    \end{itemize}
+    The horizontal distribution illustrates consensus across feature importance
+    scores, where darker blocks reveal important features for the
+    lead. Global features are not reported here.
 
   \end{block}
 
@@ -214,88 +286,66 @@
 \separatorcolumn
 
 % =========================================================
-% Column 3
+% Column 4 — Future Work, Acknowledgements, References
 % =========================================================
 \begin{column}{\colwidth}
 
-  \begin{block}{Evaluation Metrics}
+  \begin{block}{Conclusion}
 
-    Preeclampsia prediction is framed as a \textbf{binary classification}
-    problem. We report a balanced metric suite to expose both class-imbalance
-    behavior and clinical usefulness:
-
-    $$
-      \text{AUC}, \;\; \text{Accuracy}, \;\; \text{Precision}, \;\;
-      \text{Recall}, \;\; F_1
-    $$
-
-    Since the positive class is rare, we prioritize \textbf{AUC and recall}
-    and treat accuracy alone as misleading. All experiments run with
-    stratified $k$-fold cross-validation.
-
-  \end{block}
-
-  \begin{block}{Preliminary Results}
-
-    \begin{figure}
-      \centering
-      \begin{tikzpicture}
-        \begin{axis}[
-            width=0.95\colwidth,
-            height=6.5cm,
-            ybar,
-            bar width=18pt,
-            ymin=0, ymax=1.0,
-            ylabel={Score},
-            symbolic x coords={AUC, Accuracy, Precision, Recall, F1},
-            xtick=data,
-            nodes near coords,
-            nodes near coords style={font=\small,color=aggieblueDark},
-            enlarge x limits=0.12,
-            axis y line*=left,
-            axis x line*=bottom,
-            every axis plot/.append style={fill=aggiegold,draw=aggieblue},
-          ]
-          \addplot coordinates {
-            (AUC,0.82) (Accuracy,0.78) (Precision,0.71)
-            (Recall,0.74) (F1,0.72)
-          };
-        \end{axis}
-      \end{tikzpicture}
-      \caption{Placeholder: RF baseline on balanced UCDH Echo subset.}
-    \end{figure}
-
-    \textbf{Open issue:} QRS- and T-axis calculation. Two implementations
-    are currently under evaluation ---
-    (1) the \emph{isoelectric-lead method} ($\pm 90^{\circ}$ from the
-    perpendicular pair) and
-    (2) the \emph{Novosel formula}
-    $\text{QRS axis} = \pm \arctan\!\left(\tfrac{2 \cdot aVF - III}{I}\right)$.
-    Clinically, small degree differences are rarely actionable, so the
-    pipeline will lean on the simpler isoelectric estimate unless axis is
-    flagged as high-importance.
+    RepNet-SE achieves a best AUROC of 0.787 and RepNet-RF
+    achieves 0.757, demonstrating that 12-lead ECGs contain
+    discriminative signal for preeclampsia risk estimation
+    despite 5.5:1 class imbalance. Both models independently
+    converge on clinically relevant markers --- QRS
+    morphology, ST-segment changes, $T_{pe}$ interval ---
+    consistent with known cardiac effects of preeclampsia.
+    Grad-CAM saliency and cross-lead attention confirm the
+    neural network learns these patterns without explicit
+    feature engineering. Broad ECG-based screening can
+    enable early risk estimation of preeclampsia and
+    improve maternal and fetal outcomes.
 
   \end{block}
 
   \begin{block}{Future Work}
 
     \begin{itemize}
-      \item Feature-importance analysis ($\chi^2$, PCA) to prune the
-        engineered feature set.
-      \item Compare RF vs.\ LightGBM vs.\ XGBoost on the balanced UCDH
-        Echo dataset, with SMOTE on training folds only.
-      \item Extend to a \textbf{single-lead} model compatible with smart
-        wearables (Apple Watch-style lead-I signals).
-      \item Add transformer attention maps projected back onto the
-        engineered features for clinician-facing explanations.
+      \item \textbf{Lead Reduction \& Wearables:} Reduced lead
+        sets (e.g.\ leads I, II, V2, V4) or single-lead models
+        could enable screening via smart wearables such as
+        Apple Watch ECGs.
+      \item \textbf{Transfer Learning:} Pretraining on large
+        public ECG corpora (PTB-XL, MIMIC-IV-ECG) or
+        leveraging ECG foundation models before fine-tuning on
+        the UCDH cohort.
+      \item \textbf{Multi-Site Validation:} Current results are
+        from a single site; external validation on diverse
+        populations is needed to assess generalizability.
+      \item \textbf{Demographic Integration:} Incorporating
+        maternal age, gestational age, and clinical history
+        as auxiliary inputs alongside ECG data.
+      \item \textbf{Feature Importance Across Models:} Feature
+        selection used Random Forest; models such as CatBoost
+        or LightGBM may retain different useful features.
     \end{itemize}
 
   \end{block}
 
+  \begin{block}{Acknowledgements}
+    Dr.\ Lihong Mo, MD, PhD (OB/GYN);
+    Dr.\ Chen-Nee Chuah, PhD (EECS).
+
+    \textbf{Graduate Mentors:} Hana Shaik, Arielle Yoo.
+
+  \end{block}
+
+  \vfill
+
   \begin{block}{References}
 
-    \nocite{*}
-    \footnotesize{\bibliographystyle{plain}\bibliography{poster}}
+    \begin{tcolorbox}[boxrule=0.5pt, colback=white, colframe=black, arc=2pt]
+    \tiny{\bibliographystyle{plain}\bibliography{poster}}
+    \end{tcolorbox}
 
   \end{block}
 
