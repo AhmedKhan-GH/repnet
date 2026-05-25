@@ -8,36 +8,16 @@
 \RequirePackage{exscale}
 \RequirePackage{ragged2e}
 \RequirePackage{changepage}
-\RequirePackage{fontspec}
 \RequirePackage{calc}
 
 % ====================
-% Fonts
+% Fonts (pdfLaTeX-compatible — no fontspec)
 % ====================
 
-% Prefer Raleway/Lato (Google Fonts). If those aren't installed, fall
-% back through TeX Gyre Heros (TeX Live default on Linux/Overleaf) to
-% Helvetica Neue (native on macOS), so the poster compiles on any host.
-\newcommand{\gemini@pickfont}[2]{%
-  \IfFontExistsTF{#1}{\newfontfamily#2[Ligatures=TeX]{#1}}{%
-    \IfFontExistsTF{TeX Gyre Heros}
-      {\newfontfamily#2[Ligatures=TeX]{TeX Gyre Heros}}
-      {\newfontfamily#2[Ligatures=TeX]{Helvetica Neue}}}%
-}
-\gemini@pickfont{Raleway}{\Raleway}
-\gemini@pickfont{Lato}{\Lato}
+\newcommand{\Raleway}{\sffamily}
+\newcommand{\Lato}{\sffamily}
 
 \usefonttheme{professionalfonts}
-\IfFontExistsTF{Lato}
-  {\setsansfont{Lato}[
-    UprightFont=*-Light,
-    ItalicFont=*-LightItalic,
-    BoldFont=*-Regular,
-    BoldItalicFont=*-Italic
-  ]}
-  {\IfFontExistsTF{TeX Gyre Heros}
-    {\setsansfont{TeX Gyre Heros}}
-    {\setsansfont{Helvetica Neue}}}
 
 \setbeamerfont{headline}{family=\Raleway}
 \setbeamerfont{headline title}{size=\Huge,series=\bfseries}
@@ -115,7 +95,7 @@
 \newcommand{\logoright}[1]{
   \newcommand{\insertlogoright}{#1}
   \settowidth{\logorightwidth}{\insertlogoright}
-  \addtolength{\logorightwidth}{10ex}
+  \addtolength{\logorightwidth}{22ex}
   \setlength{\maxlogowidth}{\maxof{\logoleftwidth}{\logorightwidth}}
 }
 \newcommand{\logoleft}[1]{
@@ -153,8 +133,9 @@
         \ifdefined\insertlogoright
         \vspace*{\fill}
         \raggedleft
+        \hspace{0pt}%
         \insertlogoright
-        \hspace{10ex}
+        \hspace*{22ex}%
         \vspace*{\fill}
         \else\fi
       \end{column}
