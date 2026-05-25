@@ -14,8 +14,12 @@
 
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[size=custom,width=120,height=72,scale=1.0]{beamerposter}
+\usepackage[size=custom,width=121.92,height=91.44,scale=1.2]{beamerposter}
 \usetheme{gemini}
+
+% Force the Title to be Bold
+\setbeamerfont{title}{series=\bfseries}
+
 \usecolortheme{ucdavis}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -25,13 +29,13 @@
 \pgfplotsset{compat=1.17}
 
 % ====================
-% Lengths — 4 equal columns
+% Lengths — RECALCULATED FOR 3 EQUAL COLUMNS
 % ====================
 
 \newlength{\sepwidth}
 \newlength{\colwidth}
-\setlength{\sepwidth}{0.02\paperwidth}
-\setlength{\colwidth}{0.22\paperwidth}
+\setlength{\sepwidth}{0.025\paperwidth}
+\setlength{\colwidth}{0.30\paperwidth}
 
 \newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
 
@@ -41,9 +45,14 @@
 
 \title{Risk Estimation of Preeclampsia}
 
-\author{Ahmed Khan \and Lawrencedel Legaspi \and Selena Phu}
+\author{\Large Ahmed Khan \and Lawrencedel Legaspi \and Selena Phu}
 
-\institute[shortinst]{Department of Electrical and Computer Engineering}
+\institute[shortinst]{%
+  \normalsize
+  \centerline{\textbf{Faculty Advisors:} Dr.\ Lihong Mo, MD, PhD (OB/GYN, UCDH) \textbullet\ Dr.\ Chen-Nee Chuah, PhD (ECE, UCD)}
+  \vspace{0.2em}
+  \centerline{\textbf{Graduate Mentors:} Hana Shaik, Arielle Yoo}
+}
 
 % ====================
 % Footer
@@ -57,11 +66,25 @@
   \llap{\href{mailto:aekhan@ucdavis.edu}{aekhan@ucdavis.edu} | \href{mailto:lawlegaspi@ucdavis.edu}{lawlegaspi@ucdavis.edu} | \href{mailto:slphu@ucdavis.edu}{slphu@ucdavis.edu}}}
 
 % ====================
-% Logos: UC Davis ECE logo (left), RUbiNet project logo (right)
+% Logos & Typography Panel
 % ====================
 
-\logoleft{\includegraphics[height=9cm]{logo.png}}
-\logoright{\includegraphics[height=5.5cm]{ece_header_white_text.png}}
+% Adjusted horizontal spacing to perfectly center the QR code inside the open visual gap
+\logoleft{%
+  \makebox[0pt][l]{%
+    \vcenter{\hbox{\includegraphics[height=9cm]{logo.png}}}% Left RUbiNet Logo
+    \hspace*{5.8cm}% Fine-tuned spacing to position the QR code exactly in the middle of the gap
+    \vcenter{\hbox{\includegraphics[height=8.0cm]{qrcode.png}}}% Correct size-profile QR code
+  }%
+}
+
+% Standard right logo placement evenly spaced
+\logoright{%
+  \setlength{\tabcolsep}{0pt}%
+  \begin{tabular*}{\colwidth}{@{\extracolsep{\fill}} c c c}
+    & \vcenter{\hbox{\includegraphics[height=5.5cm]{ece_header_white_text.png}}} & \vcenter{\hbox{\color{white}\fontsize{80}{80}\selectfont\bfseries 117}}
+  \end{tabular*}%
+}
 
 % ====================
 % Body
@@ -70,138 +93,41 @@
 \begin{document}
 
 \begin{frame}[t]
-\begin{tikzpicture}[remember picture, overlay]
-  \node[anchor=north east, font=\fontsize{100}{100}\selectfont\bfseries,
-        text=white, fill=white, rounded corners=8pt, inner sep=10pt,
-        text=black] at ([xshift=-3cm, yshift=-2cm]current page.north east) {117};
-\end{tikzpicture}
+
 \begin{columns}[t]
 \separatorcolumn
 
 % =========================================================
-% Column 1 — Introduction & Methods
+% Column 1 — Background, Data, & Neural Network Introduction
 % =========================================================
 \begin{column}{\colwidth}
 
   \begin{block}{Introduction}
-
-    Preeclampsia is a hypertensive disorder of pregnancy that can occur after 20 weeks of
-    gestation~\cite{mayoclinic_preeclampsia}. It can cause complications including
-    liver damage, low platelet count, and preterm birth. The disorder can worsen to eclampsia, affecting brain
-    function and putting the mother at risk of comas and seizures.
-    Delivery is the only definitive treatment, so it is
-    imperative to predict a mother's risk of preeclampsia so preventive
-    measures can be taken to ensure the health of the mother and the
-    fetus. We use different methods of machine learning on 12-lead ECGs
-    to estimate risk.
-
-    We present RepNet, a pair of machine-learning models for risk
-    estimation of preeclampsia from 12-lead ECGs. RepNet-SE is a
-    lightweight CNN (65,748 parameters) with multi-scale
-    depthwise-separable convolutions, squeeze-and-excitation, and
-    cross-lead self-attention. RepNet-RF is a decision-tree ensemble
-    trained on hand-engineered features extracted via NeuroKit2 and GE
-    MUSE-reported measurements.
-
-  \end{block}
-
-  \begin{block}{Prior Work}
-
-    Preeclampsia induces measurable cardiac changes: Raffaelli et al.\
-    documented altered ventricular repolarization and QT
-    dispersion~\cite{raffaelli2014repolarization}, Angeli et al.\ linked
-    left atrial ECG abnormalities to a fourfold increased risk of
-    hypertensive disorders~\cite{angeli2015ecg}, and a recent
-    meta-analysis found preeclampsia prolongs QTc by 21.7\,ms beyond
-    normal third-trimester values~\cite{aboshady2025qtc}. Butler et al.\
-    showed a ResNet CNN can detect preeclampsia from raw ECG
-    waveforms~\cite{butler2024preeclampsia}.
-
-  \end{block}
-
-  \begin{block}{Dataset Analysis}
-
-    2,178 clinical 12-lead ECGs (335 PreE+, 15.4\%) from 1,383
-    patients at UC Davis Health. 403 at 250\,Hz natively; 1,788
-    at 500\,Hz decimated to 250\,Hz ($q{=}2$, Chebyshev I
-    anti-aliasing). Class ratio 5.5:1.
-
-    Power spectral density peaks at 1.0\,Hz, indicating
-    low-frequency morphological differences. Silhouette score of
-    0.015 confirms classes are inseparable by simple statistics.
-    Frobenius norm of the inter-lead correlation difference
-    $\|\mathbf{C}_{\mathrm{PE}} - \mathbf{C}_{\mathrm{N}}\|_F = 1.026$
-    --- lead coupling preserved in preeclampsia, motivating
-    per-lead weight sharing to multiply effective training samples
-    by 12$\times$.
-    $\mathrm{CV}_{-\log_{10}(p)} = 2.236$ --- unequal lead
-    significance, motivating cross-lead self-attention.
-
+    Preeclampsia is a hypertensive disorder of pregnancy that can occur after 20 weeks of gestation [4]. Butler et al.\ showed a ResNet CNN can detect preeclampsia from raw ECG waveforms [3]. We present RepNet, a pair of machine-learning models for risk estimation of preeclampsia from 12-lead ECGs. RepNet-SE is a neural network while RepNet-RF is a decision-tree ensemble trained on features extracted via NeuroKit2 and GE MUSE-reported measurements. We will use 2,178 clinical 12-lead ECGs (335 PreE+, 15.4\%) from 1,383 patients at UC Davis Health.
   \end{block}
 
   \begin{block}{RepNet-SE: Neural Network Methods}
+    RepNet-SE is a CNN with three stages of convolutions, squeeze-and-excitation blocks, and 4-head cross-lead multi-head attention, fused via per-lead global average pooling and a lead-attention gate.
 
-    RepNet-SE is a lightweight CNN (65,748 parameters) with three
-    stages of multi-scale depthwise-separable convolutions,
-    squeeze-and-excitation blocks, and 4-head cross-lead
-    multi-head attention, fused via per-lead global average pooling
-    and a lead-attention gate.
-
-    Preprocessing applies baseline wander removal, 60\,Hz notch
-    filtering, and per-lead z-score normalization. Training uses
-    5-model bagging with patient-grouped stratified splits, Adam
-    optimizer, class-weighted cross-entropy, and AUROC-based early
-    stopping. Evaluation spans 20 seeds with 80/20 splits.
-
+    \begin{itemize}
+      \item \textbf{Preprocessing:} Baseline wander removal, notch filtering, and per-lead z-score normalization
+      \item \textbf{Training:} 5-model bagging with patient-grouped stratified splits, Adam optimizer, and class-weighted cross-entropy (20 random seeds with 80/20 patient-grouped splits)
+    \end{itemize}
   \end{block}
-
-\end{column}
-
-\separatorcolumn
-
-% =========================================================
-% Column 2 — RepNet-SE Methods & Interpretability
-% =========================================================
-\begin{column}{\colwidth}
 
   \begin{block}{RepNet-SE: Neural Network Results}
-
     \begin{figure}
       \centering
-      \includegraphics[width=0.95\colwidth]{../final_report/figures/roc_pr_curves.png}
+      % ONLY THESE TWO PLOTS ARE SHRUNK TO PREVENT BOTTOM OVERFLOW
+      \includegraphics[width=0.80\colwidth]{roc_pr_curves.png}
     \end{figure}
     \vspace{-1em}
     \begin{figure}
       \centering
-      \includegraphics[width=0.95\colwidth]{../final_report/figures/pred_histogram.png}
+      \includegraphics[width=0.80\colwidth]{pred_histogram.png}
     \end{figure}
 
-    RepNet-SE achieves a best AUROC of 0.787, AUPRC of 0.362,
-    and Brier score of 0.275. The predicted probability
-    distribution shows clear rightward shift for preeclamptic
-    cases, with Youden's optimal threshold at $\tau = 0.621$.
-
-  \end{block}
-
-  \begin{block}{RepNet-SE: Model Interpretability}
-
-    \begin{figure}
-      \centering
-      \includegraphics[width=0.95\colwidth]{../final_report/figures/saliency_poster_lead_II.png}
-    \end{figure}
-    \vspace{-1em}
-    \begin{figure}
-      \centering
-      \includegraphics[width=0.95\colwidth]{../final_report/figures/crosslead_attention_stages.png}
-    \end{figure}
-
-    Grad-CAM saliency on Lead II highlights QRS and ST-segment
-    regions for true positives, confirming the model focuses on
-    clinically relevant morphology. Cross-lead attention shows
-    increasing specialization across stages, with lateral and
-    inferior leads receiving stronger weight. Vertical stripes
-    indicate all query leads attend to the same informative keys.
-
+    Best AUROC = 0.787, AUPRC = 0.362, Brier score = 0.275. The predicted probability distribution shows clear rightward shift for preeclamptic cases, with Youden's optimal threshold at $\tau = 0.621$.
   \end{block}
 
 \end{column}
@@ -209,23 +135,32 @@
 \separatorcolumn
 
 % =========================================================
-% Column 3 — RepNet-RF
+% Column 2 — Deep Interpretability Dashboard
 % =========================================================
 \begin{column}{\colwidth}
 
+  \begin{block}{RepNet-SE: Model Interpretability}
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.95\colwidth]{saliency_poster_lead_II.png}
+    \end{figure}
+    \vspace{-1em}
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.95\colwidth]{crosslead_attention_stages.png}
+    \end{figure}
+
+    Grad-CAM saliency on Lead II highlights QRS and ST-segment regions for true positives, confirming the model focuses on clinically relevant morphology. Cross-lead attention shows increasing specialization across stages, with lateral and inferior leads receiving stronger weight. Vertical stripes indicate all query leads attend to the same informative keys.
+  \end{block}
+
   \begin{block}{RepNet-RF: Decision-Tree Methods}
-
-    \begin{enumerate}
-      \item Preprocess ECG data using NeuroKit2 to extract features
-      \item Add extracted NeuroKit2 features to the MUSE-reported dataset
-      \item Apply feature importance methods:
-        Pearson Correlation, ANOVA, RFE
-      \item Train decision-tree models with ensemble methods
-    \end{enumerate}
-
-    Original modeling used a Random Forest with 5-fold
-    StratifiedGroupKFold and RandomUnderSampler. Further ensemble
-    methods were tested to improve performance.
+    \begin{itemize}
+      \item Use NeuroKit2 to extract features from ECG data and combine with MUSE-reported features
+      \item Feature importance analysis: Pearson Correlation, ANOVA, RFE (scoring on balanced accuracy, AUROC, and average precision)
+      \item Train Random Forest model and with 5-fold StratifiedGroupKFold and RandomUnderSampler
+      \item Train and evaluate ensemble methods
+    \end{itemize}
+    Ensembles evaluated were unweighted/weighted voting, stacking, and bagging. When choosing weights for weighted voting, it was important to assigner higher weights to the individually tuned models that performed better in terms of AUPRC and sensitivity.
 
     \vspace{-0.5em}
     \begin{figure}
@@ -235,50 +170,6 @@
       \caption{NeuroKit2-derived features (per lead).}
     \end{figure}
     \vspace{-1.5em}
-
-  \end{block}
-
-  \begin{block}{RepNet-RF: Decision-Tree Results}
-
-    Unweighted Voting with SVM and Logistic Regression proved best
-    when focusing on sensitivity and balanced accuracy --- metrics that
-    reveal how well the model identifies preeclamptic ECGs and genuinely
-    distinguishes between classes.
-
-    \begin{table}
-      \centering
-      \footnotesize
-      \resizebox{0.95\colwidth}{!}{%
-      \begin{tabular}{l c c c c c}
-        \toprule
-        \textbf{Ensemble} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Sens.} & \textbf{Bal.\ Acc.} & \textbf{F1} \\
-        \midrule
-        Unweighted Voting & 74.54$\pm$4.16 & 41.81$\pm$7.86 & 59.32$\pm$10.70 & 66.79$\pm$3.60 & 38.94 \\
-        Weighted Voting & 74.75$\pm$4.48 & 42.26$\pm$7.92 & 60.23$\pm$10.88 & 67.49$\pm$3.45 & 39.80 \\
-        \textbf{Unwtd.\ + SVM/LR} & \textbf{75.72$\pm$3.94} & 41.58$\pm$8.03 & \textbf{62.35$\pm$10.93} & \textbf{68.50$\pm$3.22} & \textbf{40.85} \\
-        Stacking & 74.77$\pm$4.35 & \textbf{42.43$\pm$7.59} & 59.62$\pm$10.80 & 67.00$\pm$3.46 & 39.17 \\
-        Bagging CatBoost & 74.81$\pm$4.98 & 41.96$\pm$8.86 & 59.62$\pm$15.19 & 67.16$\pm$5.59 & 39.10 \\
-        \bottomrule
-      \end{tabular}%
-      }
-      \caption{Performance of tree-based ensemble methods on the UCDH dataset.}
-    \end{table}
-
-    To identify the most robust cardiological markers and eliminate noisy
-    variables, we evaluated our feature space across multiple selection
-    methods: Pearson Correlation, ANOVA, and RFE (scoring on balanced
-    accuracy, AUROC, and average precision).
-
-    \begin{figure}
-      \centering
-      \includegraphics[width=0.95\colwidth]{Heatmap12leads.png}
-      \caption{Feature selection consensus heatmap across 12 ECG leads.}
-    \end{figure}
-
-    The horizontal distribution illustrates consensus across feature importance
-    scores, where darker blocks reveal important features for the
-    lead. Global features are not reported here.
-
   \end{block}
 
 \end{column}
@@ -286,67 +177,48 @@
 \separatorcolumn
 
 % =========================================================
-% Column 4 — Future Work, Acknowledgements, References
+% Column 3 — Decision-Tree Metrics, Outcomes, & Closings
 % =========================================================
 \begin{column}{\colwidth}
 
+  \begin{block}{RepNet-RF: Decision-Tree Results}
+    Unweighted Voting with SVM and LogisticRegression proved to be the best model when focusing on sensitivity/balanced accuracy. We look at these metrics to understand how well the model is correctly identifying preeclamptic ECGs and whether or not the model is genuinely distinguishing correctly between a normal or preeclamptic ECG.
+
+    \begin{table}
+      \centering
+      \footnotesize
+      \resizebox{0.95\colwidth}{!}{%
+      \begin{tabular}{l c c c c c c}
+        \toprule
+        \textbf{Ensemble} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Spec.} & \textbf{Sens.} & \textbf{Bal.\ Acc.} & \textbf{F1} \\
+        \midrule
+        Unweighted Voting & 74.54$\pm$4.16 & 41.81$\pm$7.86 & 74.26$\pm$3.95 & 59.32$\pm$10.70 & 66.79$\pm$3.60 & 38.94$\pm$2.99 \\
+        Weighted Voting & {74.75$\pm$4.35} & 42.26$\pm$7.92 & \textbf{74.75$\pm$4.48} & 60.23$\pm$10.88 & 67.49$\pm$3.45 & 39.80$\pm$2.76 \\
+        \textbf{Unwtd.\ + SVM/LR} & \textbf{75.72$\pm$3.94} & 41.58$\pm$8.03 & 74.64$\pm$ 4.70 & \textbf{62.35$\pm$10.93} & \textbf{68.50$\pm$3.22} & \textbf{40.85}$\pm$2.24 \\
+        Stacking & 74.77$\pm$4.35 & \textbf{42.43$\pm$7.59} & 74.37$\pm$4.18 & 59.62$\pm$10.80 & 67.00$\pm$3.46 & 39.17$\pm$2.79 \\
+        Bagging CatBoost & 74.81$\pm$4.98 & \textbf{41.96$\pm$8.86} & 74.70$\pm$4.68 & 59.62$\pm$15.19 & 67.16$\pm$5.59 & 39.10$\pm$5.21\\
+        \bottomrule
+      \end{tabular}%
+      }
+    \end{table}
+    
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.95\colwidth]{leadimportance.pdf}
+    \end{figure}
+  \end{block}
+
   \begin{block}{Conclusion}
-
-    RepNet-SE achieves a best AUROC of 0.787 and RepNet-RF
-    achieves 0.757, demonstrating that 12-lead ECGs contain
-    discriminative signal for preeclampsia risk estimation
-    despite 5.5:1 class imbalance. Both models independently
-    converge on clinically relevant markers --- QRS
-    morphology, ST-segment changes, $T_{pe}$ interval ---
-    consistent with known cardiac effects of preeclampsia.
-    Grad-CAM saliency and cross-lead attention confirm the
-    neural network learns these patterns without explicit
-    feature engineering. Broad ECG-based screening can
-    enable early risk estimation of preeclampsia and
-    improve maternal and fetal outcomes.
-
+    RepNet-SE achieves a best AUROC of 0.787 and RepNet-RF achieves 0.757, demonstrating that 12-lead ECGs contain discriminative signal for preeclampsia risk estimation despite 5.5:1 class imbalance. Both models independently converge on clinically relevant markers --- QRS morphology, ST-segment changes, $\mathnormal{T_{pe}}$ interval --- consistent with known cardiac effects of preeclampsia. Grad-CAM saliency and cross-lead attention confirm the neural network learns these patterns without explicit feature engineering. Broad ECG-based screening can enable early risk estimation of preeclampsia and improve maternal and fetal outcomes.
   \end{block}
 
   \begin{block}{Future Work}
-
     \begin{itemize}
-      \item \textbf{Lead Reduction \& Wearables:} Reduced lead
-        sets (e.g.\ leads I, II, V2, V4) or single-lead models
-        could enable screening via smart wearables such as
-        Apple Watch ECGs.
-      \item \textbf{Transfer Learning:} Pretraining on large
-        public ECG corpora (PTB-XL, MIMIC-IV-ECG) or
-        leveraging ECG foundation models before fine-tuning on
-        the UCDH cohort.
-      \item \textbf{Multi-Site Validation:} Current results are
-        from a single site; external validation on diverse
-        populations is needed to assess generalizability.
-      \item \textbf{Demographic Integration:} Incorporating
-        maternal age, gestational age, and clinical history
-        as auxiliary inputs alongside ECG data.
-      \item \textbf{Feature Importance Across Models:} Feature
-        selection used Random Forest; models such as CatBoost
-        or LightGBM may retain different useful features.
+      \item \textbf{Lead Reduction \& Wearables:} Reduced lead sets (e.g. leads I, II, V2, V4) or single-lead models could enable screening via smart wearables such as Apple Watch ECGs
+      \item \textbf{Transfer Learning:} Pretraining on large public ECG corpora (PTB-XL, MIMIC-IV-ECG) or leveraging ECG foundation models before fine-tuning on the UCDH cohort.
+      \item \textbf{Multi-Site Validation:} Current results are from a single site; external validation on diverse populations is needed to assess generalizability.
+      \item \textbf{Demographic Integration:} Incorporating maternal age, gestational age, and clinical history as auxiliary inputs alongside ECG data.
     \end{itemize}
-
-  \end{block}
-
-  \begin{block}{Acknowledgements}
-    Dr.\ Lihong Mo, MD, PhD (OB/GYN);
-    Dr.\ Chen-Nee Chuah, PhD (EECS).
-
-    \textbf{Graduate Mentors:} Hana Shaik, Arielle Yoo.
-
-  \end{block}
-
-  \vfill
-
-  \begin{block}{References}
-
-    \begin{tcolorbox}[boxrule=0.5pt, colback=white, colframe=black, arc=2pt]
-    \tiny{\bibliographystyle{plain}\bibliography{poster}}
-    \end{tcolorbox}
-
   \end{block}
 
 \end{column}
