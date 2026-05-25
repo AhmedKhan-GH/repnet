@@ -14,7 +14,7 @@
 
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[size=custom,width=120,height=72,scale=1.0]{beamerposter}
+\usepackage[size=custom,width=121.92,height=91.44,scale=1.2]{beamerposter}
 \usetheme{gemini}
 
 % Force the Title to be Bold
@@ -45,12 +45,12 @@
 
 \title{Risk Estimation of Preeclampsia}
 
-\author{\LARGE Ahmed Khan \and Lawrencedel Legaspi \and Selena Phu}
+\author{\Large Ahmed Khan \and Lawrencedel Legaspi \and Selena Phu}
 
 \institute[shortinst]{%
-  \large
+  \normalsize
   \centerline{\textbf{Faculty Advisors:} Dr.\ Lihong Mo, MD, PhD (OB/GYN, UCDH) \textbullet\ Dr.\ Chen-Nee Chuah, PhD (ECE, UCD)}
-  \vspace{0.3em}
+  \vspace{0.2em}
   \centerline{\textbf{Graduate Mentors:} Hana Shaik, Arielle Yoo}
 }
 
@@ -103,7 +103,7 @@
 \begin{column}{\colwidth}
 
   \begin{block}{Introduction}
-    Preeclampsia is a hypertensive disorder of pregnancy that can occur after 20 weeks of gestation~\cite{mayoclinic_preeclampsia}. Butler et al.\ showed a ResNet CNN can detect preeclampsia from raw ECG waveforms~\cite{butler2024preeclampsia}. We present RepNet, a pair of machine-learning models for risk estimation of preeclampsia from 12-lead ECGs. RepNet-SE is a neural network RepNet-RF is a decision-tree ensemble trained on features extracted via NeuroKit2 and GE MUSE-reported measurements. We will use 2,178 clinical 12-lead ECGs (335 PreE+, 15.4\%) from 1,383 patients at UC Davis Health.
+    Preeclampsia is a hypertensive disorder of pregnancy that can occur after 20 weeks of gestation [4]. Butler et al.\ showed a ResNet CNN can detect preeclampsia from raw ECG waveforms [3]. We present RepNet, a pair of machine-learning models for risk estimation of preeclampsia from 12-lead ECGs. RepNet-SE is a neural network while RepNet-RF is a decision-tree ensemble trained on features extracted via NeuroKit2 and GE MUSE-reported measurements. We will use 2,178 clinical 12-lead ECGs (335 PreE+, 15.4\%) from 1,383 patients at UC Davis Health.
   \end{block}
 
   \begin{block}{RepNet-SE: Neural Network Methods}
@@ -210,7 +210,7 @@
         Weighted Voting & {74.75$\pm$4.35} & 42.26$\pm$7.92 & \textbf{74.75$\pm$4.48} & 60.23$\pm$10.88 & 67.49$\pm$3.45 & 39.80$\pm$2.76 \\
         \textbf{Unwtd.\ + SVM/LR} & \textbf{75.72$\pm$3.94} & 41.58$\pm$8.03 & 74.64$\pm$ 4.70 & \textbf{62.35$\pm$10.93} & \textbf{68.50$\pm$3.22} & \textbf{40.85}$\pm$2.24 \\
         Stacking & 74.77$\pm$4.35 & \textbf{42.43$\pm$7.59} & 74.37$\pm$4.18 & 59.62$\pm$10.80 & 67.00$\pm$3.46 & 39.17$\pm$2.79 \\
-        Bagging CatBoost & 74.81$\pm$4.98 & 41.96$\pm$8.86 & 74.70$\pm$4.68 & 59.62$\pm$15.19 & 67.16$\pm$5.59 & 39.10$\pm$5.21\\
+        Bagging CatBoost & 74.81$\pm$4.98 & \textbf{41.96$\pm$8.86} & 74.70$\pm$4.68 & 59.62$\pm$15.19 & 67.16$\pm$5.59 & 39.10$\pm$5.21\\
         \bottomrule
       \end{tabular}%
       }
@@ -218,7 +218,7 @@
     
     \begin{figure}
       \centering
-      \includegraphics[width=0.95\colwidth]{leadimportance.png}
+      \includegraphics[width=0.95\colwidth]{leadimportance.pdf}
     \end{figure}
   \end{block}
 
