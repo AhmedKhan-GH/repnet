@@ -13,6 +13,7 @@
 \usepackage{booktabs}
 \usepackage{mathtools}
 \usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
 \usepackage{hyperref}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
@@ -111,12 +112,12 @@
 % Title / authors
 % ====================
 \title{Risk Estimation of Preeclampsia}
-\subtitle{RepNet}
+\subtitle{}
 \author{Ahmed Khan \and Lawrencedel Legaspi \and Selena Phu}
 \institute{Department of Electrical and Computer Engineering \\ University of California, Davis}
 \date{\today}
 
-\titlegraphic{\includegraphics[height=2.0cm]{logo.png}}
+\titlegraphic{}
 
 \footercontent{%
   \href{https://github.com/AhmedKhan-GH/repnet}{github.com/AhmedKhan-GH/repnet}
@@ -137,27 +138,42 @@
       ([yshift=-3.8cm]current page.north west)
       rectangle
       ([yshift=-3.95cm]current page.north east);
-    \node[anchor=center,text=white,align=center,text width=14cm,
+    \node[anchor=center,text=white,align=center,text width=10cm,
           font=\Raleway\bfseries]
-      at ([yshift=-1.6cm]current page.north)
+      at ([yshift=-2.2cm]current page.north)
       {\usebeamerfont{title}\inserttitle};
     \node[anchor=center,text=aggiegold,align=center,text width=14cm,
           font=\Lato]
       at ([yshift=-2.4cm]current page.north)
       {\usebeamerfont{subtitle}\insertsubtitle};
-    \node[anchor=north]
-      at ([yshift=-4.3cm]current page.north)
-      {\inserttitlegraphic};
     \node[anchor=north,text=aggieblue,align=center,font=\Lato]
-      at ([yshift=-6.5cm]current page.north)
+      at ([yshift=-5.4cm]current page.north)
       {\usebeamerfont{author}\insertauthor};
     \node[anchor=north,text=coolgray,align=center,font=\Lato]
-      at ([yshift=-7.1cm]current page.north)
+      at ([yshift=-6.0cm]current page.north)
       {\usebeamerfont{institute}\insertinstitute};
     \node[anchor=north,text=coolgray,align=center,font=\Lato]
-      at ([yshift=-8.0cm]current page.north)
+      at ([yshift=-6.9cm]current page.north)
       {\usebeamerfont{date}\insertdate};
   \end{tikzpicture}%
+}
+
+% ====================
+% 3D block drawing helper (x, y, width, height, depth, color)
+% ====================
+\newcommand{\tblock}[6]{%
+  \pgfmathsetmacro{\tbw}{#3}\pgfmathsetmacro{\tbh}{#4}%
+  \pgfmathsetmacro{\tbdx}{0.15*#5}\pgfmathsetmacro{\tbdy}{0.15*#5}%
+  \fill[#6, opacity=0.8] (#1,#2) rectangle ++(#3,#4);
+  \draw[#6!40!black] (#1,#2) rectangle ++(#3,#4);
+  \fill[#6!75!white, opacity=0.6]
+    (#1,{#2+#4}) -- ++(\tbdx,\tbdy) -- ++(#3,0) -- ++({-\tbdx},{-\tbdy}) -- cycle;
+  \draw[#6!40!black]
+    (#1,{#2+#4}) -- ++(\tbdx,\tbdy) -- ++(#3,0) -- ++({-\tbdx},{-\tbdy}) -- cycle;
+  \fill[#6!55!black, opacity=0.5]
+    ({#1+#3},#2) -- ++(\tbdx,\tbdy) -- ++(0,#4) -- ++({-\tbdx},{-\tbdy}) -- cycle;
+  \draw[#6!40!black]
+    ({#1+#3},#2) -- ++(\tbdx,\tbdy) -- ++(0,#4) -- ++({-\tbdx},{-\tbdy}) -- cycle;
 }
 
 % ====================
@@ -168,8 +184,15 @@
 \subsection{Dataset Profile}
 \subsection{Feature Extraction}
 \subsection{Feature Importance}
-\subsection{Model Results}
-\section{CNN/Transformer Architecture}
+\subsection{Feature Selection Matrix}
+\subsection{Baseline vs.\ Ensemble Performance}
+\section{Neural Network Modeling}
+\subsection{Preprocessing \& Training}
+\subsection{Depthwise Separable Convolution}
+\subsection{Squeeze-Excitation}
+\subsection{Multi-Head Cross-Lead Attention}
+\subsection{Model Performance}
+\subsection{Interpretability}
 \section{Conclusion}
 \section{Future Work}
 
@@ -190,6 +213,57 @@
 % ---------- Table of Contents Slide ----------
 \begin{frame}{Contents}
   \tableofcontents
+\end{frame}
+
+% ---------- Introduction Slide ----------
+\begin{frame}{Introduction}
+  \begin{columns}[T]
+
+    \begin{column}{0.52\textwidth}
+      \usebeamerfont{footline}\color{coolgray}
+      {\small\Raleway\bfseries\color{aggieblue} What is Preeclampsia?}\\[0.3em]
+      \begin{itemize}
+        \item Pregnancy complication with dangerously high blood pressure and organ stress
+        \item Typically develops after 20 weeks of gestation
+        \item Can damage kidneys, liver, and brain --- may progress to eclampsia (seizures and coma)
+        \item Currently diagnosed by symptoms that appear \textbf{late} (elevated BP, proteinuria)
+      \end{itemize}
+
+      \vspace{0.6em}
+      {\small\Raleway\bfseries\color{aggieblue} Why ECG?}\\[0.3em]
+      \begin{itemize}
+        \item PE increases cardiac afterload --- leaves traces in the ECG waveform
+        \item 12-lead ECG is routine, cheap, and already collected in prenatal care
+        \item Goal: detect PE risk from the ECG \textbf{before} symptoms appear
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.44\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Our Approach}\\[0.3em]
+      \usebeamerfont{footline}\color{coolgray}
+      Two parallel modeling strategies on 2{,}178 ECG recordings (335 PE+, 1{,}843 PE$-$):\\[0.3em]
+
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.4em]{boxgray}
+        \scriptsize\Lato\color{coolgray}
+        \textbf{1.\ Decision-Tree Modeling}\\
+        Handcrafted features (NeuroKit + MUSE) $\rightarrow$ feature selection $\rightarrow$ Random Forest \& ensemble classifiers
+      \end{beamercolorbox}
+
+      \vspace{0.4em}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.4em]{boxgray}
+        \scriptsize\Lato\color{coolgray}
+        \textbf{2.\ Neural Network Modeling}\\
+        Raw 12-lead waveform $\rightarrow$ RepNet-SE (depthwise-separable CNN + squeeze-excitation + cross-lead attention)
+      \end{beamercolorbox}
+
+      \vspace{0.4em}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
+        \scriptsize\Lato\color{coolgray}
+        \textbf{Evaluation:} Patient-grouped cross-validation, StratifiedGroupKFold, 80/20 dev-test split
+      \end{beamercolorbox}
+    \end{column}
+
+  \end{columns}
 \end{frame}
 
 % ---------- Transition Slide ----------
@@ -244,7 +318,7 @@
     \begin{column}{0.46\textwidth}
       \centering
       {\small\Raleway\bfseries\color{aggieblue} Lead Visualizations}\\[0.4em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,leftskip=0.2em,rightskip=0.2em,topskip=0.2em,bottomskip=0.2em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,leftskip=0.2em,rightskip=0.2em,sep=0.2em]{boxgray}
         \centering
         \includegraphics[width=0.96\textwidth,height=3.8cm,keepaspectratio]{4leadsexample.png}
       \end{beamercolorbox}
@@ -313,7 +387,7 @@
       }%
       
       \vspace{1.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,leftskip=0.6em,rightskip=0.6em,topskip=0.4em,bottomskip=0.4em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,leftskip=0.6em,rightskip=0.6em,sep=0.4em]{boxgray}
         \usebeamerfont{footline}\color{coolgray}
         \textbf{Implementation Note:} We extracted QRS and T Axis in Neurokit, though we do not have a definite equation.
       \end{beamercolorbox}
@@ -343,7 +417,7 @@
   }%
 
   \vspace{0.6em}
-  \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,topskip=0.4em,bottomskip=0.4em]{boxgray}
+  \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,sep=0.4em]{boxgray}
     \usebeamerfont{footline}\color{coolgray}
     \textbf{Performance Insight:} Features chosen \textbf{sequentially} yielded stronger performance results compared to doing the importances \textbf{individually} and intersecting the common features.
   \end{beamercolorbox}
@@ -371,7 +445,7 @@
       \end{itemize}
       
       \vspace{0.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,topskip=0.3em,bottomskip=0.3em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
         \scriptsize\Lato\color{coolgray}
         \textbf{Hindsight Note:} Evaluating RFECV on \textit{average\_precision} or \textit{balanced\_accuracy} may have been better for the primary goal of detecting preeclampsia.
       \end{beamercolorbox}
@@ -381,7 +455,7 @@
     \begin{column}{0.54\textwidth}
       \centering
       {\small\Raleway\bfseries\color{aggieblue} Feature Counts Across Leads}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,topskip=0.1em,bottomskip=0.1em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
         \centering
         \includegraphics[width=0.98\textwidth,height=4.2cm,keepaspectratio]{leadimportance.png}
       \end{beamercolorbox}
@@ -405,7 +479,7 @@
     \begin{column}{0.82\textwidth}
       \centering
       {\small\Raleway\bfseries\color{aggieblue} Feature Selection by Methods --- 12 Leads}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,topskip=0.1em,bottomskip=0.1em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
         \centering
         \includegraphics[width=\textwidth,height=4.2cm,keepaspectratio]{Heatmap12lead2.png}
       \end{beamercolorbox}
@@ -415,7 +489,7 @@
     \begin{column}{0.15\textwidth}
       \centering
       \vspace{1.2em} % Subtle vertical alignment adjustment
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,topskip=0.1em,bottomskip=0.1em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
         \centering
         \includegraphics[width=\textwidth,keepaspectratio]{heatmaplegend.png}
       \end{beamercolorbox}
@@ -424,8 +498,8 @@
   \end{columns}
 
   \vspace{0.6em}
-  \hr
-  
+  \rule{\textwidth}{0.4pt}
+
   % Contextual Breakdown spanning beneath the images
   \begin{columns}[T, onlytextwidth]
     \begin{column}{0.48\textwidth}
@@ -458,7 +532,7 @@
     \begin{column}{0.54\textwidth}
       \centering
       {\small\Raleway\bfseries\color{aggieblue} Final Active Modeling Features}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,topskip=0.1em,bottomskip=0.1em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
         \centering
         % Generates the horizontal bar chart mapping counts/importance from sequential selection
         \includegraphics[width=0.98\textwidth,height=3.8cm,keepaspectratio]{featureimportance.png}
@@ -466,7 +540,7 @@
       \vspace{0.3em}
       \begin{flushleft}
         \usebeamerfont{footline}\color{coolgray}
-        \textbf This distribution shows the final feature space pruned through the Pearson $\rightarrow$ ANOVA $\rightarrow$ RFECV sequential chain.
+        \textbf{This distribution} shows the final feature space pruned through the Pearson $\rightarrow$ ANOVA $\rightarrow$ RFECV sequential chain.
       \end{flushleft}
     \end{column}
 
@@ -484,7 +558,7 @@
     % Left Column: Custom Commentary Text Box Placeholder (34% width)
     \begin{column}{0.34\textwidth}
       \vspace{0.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,topskip=0.8em,bottomskip=0.8em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,sep=0.8em]{boxgray}
         
         \usebeamerfont{footline}\color{coolgray}
         
@@ -505,7 +579,7 @@
       
       % Top Section: Standalone Base Models Table
       {\scriptsize\Raleway\bfseries\color{aggieblue} Standalone Tree-Based Classifiers}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,topskip=0.4em,bottomskip=0.4em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
         \tiny
         % \resizebox ensures the table never clips past the gray container boundaries
         \resizebox{\textwidth}{!}{
@@ -525,7 +599,7 @@
       
       % Bottom Section: Ensemble Architectures Table
       {\scriptsize\Raleway\bfseries\color{aggieblue} Multi-Model Ensemble Frameworks}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,topskip=0.4em,bottomskip=0.4em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
         \tiny
         \resizebox{\textwidth}{!}{
           \begin{tabular}{lcccccc}
@@ -540,6 +614,559 @@
         }
       \end{beamercolorbox}
       
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+% ==========================================================================
+% CNN / TRANSFORMER ARCHITECTURE SECTION
+% ==========================================================================
+
+% ---------- Transition Slide: Neural Network Modeling ----------
+{%
+  \setbeamertemplate{footline}{}%
+  \begin{frame}[plain,noframenumbering]
+    \begin{tikzpicture}[remember picture,overlay]
+      \fill[aggieblue] (current page.south west) rectangle (current page.north east);
+    \end{tikzpicture}
+    \vfill
+    \centering
+    {\Raleway\bfseries\Huge\color{white} Neural Network Modeling}\\[0.6em]
+    {\color{aggiegold}\rule{6cm}{0.06cm}}
+    \vfill
+  \end{frame}
+}
+
+% ---------- Subsection Slide: Preprocessing & Training ----------
+\begin{frame}{Neural Network Modeling --- Preprocessing \& Training}
+  \begin{columns}[T]
+
+    \begin{column}{0.48\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} Signal Preprocessing}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      Three steps applied per-lead in order:
+      \begin{enumerate}
+        \item \textbf{Baseline Wander Removal:} 4th-order Butterworth high-pass at 0.5~Hz, zero-phase SOS form
+        \item \textbf{Powerline Interference:} 60~Hz IIR notch filter ($Q=30$); notch width $\sim$1~Hz
+        \item \textbf{Z-Score Normalization:} Per-lead $\frac{x - \mu_\ell}{\sigma_\ell + \epsilon}$
+      \end{enumerate}
+
+      \vspace{0.4em}
+      {\small\Raleway\bfseries\color{aggieblue} 7-Transform On-the-Fly Augmentation}\\[0.3em]
+      \resizebox{\textwidth}{!}{%
+        \begin{tabular}{lll}
+          \toprule
+          \textbf{Transform} & \textbf{Probability} & \textbf{Range} \\
+          \midrule
+          Gaussian Noise & 50\% & $\sigma \in [0.01, 0.05]$ \\
+          Amplitude Scale & 50\% & $\pm 15\%$ \\
+          Time Shift & 30\% & $\pm 150$ samples \\
+          Lead Dropout & 10\% & 12\% per lead \\
+          Cutout & 25\% & 50--200 samples \\
+          Baseline Wander & 20\% & 0.05--0.5~Hz \\
+          Speed Perturb & 10\% & $\pm 5\%$ \\
+          \bottomrule
+        \end{tabular}
+      }%
+      \vspace{0.2em}
+      {\scriptsize\Lato\color{coolgray} Applied stochastically per sample during training. Class balance via \textbf{WeightedRandomSampler}.}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Training Configuration}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      \begin{itemize}
+        \item \textbf{AdamW} optimizer + cosine annealing (lr $= 2\!\times\!10^{-3}$)
+        \item Dropout 0.15, weight decay $5\!\times\!10^{-3}$
+        \item Label smoothing 0.05 + mixup ($\alpha = 0.2$)
+        \item Early stop on val AUROC, patience 20, up to 80 epochs
+        \item StratifiedGroupKFold ($k = 5$), 20 seeds, 5-bag ensemble
+      \end{itemize}
+
+      \vspace{0.5em}
+      {\small\Raleway\bfseries\color{aggieblue} Config Selection}\\[0.3em]
+      \begin{itemize}
+        \item 8 configs explored (filters, dropout, loss)
+        \item 3-seed scout $\to$ best config $\to$ full 20-seed run
+      \end{itemize}
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+% ---------- Subsection Slide: Depthwise Separable Convolution ----------
+\begin{frame}{Neural Network Modeling --- Multi-Scale Depthwise Separable Conv (Stage 1)}
+  \centering
+  \vspace{-0.3em}
+  \begin{tikzpicture}[
+    x=1cm, y=1cm,
+    arr/.style={-{Stealth[length=4pt]}, thick, coolgray},
+    lbl/.style={font=\scriptsize\bfseries, text=aggieblue, align=center},
+    sublbl/.style={font=\tiny, text=coolgray, align=center},
+  ]
+    \definecolor{br1}{HTML}{1565C0}
+    \definecolor{br2}{HTML}{2E7D32}
+    \definecolor{br3}{HTML}{C62828}
+    \definecolor{br4}{HTML}{F9A825}
+    \definecolor{outc}{HTML}{4A148C}
+
+    % ===== INPUT: 12 ECG lead bars with waveforms =====
+    \foreach \i in {0,...,11}{
+      \pgfmathsetmacro{\ypos}{\i * 0.29}
+      \pgfmathsetmacro{\ymid}{\ypos + 0.13}
+      \pgfmathsetmacro{\amp}{0.055 + mod(\i, 3) * 0.012}
+      \fill[aggieblue, opacity=0.7, rounded corners=1pt] (0, \ypos) rectangle ++(1.8, 0.24);
+      \draw[white, opacity=0.85, line width=0.35pt]
+        plot[smooth, tension=0.6] coordinates {
+          (0.15, \ymid)
+          (0.35, {\ymid+0.015})
+          (0.55, \ymid)
+          (0.68, {\ymid-0.01})
+          (0.78, {\ymid+\amp})
+          (0.88, {\ymid-0.02})
+          (1.0,  \ymid)
+          (1.25, {\ymid+0.015})
+          (1.45, \ymid)
+          (1.65, \ymid)
+        };
+    }
+
+    % --- Kernel windows superimposed on leads ---
+    % k=5 on Lead I (index 11): narrow blue window + ghost showing slide
+    \fill[br1, opacity=0.3] (0.5, {11*0.29-0.01}) rectangle ++(0.36, 0.26);
+    \draw[br1, thick, opacity=0.8] (0.5, {11*0.29-0.01}) rectangle ++(0.36, 0.26);
+    \draw[br1, dashed, thick, opacity=0.35] (0.92, {11*0.29-0.01}) rectangle ++(0.36, 0.26);
+    \draw[-{Stealth[length=2pt]}, br1, thick, opacity=0.7]
+      (0.68, {11*0.29+0.29}) -- ++(0.32, 0);
+
+    % k=9 on Lead II (index 10): medium green window
+    \fill[br2, opacity=0.3] (0.35, {10*0.29-0.01}) rectangle ++(0.65, 0.26);
+    \draw[br2, thick, opacity=0.8] (0.35, {10*0.29-0.01}) rectangle ++(0.65, 0.26);
+    \draw[br2, dashed, thick, opacity=0.35] (1.02, {10*0.29-0.01}) rectangle ++(0.65, 0.26);
+
+    % k=15 on Lead III (index 9): wide red window
+    \fill[br3, opacity=0.25] (0.15, {9*0.29-0.01}) rectangle ++(1.08, 0.26);
+    \draw[br3, thick, opacity=0.7] (0.15, {9*0.29-0.01}) rectangle ++(1.08, 0.26);
+
+    % Lead labels
+    \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=white, anchor=east]
+      at (-0.08, {11*0.29+0.13}) {I};
+    \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=white, anchor=east]
+      at (-0.08, {10*0.29+0.13}) {II};
+    \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=white, anchor=east]
+      at (-0.08, {9*0.29+0.13}) {III};
+    \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=white, anchor=east]
+      at (-0.08, {5*0.29+0.13}) {V1};
+    \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=white, anchor=east]
+      at (-0.08, {0*0.29+0.13}) {V6};
+    % Bracket
+    \draw[aggieblue!70!black, thick] (-0.3, -0.05) -- (-0.45, -0.05)
+      -- (-0.45, {11*0.29+0.24+0.05}) -- (-0.3, {11*0.29+0.24+0.05});
+    \node[font=\fontsize{4}{5}\selectfont\bfseries, text=aggieblue, rotate=90]
+      at (-0.7, 1.7) {12 ECG leads};
+
+    % ===== FOUR BRANCHES with full intermediate steps =====
+    % Arrows from input to branches
+    \draw[arr] (1.9, 2.9) -- (2.5, 3.15);
+    \draw[arr] (1.9, 2.1) -- (2.5, 2.15);
+    \draw[arr] (1.9, 1.2) -- (2.5, 1.15);
+    \draw[arr] (1.9, 0.4) -- (2.5, 0.15);
+
+    % --- Branch 1: k=5 ---
+    % Depthwise kernel
+    \fill[br1, opacity=0.8, rounded corners=2pt] (2.5, 2.85) rectangle ++(0.55, 0.6);
+    \draw[br1!50!black, rounded corners=2pt] (2.5, 2.85) rectangle ++(0.55, 0.6);
+    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=white] at (2.775, 3.15) {$k\!=\!5$};
+    \draw[arr] (3.1, 3.15) -- (3.4, 3.15);
+    % 12-lead activations
+    \fill[br1!40!white, opacity=0.6, rounded corners=2pt] (3.4, 2.75) rectangle ++(0.75, 0.8);
+    \draw[br1!50!black, rounded corners=2pt] (3.4, 2.75) rectangle ++(0.75, 0.8);
+    \foreach \j in {1,...,11}{
+      \pgfmathsetmacro{\ly}{2.75 + \j * 0.8/12}
+      \draw[white, opacity=0.5] (3.44, \ly) -- ++(0.67, 0);
+    }
+    \draw[arr] (4.2, 3.15) -- (4.5, 3.15);
+    % Pointwise 1x1
+    \fill[br1!80!black, opacity=0.8, rounded corners=1pt] (4.5, 2.9) rectangle ++(0.15, 0.5);
+    \draw[br1!50!black, rounded corners=1pt] (4.5, 2.9) rectangle ++(0.15, 0.5);
+    \draw[arr] (4.7, 3.15) -- (5.0, 3.15);
+    % Branch output
+    \fill[br1, opacity=0.75, rounded corners=2pt] (5.0, 2.95) rectangle ++(0.4, 0.4);
+    \draw[br1!50!black, rounded corners=2pt] (5.0, 2.95) rectangle ++(0.4, 0.4);
+
+    % --- Branch 2: k=9 ---
+    \fill[br2, opacity=0.8, rounded corners=2pt] (2.5, 1.85) rectangle ++(0.55, 0.6);
+    \draw[br2!50!black, rounded corners=2pt] (2.5, 1.85) rectangle ++(0.55, 0.6);
+    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=white] at (2.775, 2.15) {$k\!=\!9$};
+    \draw[arr] (3.1, 2.15) -- (3.4, 2.15);
+    \fill[br2!40!white, opacity=0.6, rounded corners=2pt] (3.4, 1.75) rectangle ++(0.75, 0.8);
+    \draw[br2!50!black, rounded corners=2pt] (3.4, 1.75) rectangle ++(0.75, 0.8);
+    \foreach \j in {1,...,11}{
+      \pgfmathsetmacro{\ly}{1.75 + \j * 0.8/12}
+      \draw[white, opacity=0.5] (3.44, \ly) -- ++(0.67, 0);
+    }
+    \draw[arr] (4.2, 2.15) -- (4.5, 2.15);
+    \fill[br2!80!black, opacity=0.8, rounded corners=1pt] (4.5, 1.9) rectangle ++(0.15, 0.5);
+    \draw[br2!50!black, rounded corners=1pt] (4.5, 1.9) rectangle ++(0.15, 0.5);
+    \draw[arr] (4.7, 2.15) -- (5.0, 2.15);
+    \fill[br2, opacity=0.75, rounded corners=2pt] (5.0, 1.95) rectangle ++(0.4, 0.4);
+    \draw[br2!50!black, rounded corners=2pt] (5.0, 1.95) rectangle ++(0.4, 0.4);
+
+    % --- Branch 3: k=15 ---
+    \fill[br3, opacity=0.8, rounded corners=2pt] (2.5, 0.85) rectangle ++(0.55, 0.6);
+    \draw[br3!50!black, rounded corners=2pt] (2.5, 0.85) rectangle ++(0.55, 0.6);
+    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=white] at (2.775, 1.15) {$k\!=\!15$};
+    \draw[arr] (3.1, 1.15) -- (3.4, 1.15);
+    \fill[br3!40!white, opacity=0.6, rounded corners=2pt] (3.4, 0.75) rectangle ++(0.75, 0.8);
+    \draw[br3!50!black, rounded corners=2pt] (3.4, 0.75) rectangle ++(0.75, 0.8);
+    \foreach \j in {1,...,11}{
+      \pgfmathsetmacro{\ly}{0.75 + \j * 0.8/12}
+      \draw[white, opacity=0.5] (3.44, \ly) -- ++(0.67, 0);
+    }
+    \draw[arr] (4.2, 1.15) -- (4.5, 1.15);
+    \fill[br3!80!black, opacity=0.8, rounded corners=1pt] (4.5, 0.9) rectangle ++(0.15, 0.5);
+    \draw[br3!50!black, rounded corners=1pt] (4.5, 0.9) rectangle ++(0.15, 0.5);
+    \draw[arr] (4.7, 1.15) -- (5.0, 1.15);
+    \fill[br3, opacity=0.75, rounded corners=2pt] (5.0, 0.95) rectangle ++(0.4, 0.4);
+    \draw[br3!50!black, rounded corners=2pt] (5.0, 0.95) rectangle ++(0.4, 0.4);
+
+    % --- Branch 4: MaxPool ---
+    \fill[br4, opacity=0.8, rounded corners=2pt] (2.5, -0.15) rectangle ++(0.55, 0.6);
+    \draw[br4!50!black, rounded corners=2pt] (2.5, -0.15) rectangle ++(0.55, 0.6);
+    \node[font=\fontsize{4.5}{5}\selectfont\bfseries, text=black!70, align=center]
+      at (2.775, 0.15) {Max\\Pool};
+    \draw[arr] (3.1, 0.15) -- (3.4, 0.15);
+    \fill[br4!40!white, opacity=0.6, rounded corners=2pt] (3.4, -0.25) rectangle ++(0.75, 0.8);
+    \draw[br4!50!black, rounded corners=2pt] (3.4, -0.25) rectangle ++(0.75, 0.8);
+    \foreach \j in {1,...,11}{
+      \pgfmathsetmacro{\ly}{-0.25 + \j * 0.8/12}
+      \draw[white, opacity=0.5] (3.44, \ly) -- ++(0.67, 0);
+    }
+    \draw[arr] (4.2, 0.15) -- (4.5, 0.15);
+    \fill[br4!80!black, opacity=0.8, rounded corners=1pt] (4.5, -0.1) rectangle ++(0.15, 0.5);
+    \draw[br4!50!black, rounded corners=1pt] (4.5, -0.1) rectangle ++(0.15, 0.5);
+    \draw[arr] (4.7, 0.15) -- (5.0, 0.15);
+    \fill[br4, opacity=0.75, rounded corners=2pt] (5.0, -0.05) rectangle ++(0.4, 0.4);
+    \draw[br4!50!black, rounded corners=2pt] (5.0, -0.05) rectangle ++(0.4, 0.4);
+
+    % Column labels above branches
+    \node[lbl, above] at (2.775, 3.95) {Depthwise};
+    \node[sublbl, above] at (2.775, 3.75) {shared kernel};
+    \node[lbl, above] at (3.775, 3.95) {12-lead};
+    \node[sublbl, above] at (3.775, 3.75) {activations};
+    \node[lbl, above] at (4.575, 3.95) {$1\!\times\!1$};
+    \node[sublbl, above] at (4.575, 3.75) {pointwise};
+
+    % ===== CONCAT =====
+    \draw[arr] (5.45, 3.15) -- (5.9, 2.0);
+    \draw[arr] (5.45, 2.15) -- (5.9, 1.8);
+    \draw[arr] (5.45, 1.15) -- (5.9, 1.5);
+    \draw[arr] (5.45, 0.15) -- (5.9, 1.2);
+
+    \fill[outc, opacity=0.7, rounded corners=3pt] (5.9, 0.85) rectangle ++(0.9, 1.3);
+    \draw[outc!50!black, rounded corners=3pt] (5.9, 0.85) rectangle ++(0.9, 1.3);
+    \node[font=\scriptsize\bfseries, text=white, align=center] at (6.35, 1.5) {Concat};
+
+    % ===== 1x1 projection =====
+    \draw[arr] (6.85, 1.5) -- (7.3, 1.5);
+    \node[sublbl, above] at (7.05, 1.6) {$1\!\times\!1$ proj};
+
+    % ===== OUTPUT: 12 lead bars with activation patterns =====
+    \foreach \i in {0,...,11}{
+      \pgfmathsetmacro{\ypos}{0.1 + \i * 0.26}
+      \pgfmathsetmacro{\ymid}{\ypos + 0.1}
+      \fill[aggieblue, opacity=0.65, rounded corners=1pt] (7.3, \ypos) rectangle ++(1.5, 0.2);
+      \draw[white, opacity=0.6, line width=0.3pt]
+        plot[smooth, tension=0.5] coordinates {
+          ({7.3+0.1}, \ymid)
+          ({7.3+0.25}, {\ymid+0.03})
+          ({7.3+0.45}, {\ymid-0.02})
+          ({7.3+0.6}, {\ymid+0.04})
+          ({7.3+0.8}, {\ymid-0.03})
+          ({7.3+1.0}, {\ymid+0.02})
+          ({7.3+1.2}, {\ymid-0.01})
+          ({7.3+1.4}, \ymid)
+        };
+    }
+    \node[lbl, above] at (8.05, 3.05) {Output};
+    \node[sublbl, below] at (8.05, -0.05) {12 leads $\times$ 16 ch};
+
+  \end{tikzpicture}
+
+  \vspace{0.3em}
+  {\usebeamerfont{footline}\color{coolgray}
+  Shared kernel slides along each lead independently \textbullet{}
+  $1\!\times\!1$ pointwise mixes channels \textbullet{}
+  $\sim\!k\!\times$ fewer params}
+\end{frame}
+
+% ---------- Subsection Slide: Squeeze-Excitation ----------
+\begin{frame}{Neural Network Modeling --- Squeeze-Excitation (SE) Block}
+  \begin{columns}[T]
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Mechanism (Hu et al., 2018)}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      Adaptive channel recalibration in three steps:\\[0.3em]
+
+      \textbf{1.\ Squeeze} --- Global average pooling compresses each channel to a scalar:
+      \[
+        z_c = \frac{1}{T}\sum_{t=1}^{T} x_c(t)
+      \]
+
+      \textbf{2.\ Excite} --- Two FC layers learn channel interdependencies:
+      \[
+        \mathbf{s} = \sigma\!\bigl(W_2 \cdot \text{ReLU}(W_1 \cdot \mathbf{z})\bigr)
+      \]
+      $W_1 \in \mathbb{R}^{C/r \times C}$, $W_2 \in \mathbb{R}^{C \times C/r}$, reduction $r=4$
+
+      \vspace{0.3em}
+      \textbf{3.\ Scale} --- Channel-wise multiplication:
+      \[
+        \tilde{x}_c = s_c \cdot x_c
+      \]
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Role in RepNet-SE}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      Placed after each conv block, before cross-lead attention:\\[0.3em]
+
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.4em]{boxgray}
+        \scriptsize\Lato\color{coolgray}
+        \textbf{Stage 1:} MultiScaleDSConv(1$\to$16) + \textbf{SE(16)}\\
+        \textbf{Stage 2:} DSConvBlock(16$\to$32) + \textbf{SE(32)}\\
+        \textbf{Stage 3:} DSConvBlock(32$\to$64) + \textbf{SE(64)}\\[0.3em]
+        Fusion: per-lead GAP $\to$ LeadAttentionPool $\to$ Linear(64$\to$2)
+      \end{beamercolorbox}
+
+      \vspace{0.5em}
+      {\small\Raleway\bfseries\color{aggieblue} Why SE for ECG?}\\[0.3em]
+      \begin{itemize}
+        \item Learned feature maps mix morphological cues (P/T amplitude, ST segment, QRS width)
+        \item SE suppresses noisy channels and amplifies discriminative ones \textit{per lead, per sample}
+        \item IncepSE (2023) showed +0.013 AUROC over vanilla InceptionTime on ECG tasks
+        \item Minimal overhead: only $2C^2/r$ extra parameters per block
+      \end{itemize}
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+% ---------- Subsection Slide: Multi-Head Cross-Lead Attention ----------
+\begin{frame}{Neural Network Modeling --- Multi-Head Cross-Lead Attention}
+  \begin{columns}[T]
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Multi-Head Self-Attention}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      Each of 12 leads is pooled to a $C$-dimensional token. Attention operates over these tokens:\\[0.3em]
+
+      \textbf{Scaled Dot-Product Attention:}
+      \[
+        \text{Attn}(Q,K,V) = \text{softmax}\!\Bigl(\frac{QK^\top}{\sqrt{d_k}}\Bigr)\!V
+      \]
+      \textbf{Multi-Head} ($h=4$ heads): each head learns different lead relationships, then outputs are concatenated and projected.\\[0.3em]
+
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
+        \scriptsize\Lato\color{coolgray}
+        \textbf{Example learned patterns:}\\
+        Lead~II $\leftrightarrow$ V4 (inferior--precordial),\\
+        aVR $\leftrightarrow$ V1 (right-heart axis),\\
+        aVL $\leftrightarrow$ III (lateral--inferior)
+      \end{beamercolorbox}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Gated Cross-Lead Mechanism}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      After attention, a \textbf{gating layer} modulates each lead's feature map:\\[0.3em]
+
+      \begin{enumerate}
+        \item \textbf{Pool} each lead's $(C, T)$ map to a $C$-dim token via adaptive average pooling
+        \item \textbf{Attend} across 12 lead tokens with multi-head attention + residual + LayerNorm
+        \item \textbf{Gate} $= \sigma(\text{FC}(\text{attn\_out}))$ produces per-lead, per-channel weights in $[0, 1]$
+        \item \textbf{Scale} original feature map: $\tilde{x}_\ell = x_\ell \odot g_\ell$
+      \end{enumerate}
+
+      \vspace{0.4em}
+      {\small\Raleway\bfseries\color{aggieblue} Architecture Placement}\\[0.3em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
+        \scriptsize\Lato\color{coolgray}
+        Applied \textbf{after every stage}, allowing the model to learn cross-lead dependencies at multiple abstraction levels:\\[0.2em]
+        Stage~1 (16-ch): low-level morphology\\
+        Stage~2 (32-ch): interval features\\
+        Stage~3 (64-ch): high-level patterns\\[0.2em]
+        Final fusion via \textbf{LeadAttentionPool}: learned softmax weighting over 12 lead embeddings $\to$ single patient vector.
+      \end{beamercolorbox}
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+% ---------- Subsection Slide: Model Performance ----------
+\begin{frame}{Neural Network Modeling --- Model Performance}
+  \begin{columns}[T]
+
+    \begin{column}{0.48\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} 20-Seed Cross-Validation (5-Bag Ensemble)}\\[0.4em]
+      \resizebox{\textwidth}{!}{%
+        \begin{tabular}{lcc}
+          \toprule
+          \textbf{Metric} & \textbf{Mean $\pm$ Std} & \textbf{Best Seed} \\
+          \midrule
+          AUROC & $0.668 \pm 0.066$ & 0.787 \\
+          AUPRC & $0.291 \pm 0.060$ & 0.450 \\
+          Brier Score & $0.225 \pm 0.056$ & 0.141 \\
+          Sens @ Sp$\geq$80\% & $0.432 \pm 0.085$ & 0.582 \\
+          \bottomrule
+        \end{tabular}
+      }%
+
+      \vspace{0.5em}
+      {\small\Raleway\bfseries\color{aggieblue} Configuration Explored}\\[0.3em]
+      \usebeamerfont{footline}\color{coolgray}
+      \resizebox{\textwidth}{!}{%
+        \begin{tabular}{ll}
+          \toprule
+          \textbf{Property} & \textbf{Value} \\
+          \midrule
+          Best config & \texttt{repnet\_se\_deep} \\
+          Stages & 4 (16$\to$32$\to$48$\to$64) \\
+          Total params & 65{,}748 \\
+          Bags per seed & 5 (prob.\ averaged) \\
+          Splits & StratifiedGroupKFold ($k=5$) \\
+          \bottomrule
+        \end{tabular}
+      }%
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} ROC \& Precision-Recall Curves}\\[0.3em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
+        \centering
+        \includegraphics[width=0.96\textwidth,height=3.2cm,keepaspectratio]{roc_pr_curves.png}
+      \end{beamercolorbox}
+
+      \vspace{0.4em}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
+        \scriptsize\Lato\color{coolgray}
+        \textbf{Variance note:} High seed-to-seed variance (AUROC 0.58--0.79) reflects the small positive class ($n=67$ PE+ in test). Bagging (5 models averaged) and config exploration (8 configs scouted $\to$ best selected) partially mitigate this.
+      \end{beamercolorbox}
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+% ---------- Subsection Slide: Interpretability --- Saliency ----------
+\begin{frame}{Neural Network Modeling --- Saliency Maps}
+  \begin{columns}[T]
+
+    \begin{column}{0.42\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Gradient-Based Attribution}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      \textbf{Method:} Compute $\frac{\partial \hat{y}_{\text{PE+}}}{\partial x_{\ell,t}}$ --- the gradient of the PE-positive logit w.r.t.\ each sample point across all 12 leads.\\[0.3em]
+
+      Regions with high gradient magnitude are the time points the model relies on most for its prediction.\\[0.4em]
+
+      {\small\Raleway\bfseries\color{aggieblue} Clinical Observations}\\[0.3em]
+      \begin{itemize}
+        \item High saliency around \textbf{P-wave onset} and \textbf{T-wave peak} --- consistent with known PE-associated repolarization changes
+        \item \textbf{ST segment} contributes in true-positive cases
+        \item Lead~II and precordial leads (V3--V5) show the strongest attribution signals
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.54\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} Saliency Overlay --- Lead~II}\\[0.3em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
+        \centering
+        \includegraphics[width=0.98\textwidth,height=4.4cm,keepaspectratio]{saliency_poster_lead_II.png}
+      \end{beamercolorbox}
+      \vspace{0.3em}
+      {\scriptsize\Lato\color{coolgray} Top: confident true-positive (PE+). Bottom: confident true-negative (PE$-$). Color intensity $\propto$ gradient magnitude. The model attends to distinct morphological regions for each class.}
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+% ---------- Conclusion Slide ----------
+\begin{frame}{Conclusion}
+  \begin{columns}[T]
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Key Findings}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      \begin{itemize}
+        \item Both approaches detect a \textbf{preeclampsia signal} in standard 12-lead ECGs
+        \item Decision-tree ensemble achieves \textbf{AUROC 75.7} (Unweighted Voting+) with handcrafted features
+        \item Neural network (RepNet-SE) achieves \textbf{AUROC 66.8} mean / \textbf{78.7} best seed from raw waveforms alone
+        \item Feature-based models more \textbf{stable} across data splits; neural models show higher variance but stronger peaks
+      \end{itemize}
+
+      \vspace{0.3em}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
+        \scriptsize\Lato\color{coolgray}
+        \textbf{Complementary strengths:} Feature engineering reveals \textit{which} ECG characteristics matter (Tp-e, QRS-T angle); neural models learn directly from morphology without manual feature design.
+      \end{beamercolorbox}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Comparison Summary}\\[0.4em]
+      \resizebox{\textwidth}{!}{%
+        \begin{tabular}{lcc}
+          \toprule
+          & \textbf{Decision-Tree} & \textbf{Neural (RepNet-SE)} \\
+          \midrule
+          Input & 191 features & Raw 12-lead ECG \\
+          Best AUROC & 75.7 & 78.7 (best seed) \\
+          Mean AUROC & $74.5 \pm 3.9$ & $66.8 \pm 6.6$ \\
+          Stability & Higher & Lower \\
+          Interpretability & Direct & Saliency maps \\
+          Feature eng.\ & Required & None \\
+          Params & N/A & 65{,}748 \\
+          \bottomrule
+        \end{tabular}
+      }%
+
+      \vspace{0.5em}
+      {\small\Raleway\bfseries\color{aggieblue} Takeaway}\\[0.3em]
+      \usebeamerfont{footline}\color{coolgray}
+      ECG-based preeclampsia screening is \textbf{feasible} with either approach. The small positive class ($n=335$ PE+) is the primary limiting factor --- larger datasets would narrow the gap between mean and best-seed neural performance.
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+% ---------- Future Work Slide ----------
+\begin{frame}{Future Work}
+  \begin{columns}[T]
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Data \& Validation}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      \begin{itemize}
+        \item \textbf{Larger, multi-site datasets} to reduce variance and improve generalizability
+        \item \textbf{Prospective validation} on newly collected ECGs to test real-world performance
+        \item \textbf{Temporal analysis:} ECGs at multiple gestational time points to study when PE becomes detectable
+        \item \textbf{Subgroup analysis} by PE severity (mild vs.\ severe) and gestational age at onset
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} Modeling \& Deployment}\\[0.4em]
+      \usebeamerfont{footline}\color{coolgray}
+      \begin{itemize}
+        \item \textbf{Hybrid ensemble:} combine handcrafted features with neural waveform representations for a single, stronger classifier
+        \item \textbf{Self-supervised pretraining} on large unlabeled ECG corpora (e.g.\ PhysioNet) before fine-tuning on PE task
+        \item \textbf{Lightweight deployment:} quantize RepNet-SE ($\sim$65K params) for edge devices or bedside monitors
+        \item \textbf{Clinical decision support:} integrate saliency maps into physician-facing reports for explainable risk scores
+      \end{itemize}
     \end{column}
 
   \end{columns}
