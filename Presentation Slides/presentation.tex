@@ -649,29 +649,9 @@
       Three steps applied per-lead in order:
       \begin{enumerate}
         \item \textbf{Baseline Wander Removal:} 4th-order Butterworth high-pass at 0.5~Hz, zero-phase SOS form
-        \item \textbf{Powerline Interference:} 60~Hz IIR notch filter ($Q=30$); notch width $\sim$1~Hz
+        \item \textbf{Powerline Interference:} 60~Hz IIR notch filter ($Q=30$); notch width $\sim$2~Hz
         \item \textbf{Z-Score Normalization:} Per-lead $\frac{x - \mu_\ell}{\sigma_\ell + \epsilon}$
       \end{enumerate}
-
-      \vspace{0.4em}
-      {\small\Raleway\bfseries\color{aggieblue} 7-Transform On-the-Fly Augmentation}\\[0.3em]
-      \resizebox{\textwidth}{!}{%
-        \begin{tabular}{lll}
-          \toprule
-          \textbf{Transform} & \textbf{Probability} & \textbf{Range} \\
-          \midrule
-          Gaussian Noise & 50\% & $\sigma \in [0.01, 0.05]$ \\
-          Amplitude Scale & 50\% & $\pm 15\%$ \\
-          Time Shift & 30\% & $\pm 150$ samples \\
-          Lead Dropout & 10\% & 12\% per lead \\
-          Cutout & 25\% & 50--200 samples \\
-          Baseline Wander & 20\% & 0.05--0.5~Hz \\
-          Speed Perturb & 10\% & $\pm 5\%$ \\
-          \bottomrule
-        \end{tabular}
-      }%
-      \vspace{0.2em}
-      {\scriptsize\Lato\color{coolgray} Applied stochastically per sample during training. Class balance via \textbf{WeightedRandomSampler}.}
     \end{column}
 
     \begin{column}{0.48\textwidth}
@@ -684,16 +664,29 @@
         \item Early stop on val AUROC, patience 20, up to 80 epochs
         \item StratifiedGroupKFold ($k = 5$), 20 seeds, 5-bag ensemble
       \end{itemize}
-
-      \vspace{0.5em}
-      {\small\Raleway\bfseries\color{aggieblue} Config Selection}\\[0.3em]
-      \begin{itemize}
-        \item 8 configs explored (filters, dropout, loss)
-        \item 3-seed scout $\to$ best config $\to$ full 20-seed run
-      \end{itemize}
     \end{column}
 
   \end{columns}
+
+  \vspace{0.5em}
+  {\small\Raleway\bfseries\color{aggieblue}\centering 7-Transform On-the-Fly Augmentation\par}\vspace{0.3em}
+  \resizebox{\textwidth}{!}{%
+    \begin{tabular}{llll}
+      \toprule
+      \textbf{Transform} & \textbf{Prob.} & \textbf{Range} & \textbf{Description} \\
+      \midrule
+      Gaussian Noise & 50\% & $\sigma \in [0.01, 0.05]$ & Adds random noise to all leads; simulates sensor/environmental noise \\
+      Amplitude Scale & 50\% & $\pm 15\%$ & Randomly scales signal amplitude; models gain variation across devices \\
+      Time Shift & 30\% & $\pm 150$ samples & Circularly shifts the waveform in time ($\pm$0.6\,s at 250\,Hz) \\
+      Lead Dropout & 10\% & 12\% per lead & When triggered, each lead is independently zeroed; forces cross-lead redundancy \\
+      Cutout & 25\% & 50--200 samples & Zeros a contiguous random segment across all leads; prevents reliance on any single region \\
+      Baseline Wander & 20\% & 0.05--0.5~Hz & Injects a low-frequency sinusoid; simulates electrode drift or patient motion \\
+      Speed Perturb & 10\% & $\pm 5\%$ & Resamples to stretch/compress the signal; models heart-rate variability \\
+      \bottomrule
+    \end{tabular}
+  }%
+  \vspace{0.2em}
+  {\scriptsize\Lato\color{coolgray}\centering Applied stochastically per sample during training. Class balance via \textbf{WeightedRandomSampler}.\par}
 \end{frame}
 
 % ---------- Subsection Slide: Depthwise Separable Convolution ----------
@@ -767,139 +760,132 @@
     \node[font=\fontsize{4}{5}\selectfont\bfseries, text=aggieblue, rotate=90]
       at (-0.7, 1.7) {12 ECG leads};
 
-    % ===== FOUR BRANCHES with full intermediate steps =====
+    % ===== FOUR BRANCHES — 12-lead activations + PW overlay → output =====
+    % Branch y-centers: 3.3, 2.15, 1.0, -0.15
+    % 12 bars per branch: 0.07 spacing x 12 = 0.84 height
+
     % Arrows from input to branches
-    \draw[arr] (1.9, 2.9) -- (2.5, 3.15);
-    \draw[arr] (1.9, 2.1) -- (2.5, 2.15);
-    \draw[arr] (1.9, 1.2) -- (2.5, 1.15);
-    \draw[arr] (1.9, 0.4) -- (2.5, 0.15);
+    \draw[arr] (1.9, 2.9) -- (2.55, 3.3);
+    \draw[arr] (1.9, 2.1) -- (2.55, 2.15);
+    \draw[arr] (1.9, 1.2) -- (2.55, 1.0);
+    \draw[arr] (1.9, 0.4) -- (2.55, -0.15);
 
-    % --- Branch 1: k=5 ---
-    % Depthwise kernel
-    \fill[br1, opacity=0.8, rounded corners=2pt] (2.5, 2.85) rectangle ++(0.55, 0.6);
-    \draw[br1!50!black, rounded corners=2pt] (2.5, 2.85) rectangle ++(0.55, 0.6);
-    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=white] at (2.775, 3.15) {$k\!=\!5$};
-    \draw[arr] (3.1, 3.15) -- (3.4, 3.15);
-    % 12-lead activations
-    \fill[br1!40!white, opacity=0.6, rounded corners=2pt] (3.4, 2.75) rectangle ++(0.75, 0.8);
-    \draw[br1!50!black, rounded corners=2pt] (3.4, 2.75) rectangle ++(0.75, 0.8);
-    \foreach \j in {1,...,11}{
-      \pgfmathsetmacro{\ly}{2.75 + \j * 0.8/12}
-      \draw[white, opacity=0.5] (3.44, \ly) -- ++(0.67, 0);
+    % --- Branch 1: k=5 (center y=3.3, bars y=2.88..3.72) ---
+    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=br1]
+      at (3.3, 3.91) {$k\!=\!5$};
+    \node[font=\fontsize{3.5}{4}\selectfont, text=br1!70!black]
+      at (3.3, 3.78) {5 filters};
+    \foreach \j in {0,...,11}{
+      \pgfmathsetmacro{\by}{2.88 + \j * 0.07}
+      \fill[br1!50!white, opacity=0.75, rounded corners=0.5pt] (2.6, \by) rectangle ++(1.4, 0.05);
+      \draw[br1!40!black, opacity=0.3] (2.6, \by) rectangle ++(1.4, 0.05);
     }
-    \draw[arr] (4.2, 3.15) -- (4.5, 3.15);
-    % Pointwise 1x1
-    \fill[br1!80!black, opacity=0.8, rounded corners=1pt] (4.5, 2.9) rectangle ++(0.15, 0.5);
-    \draw[br1!50!black, rounded corners=1pt] (4.5, 2.9) rectangle ++(0.15, 0.5);
-    \draw[arr] (4.7, 3.15) -- (5.0, 3.15);
-    % Branch output
-    \fill[br1, opacity=0.75, rounded corners=2pt] (5.0, 2.95) rectangle ++(0.4, 0.4);
-    \draw[br1!50!black, rounded corners=2pt] (5.0, 2.95) rectangle ++(0.4, 0.4);
 
-    % --- Branch 2: k=9 ---
-    \fill[br2, opacity=0.8, rounded corners=2pt] (2.5, 1.85) rectangle ++(0.55, 0.6);
-    \draw[br2!50!black, rounded corners=2pt] (2.5, 1.85) rectangle ++(0.55, 0.6);
-    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=white] at (2.775, 2.15) {$k\!=\!9$};
-    \draw[arr] (3.1, 2.15) -- (3.4, 2.15);
-    \fill[br2!40!white, opacity=0.6, rounded corners=2pt] (3.4, 1.75) rectangle ++(0.75, 0.8);
-    \draw[br2!50!black, rounded corners=2pt] (3.4, 1.75) rectangle ++(0.75, 0.8);
-    \foreach \j in {1,...,11}{
-      \pgfmathsetmacro{\ly}{1.75 + \j * 0.8/12}
-      \draw[white, opacity=0.5] (3.44, \ly) -- ++(0.67, 0);
+    % --- Branch 2: k=9 (center y=2.15, bars y=1.73..2.57) ---
+    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=br2]
+      at (3.3, 2.76) {$k\!=\!9$};
+    \node[font=\fontsize{3.5}{4}\selectfont, text=br2!70!black]
+      at (3.3, 2.63) {5 filters};
+    \foreach \j in {0,...,11}{
+      \pgfmathsetmacro{\by}{1.73 + \j * 0.07}
+      \fill[br2!50!white, opacity=0.75, rounded corners=0.5pt] (2.6, \by) rectangle ++(1.4, 0.05);
+      \draw[br2!40!black, opacity=0.3] (2.6, \by) rectangle ++(1.4, 0.05);
     }
-    \draw[arr] (4.2, 2.15) -- (4.5, 2.15);
-    \fill[br2!80!black, opacity=0.8, rounded corners=1pt] (4.5, 1.9) rectangle ++(0.15, 0.5);
-    \draw[br2!50!black, rounded corners=1pt] (4.5, 1.9) rectangle ++(0.15, 0.5);
-    \draw[arr] (4.7, 2.15) -- (5.0, 2.15);
-    \fill[br2, opacity=0.75, rounded corners=2pt] (5.0, 1.95) rectangle ++(0.4, 0.4);
-    \draw[br2!50!black, rounded corners=2pt] (5.0, 1.95) rectangle ++(0.4, 0.4);
 
-    % --- Branch 3: k=15 ---
-    \fill[br3, opacity=0.8, rounded corners=2pt] (2.5, 0.85) rectangle ++(0.55, 0.6);
-    \draw[br3!50!black, rounded corners=2pt] (2.5, 0.85) rectangle ++(0.55, 0.6);
-    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=white] at (2.775, 1.15) {$k\!=\!15$};
-    \draw[arr] (3.1, 1.15) -- (3.4, 1.15);
-    \fill[br3!40!white, opacity=0.6, rounded corners=2pt] (3.4, 0.75) rectangle ++(0.75, 0.8);
-    \draw[br3!50!black, rounded corners=2pt] (3.4, 0.75) rectangle ++(0.75, 0.8);
-    \foreach \j in {1,...,11}{
-      \pgfmathsetmacro{\ly}{0.75 + \j * 0.8/12}
-      \draw[white, opacity=0.5] (3.44, \ly) -- ++(0.67, 0);
+    % --- Branch 3: k=15 (center y=1.0, bars y=0.58..1.42) ---
+    \node[font=\fontsize{5}{6}\selectfont\bfseries, text=br3]
+      at (3.3, 1.61) {$k\!=\!15$};
+    \node[font=\fontsize{3.5}{4}\selectfont, text=br3!70!black]
+      at (3.3, 1.48) {5 filters};
+    \foreach \j in {0,...,11}{
+      \pgfmathsetmacro{\by}{0.58 + \j * 0.07}
+      \fill[br3!50!white, opacity=0.75, rounded corners=0.5pt] (2.6, \by) rectangle ++(1.4, 0.05);
+      \draw[br3!40!black, opacity=0.3] (2.6, \by) rectangle ++(1.4, 0.05);
     }
-    \draw[arr] (4.2, 1.15) -- (4.5, 1.15);
-    \fill[br3!80!black, opacity=0.8, rounded corners=1pt] (4.5, 0.9) rectangle ++(0.15, 0.5);
-    \draw[br3!50!black, rounded corners=1pt] (4.5, 0.9) rectangle ++(0.15, 0.5);
-    \draw[arr] (4.7, 1.15) -- (5.0, 1.15);
-    \fill[br3, opacity=0.75, rounded corners=2pt] (5.0, 0.95) rectangle ++(0.4, 0.4);
-    \draw[br3!50!black, rounded corners=2pt] (5.0, 0.95) rectangle ++(0.4, 0.4);
 
-    % --- Branch 4: MaxPool ---
-    \fill[br4, opacity=0.8, rounded corners=2pt] (2.5, -0.15) rectangle ++(0.55, 0.6);
-    \draw[br4!50!black, rounded corners=2pt] (2.5, -0.15) rectangle ++(0.55, 0.6);
-    \node[font=\fontsize{4.5}{5}\selectfont\bfseries, text=black!70, align=center]
-      at (2.775, 0.15) {Max\\Pool};
-    \draw[arr] (3.1, 0.15) -- (3.4, 0.15);
-    \fill[br4!40!white, opacity=0.6, rounded corners=2pt] (3.4, -0.25) rectangle ++(0.75, 0.8);
-    \draw[br4!50!black, rounded corners=2pt] (3.4, -0.25) rectangle ++(0.75, 0.8);
-    \foreach \j in {1,...,11}{
-      \pgfmathsetmacro{\ly}{-0.25 + \j * 0.8/12}
-      \draw[white, opacity=0.5] (3.44, \ly) -- ++(0.67, 0);
+    % --- Branch 4: MaxPool (center y=-0.15, bars y=-0.57..0.27) ---
+    \node[font=\fontsize{4.5}{5.5}\selectfont\bfseries, text=br4]
+      at (3.3, 0.46) {MaxPool};
+    \node[font=\fontsize{3.5}{4}\selectfont, text=br4!70!black]
+      at (3.3, 0.33) {5 filters};
+    \foreach \j in {0,...,11}{
+      \pgfmathsetmacro{\by}{-0.57 + \j * 0.07}
+      \fill[br4!50!white, opacity=0.75, rounded corners=0.5pt] (2.6, \by) rectangle ++(1.4, 0.05);
+      \draw[br4!40!black, opacity=0.3] (2.6, \by) rectangle ++(1.4, 0.05);
     }
-    \draw[arr] (4.2, 0.15) -- (4.5, 0.15);
-    \fill[br4!80!black, opacity=0.8, rounded corners=1pt] (4.5, -0.1) rectangle ++(0.15, 0.5);
-    \draw[br4!50!black, rounded corners=1pt] (4.5, -0.1) rectangle ++(0.15, 0.5);
-    \draw[arr] (4.7, 0.15) -- (5.0, 0.15);
-    \fill[br4, opacity=0.75, rounded corners=2pt] (5.0, -0.05) rectangle ++(0.4, 0.4);
-    \draw[br4!50!black, rounded corners=2pt] (5.0, -0.05) rectangle ++(0.4, 0.4);
 
-    % Column labels above branches
-    \node[lbl, above] at (2.775, 3.95) {Depthwise};
-    \node[sublbl, above] at (2.775, 3.75) {shared kernel};
-    \node[lbl, above] at (3.775, 3.95) {12-lead};
-    \node[sublbl, above] at (3.775, 3.75) {activations};
-    \node[lbl, above] at (4.575, 3.95) {$1\!\times\!1$};
-    \node[sublbl, above] at (4.575, 3.75) {pointwise};
+    % Inline labels below bottom branch
+    \node[sublbl, below] at (3.1, -0.7) {12-lead activations};
+    \node[sublbl, below] at (3.1, -0.9) {(per-lead shared weights)};
 
     % ===== CONCAT =====
-    \draw[arr] (5.45, 3.15) -- (5.9, 2.0);
-    \draw[arr] (5.45, 2.15) -- (5.9, 1.8);
-    \draw[arr] (5.45, 1.15) -- (5.9, 1.5);
-    \draw[arr] (5.45, 0.15) -- (5.9, 1.2);
+    \draw[arr] (4.3, 3.3) -- (4.8, 2.1);
+    \draw[arr] (4.3, 2.15) -- (4.8, 1.85);
+    \draw[arr] (4.3, 1.0) -- (4.8, 1.55);
+    \draw[arr] (4.3, -0.15) -- (4.8, 1.2);
 
-    \fill[outc, opacity=0.7, rounded corners=3pt] (5.9, 0.85) rectangle ++(0.9, 1.3);
-    \draw[outc!50!black, rounded corners=3pt] (5.9, 0.85) rectangle ++(0.9, 1.3);
-    \node[font=\scriptsize\bfseries, text=white, align=center] at (6.35, 1.5) {Concat};
+    \fill[br1, opacity=0.7, rounded corners=1pt] (4.8, 1.95) rectangle ++(1.0, 0.25);
+    \fill[br2, opacity=0.7, rounded corners=1pt] (4.8, 1.68) rectangle ++(1.0, 0.25);
+    \fill[br3, opacity=0.7, rounded corners=1pt] (4.8, 1.41) rectangle ++(1.0, 0.25);
+    \fill[br4, opacity=0.7, rounded corners=1pt] (4.8, 1.14) rectangle ++(1.0, 0.25);
+    \draw[outc!50!black, rounded corners=2pt] (4.8, 1.14) rectangle ++(1.0, 1.06);
+    \draw[-{Stealth[length=3pt]}, outc!70!black, thick]
+      (5.3, 2.45) -- (5.3, 2.25);
+    \node[font=\fontsize{4}{5}\selectfont\bfseries, text=outc]
+      at (5.3, 2.55) {channel dim};
+    \node[sublbl, below] at (5.3, 1.05) {Concat};
+    \node[sublbl, below] at (5.3, 0.85) {20 maps/lead};
 
     % ===== 1x1 projection =====
-    \draw[arr] (6.85, 1.5) -- (7.3, 1.5);
-    \node[sublbl, above] at (7.05, 1.6) {$1\!\times\!1$ proj};
+    \draw[arr] (5.9, 1.65) -- (6.2, 1.65);
+    \node[sublbl] at (6.65, 2.05) {$16\!\times\!20$ learned};
+    \node[sublbl] at (6.65, 1.85) {weight matrix};
+    \node[sublbl] at (6.65, 1.65) {$20\!\to\!16$};
+    \node[sublbl] at (6.65, 1.45) {per time step};
 
-    % ===== OUTPUT: 12 lead bars with activation patterns =====
-    \foreach \i in {0,...,11}{
-      \pgfmathsetmacro{\ypos}{0.1 + \i * 0.26}
-      \pgfmathsetmacro{\ymid}{\ypos + 0.1}
-      \fill[aggieblue, opacity=0.65, rounded corners=1pt] (7.3, \ypos) rectangle ++(1.5, 0.2);
-      \draw[white, opacity=0.6, line width=0.3pt]
-        plot[smooth, tension=0.5] coordinates {
-          ({7.3+0.1}, \ymid)
-          ({7.3+0.25}, {\ymid+0.03})
-          ({7.3+0.45}, {\ymid-0.02})
-          ({7.3+0.6}, {\ymid+0.04})
-          ({7.3+0.8}, {\ymid-0.03})
-          ({7.3+1.0}, {\ymid+0.02})
-          ({7.3+1.2}, {\ymid-0.01})
-          ({7.3+1.4}, \ymid)
-        };
+    % ===== Arrow from 1x1 to output =====
+    \draw[arr] (7.1, 1.65) -- (7.45, 1.65);
+
+    % ===== OUTPUT: 12 leads stacked vertically, each a block of 16 channel bars =====
+    \node[lbl, above] at (8.35, 3.95) {Output};
+
+    \foreach \lead in {0,...,11}{
+      \pgfmathsetmacro{\leadbase}{-0.5 + \lead * 0.35}
+      \foreach \c in {0,...,15}{
+        \pgfmathsetmacro{\cy}{\leadbase + \c * 0.018}
+        \pgfmathsetmacro{\opacity}{0.4 + mod(\c, 4) * 0.15}
+        \fill[outc!60!white, opacity=\opacity, rounded corners=0.3pt] (7.5, \cy) rectangle ++(1.5, 0.014);
+      }
+      \draw[outc!50!black, rounded corners=0.5pt] (7.5, \leadbase) rectangle ++(1.5, 0.29);
     }
-    \node[lbl, above] at (8.05, 3.05) {Output};
-    \node[sublbl, below] at (8.05, -0.05) {12 leads $\times$ 16 ch};
+
+    % Lead labels on a few
+    \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=aggieblue, anchor=east]
+      at (7.45, {-0.5 + 11*0.35 + 0.145}) {I};
+    \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=aggieblue, anchor=east]
+      at (7.45, {-0.5 + 10*0.35 + 0.145}) {II};
+    \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=aggieblue, anchor=east]
+      at (7.45, {-0.5 + 0*0.35 + 0.145}) {V6};
+
+    % Bracket showing 16 ch on a middle lead (lead index 6)
+    \draw[outc!70!black, thick] (9.05, {-0.5 + 6*0.35}) -- (9.15, {-0.5 + 6*0.35})
+      -- (9.15, {-0.5 + 6*0.35 + 0.29}) -- (9.05, {-0.5 + 6*0.35 + 0.29});
+    \node[font=\fontsize{3.5}{4}\selectfont, text=outc!70!black, anchor=west]
+      at (9.2, {-0.5 + 6*0.35 + 0.145}) {16 ch};
+
+    % Bracket showing 12 leads on right (outer bracket)
+    \draw[outc!70!black, thick] (9.05, {-0.5}) -- (9.8, {-0.5})
+      -- (9.8, {-0.5 + 11*0.35 + 0.29}) -- (9.05, {-0.5 + 11*0.35 + 0.29});
+    \node[font=\fontsize{3.5}{4}\selectfont, text=outc!70!black, anchor=west, rotate=90]
+      at (9.9, {-0.5 + 5.5*0.35 + 0.145}) {12 leads};
 
   \end{tikzpicture}
 
   \vspace{0.3em}
   {\usebeamerfont{footline}\color{coolgray}
-  Shared kernel slides along each lead independently \textbullet{}
-  $1\!\times\!1$ pointwise mixes channels \textbullet{}
-  $\sim\!k\!\times$ fewer params}
+  Each branch runs 5 learned filters per lead (shared weights across all 12 leads) \textbullet{}
+  Outputs stacked into 20 maps per lead \textbullet{}
+  $1\!\times\!1$ conv learns a linear blend of all scales $\to$ 16 features per lead}
 \end{frame}
 
 % ---------- Subsection Slide: Squeeze-Excitation ----------
