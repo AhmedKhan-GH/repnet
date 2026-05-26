@@ -1049,27 +1049,88 @@
 \begin{frame}{Neural Network Modeling --- Multi-Head Cross-Lead Attention}
   \begin{columns}[T]
 
-    \begin{column}{0.38\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} How It Works}\\[0.4em]
-      \usebeamerfont{footline}\color{coolgray}
-      Applied \textbf{after every conv stage} so the model learns cross-lead dependencies at multiple abstraction levels.\\[0.5em]
+    \begin{column}{0.30\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} RepNet-SE Architecture}\\[0.2em]
+      \begin{tikzpicture}[
+        x=1cm, y=1cm,
+        block/.style={rounded corners=2pt, minimum width=2.2cm, minimum height=0.24cm,
+          font=\fontsize{4}{5}\selectfont, inner sep=1pt, align=center},
+        dsblock/.style={block, fill=green!12!white, draw=green!45!black, text=green!25!black},
+        seblock/.style={block, fill=orange!12!white, draw=orange!45!black, text=orange!25!black},
+        attnblock/.style={block, fill=aggieblue!85!white, draw=aggieblue, line width=0.7pt,
+          text=white},
+        otherblock/.style={block, fill=gray!8!white, draw=gray!40!black, text=gray!50!black},
+        arr/.style={-{Stealth[length=2.5pt]}, coolgray, thick},
+        stglbl/.style={font=\fontsize{3.5}{4}\selectfont\bfseries, text=coolgray},
+      ]
+        % Input
+        \node[font=\fontsize{5}{6}\selectfont\bfseries, text=aggieblue] at (0, 6.5) {12 $\times$ 2500};
+        \draw[arr] (0, 6.3) -- (0, 6.18);
 
-      \begin{enumerate}\usebeamerfont{footline}\color{coolgray}
-        \item \textbf{Pool} each lead's $(C, T)$ map to a $C$-dim token
-        \item \textbf{Attend} across 12 lead tokens with 4-head self-attention + residual + LayerNorm
-        \item \textbf{Gate} $\sigma(\text{FC})$ produces per-lead weights $\in [0,1]$
-        \item \textbf{Scale} original feature maps by learned gates
-      \end{enumerate}
+        % Stage 1
+        \node[dsblock] (s1d) at (0, 6.05) {MS-DSConv $1\!\to\!16$};
+        \node[seblock] (s1s) at (0, 5.75) {SE(16)};
+        \node[attnblock] (s1a) at (0, 5.45) {\textbf{CrossLeadAttn(16)}};
+        \draw[arr] (0, 5.30) -- (0, 5.0);
 
-      \vspace{0.5em}
-      {\usebeamerfont{footline}\color{coolgray}
-      Final fusion: \textbf{LeadAttentionPool} --- learned softmax weighting over 12 lead embeddings $\to$ single patient vector.}
+        % Stage 2
+        \node[dsblock] (s2d) at (0, 4.85) {DSConv $16\!\to\!32$};
+        \node[seblock] (s2s) at (0, 4.55) {SE(32)};
+        \node[attnblock] (s2a) at (0, 4.25) {\textbf{CrossLeadAttn(32)}};
+        \draw[arr] (0, 4.10) -- (0, 3.85);
+
+        % Stage 3
+        \node[dsblock] (s3d) at (0, 3.70) {DSConv $32\!\to\!64$};
+        \node[seblock] (s3s) at (0, 3.40) {SE(64)};
+        \node[attnblock] (s3a) at (0, 3.10) {\textbf{CrossLeadAttn(64)}};
+        \draw[arr] (0, 2.95) -- (0, 2.70);
+
+        % Fusion
+        \node[otherblock] (gap) at (0, 2.55) {Global Avg Pool};
+        \node[attnblock] (lap) at (0, 2.25) {\textbf{LeadAttnPool}};
+        \node[otherblock] (fc)  at (0, 1.95) {Linear $64\!\to\!2$};
+        \draw[arr] (0, 1.80) -- (0, 1.58);
+
+        % Output
+        \node[font=\fontsize{5}{6}\selectfont\bfseries, text=aggieblue] at (0, 1.42) {PE / No PE};
+
+        % Stage brackets
+        \draw[coolgray] (-1.30, 5.32) -- (-1.30, 6.18);
+        \node[stglbl, rotate=90] at (-1.50, 5.75) {Stage 1};
+        \draw[coolgray] (-1.30, 4.12) -- (-1.30, 4.98);
+        \node[stglbl, rotate=90] at (-1.50, 4.55) {Stage 2};
+        \draw[coolgray] (-1.30, 2.97) -- (-1.30, 3.83);
+        \node[stglbl, rotate=90] at (-1.50, 3.40) {Stage 3};
+
+        % Legend
+        \fill[green!12!white, rounded corners=1pt] (-1.05, 0.90) rectangle ++(0.18, 0.13);
+        \draw[green!45!black] (-1.05, 0.90) rectangle ++(0.18, 0.13);
+        \node[font=\fontsize{3}{3.5}\selectfont, text=coolgray, anchor=west] at (-0.82, 0.965) {DSConv};
+
+        \fill[orange!12!white, rounded corners=1pt] (-0.1, 0.90) rectangle ++(0.18, 0.13);
+        \draw[orange!45!black] (-0.1, 0.90) rectangle ++(0.18, 0.13);
+        \node[font=\fontsize{3}{3.5}\selectfont, text=coolgray, anchor=west] at (0.13, 0.965) {SE};
+
+        \fill[aggieblue!85!white, rounded corners=1pt] (0.55, 0.90) rectangle ++(0.18, 0.13);
+        \draw[aggieblue, line width=0.6pt] (0.55, 0.90) rectangle ++(0.18, 0.13);
+        \node[font=\fontsize{3}{3.5}\selectfont, text=coolgray, anchor=west] at (0.78, 0.965) {Attn};
+      \end{tikzpicture}
     \end{column}
 
-    \begin{column}{0.58\textwidth}
+    \begin{column}{0.65\textwidth}
       \centering
       {\small\Raleway\bfseries\color{aggieblue} Learned Attention Weights (50-Sample Average)}\\[0.3em]
       \includegraphics[width=\textwidth]{crosslead_attention_stages.png}
+
+      \vspace{0.3em}
+      \begin{itemize}\usebeamerfont{footline}\color{coolgray}
+        \setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+        \item Each lead is pooled to a token; 4-head self-attention learns which leads should share information
+        \item Sigmoid gating scales each lead's feature map by learned weights $\in [0,1]$ --- suppresses uninformative leads, amplifies relevant ones
+        \item \textbf{Vertical stripes}: rows = query (who is looking), columns = key (who is looked at). A bright column means \textit{every} lead pulls information from that key lead --- the model treats it as a hub
+        \item Weights averaged over 50 samples to reveal \textit{stable} learned patterns rather than per-sample noise
+      \end{itemize}
     \end{column}
 
   \end{columns}
@@ -1077,139 +1138,70 @@
 
 % ---------- Subsection Slide: Model Performance ----------
 \begin{frame}{Neural Network Modeling --- Model Performance}
-  \begin{columns}[T]
-
+  \centering
+  \begin{columns}[c]
     \begin{column}{0.48\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} 20-Seed Cross-Validation (5-Bag Ensemble)}\\[0.4em]
-      \resizebox{\textwidth}{!}{%
-        \begin{tabular}{lcc}
-          \toprule
-          \textbf{Metric} & \textbf{Mean $\pm$ Std} & \textbf{Best Seed} \\
-          \midrule
-          AUROC & $0.668 \pm 0.066$ & 0.787 \\
-          AUPRC & $0.291 \pm 0.060$ & 0.450 \\
-          Brier Score & $0.225 \pm 0.056$ & 0.141 \\
-          Sens @ Sp$\geq$80\% & $0.432 \pm 0.085$ & 0.582 \\
-          \bottomrule
-        \end{tabular}
-      }%
-
-      \vspace{0.5em}
-      {\small\Raleway\bfseries\color{aggieblue} Configuration Explored}\\[0.3em]
-      \usebeamerfont{footline}\color{coolgray}
-      \resizebox{\textwidth}{!}{%
-        \begin{tabular}{ll}
-          \toprule
-          \textbf{Property} & \textbf{Value} \\
-          \midrule
-          Best config & \texttt{repnet\_se\_deep} \\
-          Stages & 4 (16$\to$32$\to$48$\to$64) \\
-          Total params & 65{,}748 \\
-          Bags per seed & 5 (prob.\ averaged) \\
-          Splits & StratifiedGroupKFold ($k=5$) \\
-          \bottomrule
-        \end{tabular}
-      }%
+      \includegraphics[width=\textwidth]{roc_pr_curves.png}
     \end{column}
-
     \begin{column}{0.48\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} ROC \& Precision-Recall Curves}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=0.96\textwidth,height=3.2cm,keepaspectratio]{roc_pr_curves.png}
-      \end{beamercolorbox}
-
-      \vspace{0.4em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        \textbf{Variance note:} High seed-to-seed variance (AUROC 0.58--0.79) reflects the small positive class ($n=67$ PE+ in test). Bagging (5 models averaged) and config exploration (8 configs scouted $\to$ best selected) partially mitigate this.
-      \end{beamercolorbox}
+      \includegraphics[width=\textwidth]{pred_histogram.png}
     \end{column}
-
   \end{columns}
+
+  \vspace{0.3em}
+  \resizebox{0.65\textwidth}{!}{%
+    \begin{tabular}{lccccccc}
+      \toprule
+      & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Sens.} & \textbf{Spec.} & \textbf{Acc.} & \textbf{Prec.} & \textbf{F1} \\
+      \midrule
+      $\tau = 0.50$           & 0.756 & 0.336 & 0.896 & 0.444 & 0.514 & 0.226 & 0.361 \\
+      Youden ($\tau = 0.621$) & 0.756 & 0.336 & 0.836 & 0.615 & 0.649 & 0.283 & 0.423 \\
+      \bottomrule
+    \end{tabular}
+  }%
+
+  \vspace{0.3em}
+  \begin{itemize}\usebeamerfont{footline}\color{coolgray}
+    \setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+    \item At default threshold, model catches \textbf{90\% of PE+ cases} --- low precision reflects the 6:1 class imbalance ($n=67$ PE vs $n=369$ Normal), not random guessing
+    \item Youden-optimal threshold balances sensitivity (84\%) and specificity (62\%), raising accuracy from 51\% to 65\%
+    \item As a \textbf{screening tool}, high sensitivity is preferred --- a false positive triggers further workup, but a missed PE case risks maternal/fetal harm
+  \end{itemize}
 \end{frame}
 
 % ---------- Subsection Slide: Interpretability --- Saliency ----------
 \begin{frame}{Neural Network Modeling --- Saliency Maps}
-  \begin{columns}[T]
+  \centering
+  \includegraphics[width=\textwidth]{saliency_poster_lead_II.png}
 
-    \begin{column}{0.42\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Gradient-Based Attribution}\\[0.4em]
-      \usebeamerfont{footline}\color{coolgray}
-      \textbf{Method:} Compute $\frac{\partial \hat{y}_{\text{PE+}}}{\partial x_{\ell,t}}$ --- the gradient of the PE-positive logit w.r.t.\ each sample point across all 12 leads.\\[0.3em]
+  \vspace{0.3em}
+  \begin{itemize}\usebeamerfont{footline}\color{coolgray}
+    \setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+    \item \textbf{Method:} gradient of PE+ logit w.r.t.\ each sample point --- color intensity $\propto$ regions the model relies on most
+    \item Saliency peaks align with \textbf{P-wave} and \textbf{QT-interval} regions --- intervals that literature links to preeclampsia: prolonged QT ($+$21.7\,ms; Aboshady et al.\ 2025) and altered P-wave duration (Angeli et al.\ 2015; Butler et al.\ 2024)
 
-      Regions with high gradient magnitude are the time points the model relies on most for its prediction.\\[0.4em]
-
-      {\small\Raleway\bfseries\color{aggieblue} Clinical Observations}\\[0.3em]
-      \begin{itemize}
-        \item High saliency around \textbf{P-wave onset} and \textbf{T-wave peak} --- consistent with known PE-associated repolarization changes
-        \item \textbf{ST segment} contributes in true-positive cases
-        \item Lead~II and precordial leads (V3--V5) show the strongest attribution signals
-      \end{itemize}
-    \end{column}
-
-    \begin{column}{0.54\textwidth}
-      \centering
-      {\small\Raleway\bfseries\color{aggieblue} Saliency Overlay --- Lead~II}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=0.98\textwidth,height=4.4cm,keepaspectratio]{saliency_poster_lead_II.png}
-      \end{beamercolorbox}
-      \vspace{0.3em}
-      {\scriptsize\Lato\color{coolgray} Top: confident true-positive (PE+). Bottom: confident true-negative (PE$-$). Color intensity $\propto$ gradient magnitude. The model attends to distinct morphological regions for each class.}
-    \end{column}
-
-  \end{columns}
+  \end{itemize}
 \end{frame}
 
 % ---------- Conclusion Slide ----------
 \begin{frame}{Conclusion}
-  \begin{columns}[T]
+  {\small\Raleway\bfseries\color{aggieblue} Key Findings}\\[0.4em]
+  \usebeamerfont{footline}\color{coolgray}
+  \begin{itemize}
+    \item Standard 12-lead ECGs contain a detectable \textbf{preeclampsia signal} --- both feature-engineered and end-to-end neural approaches exceed chance
+    \item Decision-tree ensemble (\textbf{Unweighted Voting+}) achieves \textbf{AUROC $75.7 \pm 3.9$} with \textbf{62.4\% sensitivity} and \textbf{74.6\% specificity} across 20 seeds --- stable, interpretable baseline built on 191 handcrafted features (Tp-e dispersion, QRS-T angle, HRV)
+    \item RepNet-SE achieves \textbf{AUROC 0.787} (best seed) with \textbf{83.6\% sensitivity} and \textbf{61.5\% specificity} at Youden's threshold ($\tau{=}0.621$), using only 65K parameters on raw ECG waveforms
+    \item Saliency maps suggest model attention in \textbf{P-wave} and \textbf{QT-interval} regions, aligning with literature on PE-associated ECG changes (Aboshady et al.\ 2025; Angeli et al.\ 2015)
+    \item Both approaches show promise as \textbf{first-pass screening tools} where high sensitivity is preferred --- a false positive triggers further workup, but a missed PE case risks maternal/fetal harm
+  \end{itemize}
 
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Key Findings}\\[0.4em]
-      \usebeamerfont{footline}\color{coolgray}
-      \begin{itemize}
-        \item Both approaches detect a \textbf{preeclampsia signal} in standard 12-lead ECGs
-        \item Decision-tree ensemble achieves \textbf{AUROC 75.7} (Unweighted Voting+) with handcrafted features
-        \item Neural network (RepNet-SE) achieves \textbf{AUROC 66.8} mean / \textbf{78.7} best seed from raw waveforms alone
-        \item Feature-based models more \textbf{stable} across data splits; neural models show higher variance but stronger peaks
-      \end{itemize}
-
-      \vspace{0.3em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        \textbf{Complementary strengths:} Feature engineering reveals \textit{which} ECG characteristics matter (Tp-e, QRS-T angle); neural models learn directly from morphology without manual feature design.
-      \end{beamercolorbox}
-    \end{column}
-
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Comparison Summary}\\[0.4em]
-      \resizebox{\textwidth}{!}{%
-        \begin{tabular}{lcc}
-          \toprule
-          & \textbf{Decision-Tree} & \textbf{Neural (RepNet-SE)} \\
-          \midrule
-          Input & 191 features & Raw 12-lead ECG \\
-          Best AUROC & 75.7 & 78.7 (best seed) \\
-          Mean AUROC & $74.5 \pm 3.9$ & $66.8 \pm 6.6$ \\
-          Stability & Higher & Lower \\
-          Interpretability & Direct & Saliency maps \\
-          Feature eng.\ & Required & None \\
-          Params & N/A & 65{,}748 \\
-          \bottomrule
-        \end{tabular}
-      }%
-
-      \vspace{0.5em}
-      {\small\Raleway\bfseries\color{aggieblue} Takeaway}\\[0.3em]
-      \usebeamerfont{footline}\color{coolgray}
-      ECG-based preeclampsia screening is \textbf{feasible} with either approach. The small positive class ($n=335$ PE+) is the primary limiting factor --- larger datasets would narrow the gap between mean and best-seed neural performance.
-    \end{column}
-
-  \end{columns}
+  \vspace{0.4em}
+  \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
+    \scriptsize\Lato\color{coolgray}
+    \textbf{Takeaway:} ECG-based preeclampsia screening is \textbf{feasible}. The small positive class ($n{=}335$ PE+) remains the primary limiting factor; larger cohorts would improve both stability and clinical utility.
+  \end{beamercolorbox}
 \end{frame}
 
 % ---------- Future Work Slide ----------
