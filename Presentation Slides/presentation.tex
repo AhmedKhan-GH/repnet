@@ -185,7 +185,7 @@
 \subsection{Feature Extraction}
 \subsection{Feature Importance}
 \subsection{Feature Selection Matrix}
-\subsection{Baseline vs.\ Ensemble Performance}
+\subsection{Individual vs.\ Ensemble Performance}
 \section{Neural Network Modeling}
 \subsection{Preprocessing \& Training}
 \subsection{Depthwise Separable Convolution}
@@ -548,38 +548,39 @@
 \end{frame}
 
 % ---------- Subsection Slide: Model Performance Comparison ----------
-\begin{frame}{Decision-Tree Modeling --- Baseline vs. Ensemble Performance}
-  
+\begin{frame}{Decision-Tree Modeling --- Individual vs. Ensemble Performance}
+
   % Tighten padding slightly to give the text boxes maximum horizontal clearance
   \setlength{\tabcolsep}{3.5pt}
-  
+
   \begin{columns}[T, onlytextwidth]
-    
+
     % Left Column: Custom Commentary Text Box Placeholder (34% width)
     \begin{column}{0.34\textwidth}
       \vspace{0.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,sep=0.8em]{boxgray}
-        
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,topskip=0.8em,bottomskip=0.8em]{boxgray}
+
         \usebeamerfont{footline}\color{coolgray}
-        
-     
-        \textbf{Model Observations:}
-        \begin{itemize}
-          \item placeholder
-          \item placeholder
-          \item placeholder
-        \end{itemize}
-        
+
+
+        \textbf{Model:}
+\begin{itemize}
+    \item \textbf{Unweighted Voting+} consists of: RandomForest, LightGBM, XGBoost, CatBoost, LogisticRegression, and SVM.
+    \item \textbf{Unweighted/Weighted Voting} consists of: RandomForest, LightGBM, XGBoost, CatBoost, and AdaBoost.
+    \item \textbf{Weights:} Votes are weighted [4, 2, 3, 4, 1] (respective to the models) based on AUPRC and sensitivity.
+    \item Each individual model is tuned on the 175 features using RandomizedSearchCV.
+\end{itemize}
+
       \end{beamercolorbox}
     \end{column}
-    
+
     % Right Column: Fixed Native LaTeX Performance Tables (63% width)
     \begin{column}{0.63\textwidth}
       \centering
-      
+
       % Top Section: Standalone Base Models Table
       {\scriptsize\Raleway\bfseries\color{aggieblue} Standalone Tree-Based Classifiers}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,topskip=0.4em,bottomskip=0.4em]{boxgray}
         \tiny
         % \resizebox ensures the table never clips past the gray container boundaries
         \resizebox{\textwidth}{!}{
@@ -594,26 +595,26 @@
           \end{tabular}
         }
       \end{beamercolorbox}
-      
+
       \vspace{0.6em}
-      
+
       % Bottom Section: Ensemble Architectures Table
       {\scriptsize\Raleway\bfseries\color{aggieblue} Multi-Model Ensemble Frameworks}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,topskip=0.4em,bottomskip=0.4em]{boxgray}
         \tiny
         \resizebox{\textwidth}{!}{
           \begin{tabular}{lcccccc}
             \textbf{Ensemble} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Specificity} & \textbf{Sensitivity} & \textbf{Balanced Accuracy} & \textbf{F1-Score} \\
             \hline
             Unweighted Voting  & $74.54 \pm 4.16$ & $41.81 \pm 7.86$ & $74.26 \pm 3.95$ & $59.32 \pm 10.70$ & $66.79 \pm 3.60$ & $38.94 \pm 2.99$ \\
-            Weighted Voting    & $74.75 \pm 4.48$ & $42.26 \pm 7.92$ & $74.75 \pm 4.48$ & $60.23 \pm 10.88$ & $67.49 \pm 3.45$ & $39.80 \pm 2.76$ \\
+            Weighted Voting    & $74.75 \pm 4.35$ & $42.26 \pm 7.92$ & $74.75 \pm 4.48$ & $60.23 \pm 10.88$ & $67.49 \pm 3.45$ & $39.80 \pm 2.76$ \\
             \textbf{Unweighted Voting+} & $\mathbf{75.72 \pm 3.94}$ & $41.58 \pm 8.03$ & $74.64 \pm 4.70$ & $\mathbf{62.35 \pm 10.93}$ & $\mathbf{68.50 \pm 3.22}$ & $40.85 \pm 2.24$ \\
             Stacking           & $74.77 \pm 4.35$ & $42.43 \pm 7.59$ & $74.37 \pm 4.18$ & $59.62 \pm 10.80$ & $67.00 \pm 3.46$ & $39.17 \pm 2.79$ \\
             Bagging CatBoost   & $74.81 \pm 4.98$ & $41.96 \pm 8.86$ & $74.70 \pm 4.68$ & $59.62 \pm 15.19$ & $67.16 \pm 5.59$ & $39.10 \pm 5.21$ \\
           \end{tabular}
         }
       \end{beamercolorbox}
-      
+
     \end{column}
 
   \end{columns}
