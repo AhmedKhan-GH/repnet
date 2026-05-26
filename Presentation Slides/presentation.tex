@@ -558,7 +558,7 @@
     % Left Column: Custom Commentary Text Box Placeholder (34% width)
     \begin{column}{0.34\textwidth}
       \vspace{0.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,topskip=0.8em,bottomskip=0.8em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,sep=0.8em]{boxgray}
 
         \usebeamerfont{footline}\color{coolgray}
 
@@ -580,7 +580,7 @@
 
       % Top Section: Standalone Base Models Table
       {\scriptsize\Raleway\bfseries\color{aggieblue} Standalone Tree-Based Classifiers}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,topskip=0.4em,bottomskip=0.4em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
         \tiny
         % \resizebox ensures the table never clips past the gray container boundaries
         \resizebox{\textwidth}{!}{
@@ -600,7 +600,7 @@
 
       % Bottom Section: Ensemble Architectures Table
       {\scriptsize\Raleway\bfseries\color{aggieblue} Multi-Model Ensemble Frameworks}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,topskip=0.4em,bottomskip=0.4em]{boxgray}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
         \tiny
         \resizebox{\textwidth}{!}{
           \begin{tabular}{lcccccc}
@@ -615,6 +615,47 @@
         }
       \end{beamercolorbox}
 
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+% ---------- Subsection Slide: 6 Lead Progression ----------
+\begin{frame}{Decision-Tree Modeling --- 6 Lead Progression}
+
+  \begin{columns}[T, onlytextwidth]
+
+    % Left Column: Methodology (40% width)
+    \begin{column}{0.40\textwidth}
+      \vspace{0.2em}
+      \usebeamerfont{footline}\color{coolgray}
+      \begin{itemize}
+        \item StratifiedGroupKFold, $k = 10$
+        \item ReliefF as a feature selector
+        \item Boruta as second feature selector
+        \item Feature Importance with CatBoost
+        \item Based off of which lead's features came up the most, picked leads I, III, V1, V3, V5, and AVL
+      \end{itemize}
+    \end{column}
+
+    % Right Column: Performance Table (57% width)
+    \begin{column}{0.57\textwidth}
+      \centering
+      {\scriptsize\Raleway\bfseries\color{aggieblue} 6 Lead Progression Results}\\[0.3em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
+        \small
+        \resizebox{\textwidth}{!}{
+          \begin{tabular}{lcc}
+            \textbf{Metric} & \textbf{12 Leads} & \textbf{6 Leads} \\
+            \hline
+            Balanced Accuracy & $64.4\% \pm 11.3\%$ & $63.0\% \pm 7.7\%$ \\
+            Precision & $0.66 \pm 0.18$ & $0.64 \pm 0.13$ \\
+            Recall & $0.61 \pm 0.16$ & $0.60 \pm 0.13$ \\
+            F1 Score & $0.62 \pm 0.14$ & $0.61 \pm 0.11$ \\
+            ROC-AUC & $0.64 \pm 0.11$ & $0.63 \pm 0.08$ \\
+          \end{tabular}
+        }
+      \end{beamercolorbox}
     \end{column}
 
   \end{columns}
@@ -1152,13 +1193,15 @@
   \end{columns}
 
   \vspace{0.3em}
-  \resizebox{0.65\textwidth}{!}{%
-    \begin{tabular}{lccccccc}
+  \resizebox{0.45\textwidth}{!}{%
+    \begin{tabular}{lc}
       \toprule
-      & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Sens.} & \textbf{Spec.} & \textbf{Acc.} & \textbf{Prec.} & \textbf{F1} \\
+      \textbf{Metric} & \textbf{5-Bag Ensemble (Seed 45)} \\
       \midrule
-      $\tau = 0.50$           & 0.756 & 0.336 & 0.896 & 0.444 & 0.514 & 0.226 & 0.361 \\
-      Youden ($\tau = 0.621$) & 0.756 & 0.336 & 0.836 & 0.615 & 0.649 & 0.283 & 0.423 \\
+      AUROC & 0.787 \\
+      AUPRC & 0.362 \\
+      Brier Score & 0.275 \\
+      Sensitivity @ 80\% Specificity & 0.582 \\
       \bottomrule
     \end{tabular}
   }%
@@ -1166,8 +1209,8 @@
   \vspace{0.3em}
   \begin{itemize}\usebeamerfont{footline}\color{coolgray}
     \setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
-    \item At default threshold, model catches \textbf{90\% of PE+ cases} --- low precision reflects the 6:1 class imbalance ($n=67$ PE vs $n=369$ Normal), not random guessing
-    \item Youden-optimal threshold balances sensitivity (84\%) and specificity (62\%), raising accuracy from 51\% to 65\%
+    \item Best seed out of 20 patient-grouped holdout splits, each with a 5-model bagged ensemble
+    \item At 80\% specificity, the model catches \textbf{58\% of PE+ cases} --- reflecting the difficulty of the task under heavy class imbalance ($n=67$ PE vs $n=369$ Normal)
     \item As a \textbf{screening tool}, high sensitivity is preferred --- a false positive triggers further workup, but a missed PE case risks maternal/fetal harm
   \end{itemize}
 \end{frame}
@@ -1188,12 +1231,12 @@
 
 % ---------- Conclusion Slide ----------
 \begin{frame}{Conclusion}
-  {\small\Raleway\bfseries\color{aggieblue} Key Findings}\\[0.4em]
+  {\small\Raleway\bfseries\color{aggieblue} Key Findings}\par\vspace{0.4em}
   \usebeamerfont{footline}\color{coolgray}
   \begin{itemize}
     \item Standard 12-lead ECGs contain a detectable \textbf{preeclampsia signal} --- both feature-engineered and end-to-end neural approaches exceed chance
-    \item Decision-tree ensemble (\textbf{Unweighted Voting+}) achieves \textbf{AUROC $75.7 \pm 3.9$} with \textbf{62.4\% sensitivity} and \textbf{74.6\% specificity} across 20 seeds --- stable, interpretable baseline built on 191 handcrafted features (Tp-e dispersion, QRS-T angle, HRV)
-    \item RepNet-SE achieves \textbf{AUROC 0.787} (best seed) with \textbf{83.6\% sensitivity} and \textbf{61.5\% specificity} at Youden's threshold ($\tau{=}0.621$), using only 65K parameters on raw ECG waveforms
+    \item Decision-tree ensemble (\textbf{Unweighted Voting+}) achieves \textbf{AUROC $75.72 \pm 3.94$} with a \textbf{balanced accuracy $68.50 \pm 3.22$} --- stable, interpretable baseline built on 175 features
+    \item RepNet-SE achieves \textbf{AUROC 0.787} and \textbf{AUPRC 0.362} (5-bag ensemble, best of 20 seeds) with \textbf{58.2\% sensitivity at 80\% specificity}, using only 65K parameters on raw ECG waveforms
     \item Saliency maps suggest model attention in \textbf{P-wave} and \textbf{QT-interval} regions, aligning with literature on PE-associated ECG changes (Aboshady et al.\ 2025; Angeli et al.\ 2015)
     \item Both approaches show promise as \textbf{first-pass screening tools} where high sensitivity is preferred --- a false positive triggers further workup, but a missed PE case risks maternal/fetal harm
   \end{itemize}
