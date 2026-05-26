@@ -780,6 +780,8 @@
       \fill[br1!50!white, opacity=0.75, rounded corners=0.5pt] (2.6, \by) rectangle ++(1.4, 0.05);
       \draw[br1!40!black, opacity=0.3] (2.6, \by) rectangle ++(1.4, 0.05);
     }
+    \fill[br1!70!black, opacity=0.35] (3.7, 2.88) rectangle ++(0.22, 0.84);
+    \draw[br1!50!black, thick, rounded corners=1pt] (3.7, 2.88) rectangle ++(0.22, 0.84);
 
     % --- Branch 2: k=9 (center y=2.15, bars y=1.73..2.57) ---
     \node[font=\fontsize{5}{6}\selectfont\bfseries, text=br2]
@@ -791,6 +793,8 @@
       \fill[br2!50!white, opacity=0.75, rounded corners=0.5pt] (2.6, \by) rectangle ++(1.4, 0.05);
       \draw[br2!40!black, opacity=0.3] (2.6, \by) rectangle ++(1.4, 0.05);
     }
+    \fill[br2!70!black, opacity=0.35] (3.7, 1.73) rectangle ++(0.22, 0.84);
+    \draw[br2!50!black, thick, rounded corners=1pt] (3.7, 1.73) rectangle ++(0.22, 0.84);
 
     % --- Branch 3: k=15 (center y=1.0, bars y=0.58..1.42) ---
     \node[font=\fontsize{5}{6}\selectfont\bfseries, text=br3]
@@ -802,6 +806,8 @@
       \fill[br3!50!white, opacity=0.75, rounded corners=0.5pt] (2.6, \by) rectangle ++(1.4, 0.05);
       \draw[br3!40!black, opacity=0.3] (2.6, \by) rectangle ++(1.4, 0.05);
     }
+    \fill[br3!70!black, opacity=0.35] (3.7, 0.58) rectangle ++(0.22, 0.84);
+    \draw[br3!50!black, thick, rounded corners=1pt] (3.7, 0.58) rectangle ++(0.22, 0.84);
 
     % --- Branch 4: MaxPool (center y=-0.15, bars y=-0.57..0.27) ---
     \node[font=\fontsize{4.5}{5.5}\selectfont\bfseries, text=br4]
@@ -813,6 +819,8 @@
       \fill[br4!50!white, opacity=0.75, rounded corners=0.5pt] (2.6, \by) rectangle ++(1.4, 0.05);
       \draw[br4!40!black, opacity=0.3] (2.6, \by) rectangle ++(1.4, 0.05);
     }
+    \fill[br4!70!black, opacity=0.35] (3.7, -0.57) rectangle ++(0.22, 0.84);
+    \draw[br4!50!black, thick, rounded corners=1pt] (3.7, -0.57) rectangle ++(0.22, 0.84);
 
     % Inline labels below bottom branch
     \node[sublbl, below] at (3.1, -0.7) {12-lead activations};
@@ -890,103 +898,178 @@
 
 % ---------- Subsection Slide: Squeeze-Excitation ----------
 \begin{frame}{Neural Network Modeling --- Squeeze-Excitation (SE) Block}
-  \begin{columns}[T]
+  \centering
+  \vspace{-0.3em}
+  \begin{tikzpicture}[
+    x=1cm, y=1cm,
+    arr/.style={-{Stealth[length=4pt]}, thick, coolgray},
+    lbl/.style={font=\scriptsize\bfseries, text=aggieblue, align=center},
+    sublbl/.style={font=\tiny, text=coolgray, align=center},
+  ]
+    \definecolor{sec}{HTML}{1565C0}
+    \definecolor{bot}{HTML}{2E7D32}
+    \definecolor{wt}{HTML}{C62828}
+    \definecolor{outc}{HTML}{4A148C}
 
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Mechanism (Hu et al., 2018)}\\[0.4em]
-      \usebeamerfont{footline}\color{coolgray}
-      Adaptive channel recalibration in three steps:\\[0.3em]
+    % ===== INPUT: 16 channel bars (one lead's feature map) =====
+    \node[lbl, above] at (1.0, 4.1) {Input};
+    \node[sublbl] at (1.0, 3.9) {(16 ch $\times$ $T$)};
 
-      \textbf{1.\ Squeeze} --- Global average pooling compresses each channel to a scalar:
-      \[
-        z_c = \frac{1}{T}\sum_{t=1}^{T} x_c(t)
-      \]
+    \foreach \c in {0,...,15}{
+      \pgfmathsetmacro{\cy}{0.2 + \c * 0.22}
+      \pgfmathsetmacro{\opacity}{0.5 + mod(\c, 3) * 0.15}
+      \fill[sec!50!white, opacity=\opacity, rounded corners=0.5pt] (0, \cy) rectangle ++(2.0, 0.16);
+      \draw[sec!40!black, opacity=0.3] (0, \cy) rectangle ++(2.0, 0.16);
+    }
+    \draw[sec!50!black, rounded corners=1pt] (0, 0.2) rectangle ++(2.0, 3.52);
 
-      \textbf{2.\ Excite} --- Two FC layers learn channel interdependencies:
-      \[
-        \mathbf{s} = \sigma\!\bigl(W_2 \cdot \text{ReLU}(W_1 \cdot \mathbf{z})\bigr)
-      \]
-      $W_1 \in \mathbb{R}^{C/r \times C}$, $W_2 \in \mathbb{R}^{C \times C/r}$, reduction $r=4$
+    % ===== STEP 1: SQUEEZE — Global Average Pool =====
+    \node[lbl, above] at (3.5, 4.1) {1.\ Squeeze};
+    \node[sublbl] at (3.5, 3.9) {avg over time};
 
-      \vspace{0.3em}
-      \textbf{3.\ Scale} --- Channel-wise multiplication:
-      \[
-        \tilde{x}_c = s_c \cdot x_c
-      \]
-    \end{column}
+    % Arrows from input bars to scalar dots
+    \draw[arr, opacity=0.4] (2.1, 1.96) -- (2.9, 1.96);
 
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Role in RepNet-SE}\\[0.4em]
-      \usebeamerfont{footline}\color{coolgray}
-      Placed after each conv block, before cross-lead attention:\\[0.3em]
+    % 16 scalar circles (compressed channel values)
+    \foreach \c in {0,...,15}{
+      \pgfmathsetmacro{\cy}{0.2 + \c * 0.22 + 0.08}
+      \pgfmathsetmacro{\opacity}{0.5 + mod(\c, 3) * 0.15}
+      \fill[sec, opacity=\opacity] (3.5, \cy) circle (0.08);
+      \draw[sec!50!black, opacity=0.5] (3.5, \cy) circle (0.08);
+    }
 
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.4em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        \textbf{Stage 1:} MultiScaleDSConv(1$\to$16) + \textbf{SE(16)}\\
-        \textbf{Stage 2:} DSConvBlock(16$\to$32) + \textbf{SE(32)}\\
-        \textbf{Stage 3:} DSConvBlock(32$\to$64) + \textbf{SE(64)}\\[0.3em]
-        Fusion: per-lead GAP $\to$ LeadAttentionPool $\to$ Linear(64$\to$2)
-      \end{beamercolorbox}
+    % Bracket: 16 scalars
+    \draw[sec!70!black, thick] (3.7, 0.2) -- (3.8, 0.2)
+      -- (3.8, 3.72) -- (3.7, 3.72);
+    \node[font=\fontsize{3.5}{4}\selectfont, text=sec!70!black, anchor=west]
+      at (3.85, 1.96) {16};
 
-      \vspace{0.5em}
-      {\small\Raleway\bfseries\color{aggieblue} Why SE for ECG?}\\[0.3em]
-      \begin{itemize}
-        \item Learned feature maps mix morphological cues (P/T amplitude, ST segment, QRS width)
-        \item SE suppresses noisy channels and amplifies discriminative ones \textit{per lead, per sample}
-        \item IncepSE (2023) showed +0.013 AUROC over vanilla InceptionTime on ECG tasks
-        \item Minimal overhead: only $2C^2/r$ extra parameters per block
-      \end{itemize}
-    \end{column}
+    % ===== STEP 2: EXCITE — FC bottleneck =====
+    \node[lbl, above] at (5.8, 4.1) {2.\ Excite};
+    \node[sublbl] at (5.8, 3.9) {learn channel weights};
 
-  \end{columns}
+    % FC1 label
+    \node[sublbl] at (4.25, 3.5) {FC$_1$};
+    \node[font=\fontsize{3}{3.5}\selectfont, text=coolgray] at (4.25, 3.3) {$16\!\to\!4$};
+
+    % Lines from ALL 16 scalars to ALL 4 bottleneck neurons (FC1)
+    \foreach \c in {0,...,15}{
+      \pgfmathsetmacro{\cy}{0.2 + \c * 0.22 + 0.08}
+      \foreach \b in {0,...,3}{
+        \pgfmathsetmacro{\by}{1.13 + \b * 0.55}
+        \draw[sec!50!black, opacity=0.08] (3.6, \cy) -- (4.88, \by);
+      }
+    }
+
+    % 4 bottleneck neurons
+    \foreach \b in {0,...,3}{
+      \pgfmathsetmacro{\by}{1.13 + \b * 0.55}
+      \fill[bot, opacity=0.8] (5.0, \by) circle (0.12);
+      \draw[bot!50!black] (5.0, \by) circle (0.12);
+    }
+    \node[sublbl, below] at (5.0, 0.85) {$C/r = 4$};
+    \node[sublbl, above] at (5.0, 2.95) {ReLU};
+
+    % FC2 label
+    \node[sublbl] at (5.8, 3.5) {FC$_2$};
+    \node[font=\fontsize{3}{3.5}\selectfont, text=coolgray] at (5.8, 3.3) {$4\!\to\!16$};
+
+    % Lines from ALL 4 bottleneck to ALL 16 weights (FC2)
+    \foreach \b in {0,...,3}{
+      \pgfmathsetmacro{\by}{1.13 + \b * 0.55}
+      \foreach \c in {0,...,15}{
+        \pgfmathsetmacro{\cy}{0.2 + \c * 0.22 + 0.08}
+        \draw[bot!50!black, opacity=0.08] (5.12, \by) -- (6.48, \cy);
+      }
+    }
+
+    % 16 weight circles (output of FC2 + sigmoid)
+    \foreach \c in {0,...,15}{
+      \pgfmathsetmacro{\cy}{0.2 + \c * 0.22 + 0.08}
+      \pgfmathsetmacro{\opacity}{0.5 + mod(\c, 4) * 0.12}
+      \fill[wt, opacity=\opacity] (6.6, \cy) circle (0.08);
+      \draw[wt!50!black, opacity=0.5] (6.6, \cy) circle (0.08);
+    }
+
+    % Sigmoid label (to the right of weight dots, not on top)
+    \node[font=\fontsize{3.5}{4}\selectfont, text=wt!70!black, anchor=west]
+      at (6.75, 3.58) {Sigmoid};
+    \node[font=\fontsize{3}{3.5}\selectfont, text=wt!70!black, anchor=west]
+      at (6.75, 3.38) {$\in [0,1]$};
+
+    % ===== STEP 3: SCALE — channel-wise multiply =====
+    \node[lbl, above] at (7.6, 4.1) {3.\ Scale};
+
+    % Multiply symbols
+    \foreach \c in {0,...,15}{
+      \pgfmathsetmacro{\cy}{0.2 + \c * 0.22 + 0.08}
+      \node[font=\fontsize{4}{5}\selectfont, text=coolgray] at (7.6, \cy) {$\times$};
+    }
+
+    % Arrows from weights to multiply
+    \draw[arr, opacity=0.4] (7.0, 1.96) -- (7.35, 1.96);
+
+    % Curved arrows from input to multiply (skip connection)
+    \draw[arr, opacity=0.4, rounded corners=3pt]
+      (1.0, 0.05) -- (1.0, -0.55) -- (7.6, -0.55) -- (7.6, 0.1);
+    \node[sublbl] at (4.3, -0.75) {original feature map};
+
+    % ===== OUTPUT: re-weighted 16 channel bars =====
+    \node[lbl, above] at (9.6, 4.1) {Output};
+    \node[sublbl] at (9.6, 3.9) {(16 ch $\times$ $T$)};
+
+    % Arrow from multiply to output
+    \draw[arr, opacity=0.4] (7.85, 1.96) -- (8.5, 1.96);
+
+    \foreach \c in {0,...,15}{
+      \pgfmathsetmacro{\cy}{0.2 + \c * 0.22}
+      % Vary opacity to show some channels amplified, others suppressed
+      \pgfmathsetmacro{\opacity}{0.15 + mod(\c*\c + 3, 7) * 0.12}
+      \fill[outc!50!white, opacity=\opacity, rounded corners=0.5pt] (8.6, \cy) rectangle ++(2.0, 0.16);
+      \draw[outc!40!black, opacity=0.3] (8.6, \cy) rectangle ++(2.0, 0.16);
+    }
+    \draw[outc!50!black, rounded corners=1pt] (8.6, 0.2) rectangle ++(2.0, 3.52);
+
+    % Annotation: amplified vs suppressed
+    \draw[-{Stealth[length=2pt]}, wt!80!black, thick] (10.7, 3.3) -- (10.7, 3.5);
+    \node[font=\fontsize{3}{3.5}\selectfont, text=wt!70!black, anchor=west] at (10.8, 3.4) {amplified};
+    \draw[-{Stealth[length=2pt]}, wt!80!black, thick] (10.7, 0.9) -- (10.7, 0.7);
+    \node[font=\fontsize{3}{3.5}\selectfont, text=wt!70!black, anchor=west] at (10.8, 0.8) {suppressed};
+
+  \end{tikzpicture}
+
+  \vspace{0.3em}
+  {\usebeamerfont{footline}\color{coolgray}
+  Applied after every conv block (Stage~1: SE(16), Stage~2: SE(32), Stage~3: SE(64)) \textbullet{}
+  Learns which feature channels matter for each sample \textbullet{}
+  Suppresses noise, amplifies discriminative morphology (P-wave, ST segment, QRS)}
 \end{frame}
 
 % ---------- Subsection Slide: Multi-Head Cross-Lead Attention ----------
 \begin{frame}{Neural Network Modeling --- Multi-Head Cross-Lead Attention}
   \begin{columns}[T]
 
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Multi-Head Self-Attention}\\[0.4em]
+    \begin{column}{0.38\textwidth}
+      {\small\Raleway\bfseries\color{aggieblue} How It Works}\\[0.4em]
       \usebeamerfont{footline}\color{coolgray}
-      Each of 12 leads is pooled to a $C$-dimensional token. Attention operates over these tokens:\\[0.3em]
+      Applied \textbf{after every conv stage} so the model learns cross-lead dependencies at multiple abstraction levels.\\[0.5em]
 
-      \textbf{Scaled Dot-Product Attention:}
-      \[
-        \text{Attn}(Q,K,V) = \text{softmax}\!\Bigl(\frac{QK^\top}{\sqrt{d_k}}\Bigr)\!V
-      \]
-      \textbf{Multi-Head} ($h=4$ heads): each head learns different lead relationships, then outputs are concatenated and projected.\\[0.3em]
-
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        \textbf{Example learned patterns:}\\
-        Lead~II $\leftrightarrow$ V4 (inferior--precordial),\\
-        aVR $\leftrightarrow$ V1 (right-heart axis),\\
-        aVL $\leftrightarrow$ III (lateral--inferior)
-      \end{beamercolorbox}
-    \end{column}
-
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Gated Cross-Lead Mechanism}\\[0.4em]
-      \usebeamerfont{footline}\color{coolgray}
-      After attention, a \textbf{gating layer} modulates each lead's feature map:\\[0.3em]
-
-      \begin{enumerate}
-        \item \textbf{Pool} each lead's $(C, T)$ map to a $C$-dim token via adaptive average pooling
-        \item \textbf{Attend} across 12 lead tokens with multi-head attention + residual + LayerNorm
-        \item \textbf{Gate} $= \sigma(\text{FC}(\text{attn\_out}))$ produces per-lead, per-channel weights in $[0, 1]$
-        \item \textbf{Scale} original feature map: $\tilde{x}_\ell = x_\ell \odot g_\ell$
+      \begin{enumerate}\usebeamerfont{footline}\color{coolgray}
+        \item \textbf{Pool} each lead's $(C, T)$ map to a $C$-dim token
+        \item \textbf{Attend} across 12 lead tokens with 4-head self-attention + residual + LayerNorm
+        \item \textbf{Gate} $\sigma(\text{FC})$ produces per-lead weights $\in [0,1]$
+        \item \textbf{Scale} original feature maps by learned gates
       \end{enumerate}
 
-      \vspace{0.4em}
-      {\small\Raleway\bfseries\color{aggieblue} Architecture Placement}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        Applied \textbf{after every stage}, allowing the model to learn cross-lead dependencies at multiple abstraction levels:\\[0.2em]
-        Stage~1 (16-ch): low-level morphology\\
-        Stage~2 (32-ch): interval features\\
-        Stage~3 (64-ch): high-level patterns\\[0.2em]
-        Final fusion via \textbf{LeadAttentionPool}: learned softmax weighting over 12 lead embeddings $\to$ single patient vector.
-      \end{beamercolorbox}
+      \vspace{0.5em}
+      {\usebeamerfont{footline}\color{coolgray}
+      Final fusion: \textbf{LeadAttentionPool} --- learned softmax weighting over 12 lead embeddings $\to$ single patient vector.}
+    \end{column}
+
+    \begin{column}{0.58\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} Learned Attention Weights (50-Sample Average)}\\[0.3em]
+      \includegraphics[width=\textwidth]{crosslead_attention_stages.png}
     \end{column}
 
   \end{columns}
