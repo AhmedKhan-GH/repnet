@@ -227,9 +227,9 @@
 
       % Main Bullets
       \begin{itemize}
-        \item Hypertensive disorder of pregnancy
-        \item Only definitive treatment is delivery
-        \item Can progress to eclampsia (seizures) at a quick rate
+        \item Can progress to eclampsia (seizures) quickly
+        \item A leading cause of maternal / infant mortality
+        \item Delivery is the only definitive treatment, prevention is key
       \end{itemize}
 
       \vspace{0.5em}
@@ -251,7 +251,7 @@
       \hfill
       \begin{minipage}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{depositphotos_ecg.png}
+        \includegraphics[width=\textwidth]{bed.png}
       \end{minipage}
     \end{column}
 
@@ -263,7 +263,7 @@
       \vspace{-1em}
       {\footnotesize\Raleway\color{aggieblue} Precordial Leads}\\[0.2em]
       \begin{center}
-        \includegraphics[width=0.30\textwidth]{Photo-7-Female-Frontal.jpg}
+        \includegraphics[width=0.50\textwidth]{Screenshot_521.png}
       \end{center}
 
       \vspace{0.2em}
@@ -775,11 +775,20 @@
   \end{columns}
 \end{frame}
 
+% ---------- Conclusion Slide ----------
+{
+\setbeamertemplate{background canvas}{
+  \includegraphics[width=\paperwidth, height=\paperheight]{Conclusion.png}
+}
+\begin{frame}[plain]
+\end{frame}
+}
+
 % ---------- Future Work Slide ----------
 \begin{frame}{Future Work}
   \begin{columns}[T]
 
-    % --- Left Column ---
+    % --- Left Column: Narrower to force the column boundary to the left ---
     \begin{column}{0.38\textwidth}
       \color{coolgray}
 
@@ -802,33 +811,31 @@
       \end{itemize}
     \end{column}
 
-    % --- Right Column ---
+    % --- Right Column: Expanded and padded on the right to sit closer to the text ---
     \begin{column}{0.58\textwidth}
-      \centering
+      \raggedright
 
-      \begin{minipage}[c]{0.40\textwidth}
-        \centering
-        \includegraphics[width=\textwidth,height=3.2cm,keepaspectratio]{biocare_ecg.jpg}
+      % Top Section: Callout text and thermometer image
+      \begin{minipage}[c]{0.60\textwidth}
+        \raggedright
+        \small\Lato\color{black}\bfseries
+        ECG diagnosis should be as easy and available as a thermometer
       \end{minipage}
       \hfill
-      \begin{minipage}[c]{0.12\textwidth}
+      \begin{minipage}[c]{0.36\textwidth}
         \centering
-        \tikz{
-          \draw[-{Stealth[length=3mm]},line width=1.5pt,color=aggieblue] (0,0) -- (1.2,0);
-          \node[color=red,font=\Large\bfseries\sffamily] at (0.6,0) {X};
-        }
-      \end{minipage}
-      \hfill
-      \begin{minipage}[c]{0.40\textwidth}
-        \centering
-        \includegraphics[width=\textwidth,height=3.2cm,keepaspectratio]{978-3-319-95114-0_53_Fig1_HTML.jpg}
+        \includegraphics[width=\textwidth]{thermometer.png}
       \end{minipage}
 
-      \vspace{0.5em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
-        \small\Lato\color{coolgray}\centering
-        Our goal: detect diseases earlier with widely available ECG instead of dealing with complications and life support
-      \end{beamercolorbox}
+      \vspace{0.3em}
+
+      % Bottom Section: Bedside ECG machine print graphic
+      \begin{block}{}
+        \label{fig:ecg_print}
+        \includegraphics[width=0.95\textwidth,clip,trim=0 2.0cm 0 0]{ecg_printing.png}
+      \end{block}
+
+      \hfill
     \end{column}
 
   \end{columns}
