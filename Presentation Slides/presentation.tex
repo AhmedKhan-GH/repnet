@@ -189,7 +189,7 @@
 \section{Neural Network Modeling}
 \subsection{PerLeadCNN Architecture}
 \subsection{Training}
-\subsection{Autonomous Architecture Search}
+\subsection{Karpathy Autoresearch}
 \subsection{30-Split Validation}
 \subsection{Model Performance}
 \subsection{Clinical Utility}
@@ -228,7 +228,7 @@
       % Main Bullets
       \begin{itemize}
         \item Hypertensive disorder of pregnancy
-        \item Definitive treatment is delivery
+        \item Only definitive treatment is delivery
         \item Can progress to eclampsia (seizures) at a quick rate
       \end{itemize}
 
@@ -669,8 +669,8 @@
 
 \end{frame}
 
-% ---------- Subsection Slide: Autonomous Architecture Search ----------
-\begin{frame}{Neural Network Modeling --- Autonomous Architecture Search}
+% ---------- Subsection Slide: Karpathy Autoresearch ----------
+\begin{frame}{Neural Network Modeling --- Karpathy Autoresearch}
   \centering
 
   \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,shadow=false,sep=0.2em]{boxgray}
@@ -682,94 +682,6 @@
   {\large Karpathy's \textit{auto research} --- agentic AI research paradigm running indefinitely, git committing improvements and git resetting failures}
 \end{frame}
 
-% ---------- Subsection Slide: 30-Split Validation ----------
-\begin{frame}{Neural Network Modeling --- 30-Split Validation}
-  \centering
-
-  \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,shadow=false,sep=0.2em]{boxgray}
-    \centering
-    \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{perlead_30split_distribution.png}
-  \end{beamercolorbox}
-
-  \vspace{0.3em}
-  \begin{columns}[T, onlytextwidth]
-    \begin{column}{0.32\textwidth}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
-        \usebeamerfont{footline}\color{coolgray}
-        \centering{\textbf{\color{aggieblue}Per-Lead Shared}}\par
-        \vspace{0.3em}
-        \scriptsize Same CNN for all 12 leads --- implicit regularizer
-      \end{beamercolorbox}
-    \end{column}
-    \begin{column}{0.32\textwidth}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
-        \usebeamerfont{footline}\color{coolgray}
-        \centering{\textbf{\color{aggieblue}Large$\to$Small $k$}}\par
-        \vspace{0.3em}
-        \scriptsize $31 \to 21 \to 11$: broad morphology first, then fine detail
-      \end{beamercolorbox}
-    \end{column}
-    \begin{column}{0.32\textwidth}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
-        \usebeamerfont{footline}\color{coolgray}
-        \centering{\textbf{\color{aggieblue}No Extras}}\par
-        \vspace{0.3em}
-        \scriptsize SE, attention, skip connections all failed to help
-      \end{beamercolorbox}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-
-% ---------- Subsection Slide: Model Performance ----------
-\begin{frame}{Neural Network Modeling --- Model Performance (30-Split)}
-  \centering
-  \vspace{-0.3em}
-
-  \begin{columns}[c]
-    \begin{column}{0.55\textwidth}
-      \centering
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
-        \includegraphics[width=0.98\textwidth,height=3.6cm,keepaspectratio]{roc_pr_curves.png}
-      \end{beamercolorbox}
-    \end{column}
-    \begin{column}{0.42\textwidth}
-      \centering
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
-        \includegraphics[width=0.98\textwidth,height=3.6cm,keepaspectratio]{prediction_distribution.png}
-      \end{beamercolorbox}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.3em}
-  \resizebox{0.85\textwidth}{!}{%
-    \begin{tabular}{lcccccc}
-      \toprule
-      & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Sens.} & \textbf{Spec.} & \textbf{NPV} & \textbf{F1} \\
-      \midrule
-      Threshold-free         & $0.709 \pm 0.049$ & $0.342 \pm 0.075$ & --- & --- & --- & --- \\
-      Screening (Sens $\geq 0.80$)  & --- & --- & $80.7 \pm 0.5\%$ & $49.6 \pm 8.9\%$ & $92.7 \pm 1.9\%$ & $0.367 \pm 0.061$ \\
-      Youden's J             & --- & --- & $73.0 \pm 9.2\%$ & $62.7 \pm 12.6\%$ & $92.4 \pm 2.3\%$ & $0.404 \pm 0.069$ \\
-      \bottomrule
-    \end{tabular}
-  }%
-
-  \vspace{0.2em}
-  \begin{columns}[c]
-    \begin{column}{0.48\textwidth}
-      \centering
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
-        \includegraphics[width=0.96\textwidth,height=2.0cm,keepaspectratio]{clinical_thresholds.png}
-      \end{beamercolorbox}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \centering
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
-        \includegraphics[width=0.96\textwidth,height=2.0cm,keepaspectratio]{perlead_architecture.png}
-      \end{beamercolorbox}
-    \end{column}
-  \end{columns}
-\end{frame}
 
 % ---------- Subsection Slide: Best Split Performance ----------
 \begin{frame}{Neural Network Modeling --- Best Split Performance}
@@ -798,7 +710,7 @@
       & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Sens.} & \textbf{Spec.} & \textbf{NPV} & \textbf{F1} \\
       \midrule
       Mean (30-Split)  & $0.709 \pm 0.049$ & $0.342 \pm 0.075$ & $73.0 \pm 9.2\%$ & $62.7 \pm 12.6\%$ & $92.4 \pm 2.3\%$ & $0.404 \pm 0.069$ \\
-      \textbf{Best Model}  & $\mathbf{0.858}$ & $\mathbf{0.598}$ & $\mathbf{75.3\%}$ & $\mathbf{88.4\%}$ & $\mathbf{94.7\%}$ & $\mathbf{0.647}$ \\
+      \textbf{Best Model}  & $\mathbf{0.779}$ & $\mathbf{0.485}$ & $\mathbf{54.3\%}$ & $\mathbf{89.6\%}$ & $\mathbf{91.3\%}$ & $\mathbf{0.517}$ \\
       \bottomrule
     \end{tabular}
   }%
@@ -808,111 +720,60 @@
     \begin{column}{0.48\textwidth}
       \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
         \usebeamerfont{footline}\color{coolgray}
-        \centering Best model achieves \textbf{0.858} AUROC and \textbf{0.598} AUPRC
+        \centering Best model achieves \textbf{0.779} AUROC and \textbf{0.485} AUPRC
       \end{beamercolorbox}
     \end{column}
     \hfill
     \begin{column}{0.48\textwidth}
       \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
         \usebeamerfont{footline}\color{coolgray}
-        \centering High specificity (\textbf{88.4\%}) at Youden's J with \textbf{94.7\%} NPV
+        \centering \textbf{91.3\%} NPV --- strong rule-out for low-risk patients
       \end{beamercolorbox}
     \end{column}
   \end{columns}
 \end{frame}
 
-% ---------- Subsection Slide: Clinical Utility ----------
-\begin{frame}{Neural Network Modeling --- Clinical Utility}
-  \begin{columns}[c]
-
-    \begin{column}{0.55\textwidth}
-      \centering
-      {\small\Raleway\bfseries\color{aggieblue} Confusion Matrix (Best Split)}\\[0.2em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{confusion_matrix.png}
-      \end{beamercolorbox}
-    \end{column}
-
-    \begin{column}{0.42\textwidth}
-      \centering
-      {\small\Raleway\bfseries\color{aggieblue} Decision Curve Analysis}\\[0.2em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{decision_curve.png}
-      \end{beamercolorbox}
-    \end{column}
-
-  \end{columns}
-
-  \vspace{0.2em}
-  \begin{columns}[T, onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
-        \usebeamerfont{footline}\color{coolgray}
-        \centering \textbf{86\%} of PE+ patients correctly identified; only 8 missed
-      \end{beamercolorbox}
-    \end{column}
-    \hfill
-    \begin{column}{0.48\textwidth}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
-        \usebeamerfont{footline}\color{coolgray}
-        \centering Net benefit exceeds treat-all and treat-none across clinically relevant thresholds
-      \end{beamercolorbox}
-    \end{column}
-  \end{columns}
-\end{frame}
 
 % ---------- Subsection Slide: Interpretability --- Grad-CAM ----------
 \begin{frame}{Neural Network Modeling --- Interpretability}
+  \centering
+
   \begin{columns}[c]
-
-    \begin{column}{0.58\textwidth}
+    \begin{column}{0.55\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} Grad-CAM Saliency (PE+ vs Normal)}\\[0.2em]
+      {\small\Raleway\bfseries\color{aggieblue} Bidirectional Grad-CAM (TP vs TN)}\\[0.2em]
       \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
         \centering
-        \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{gradcam_aggregate.png}
+        \includegraphics[width=0.98\textwidth,height=5.2cm,keepaspectratio]{gradcam_saliency.png}
       \end{beamercolorbox}
     \end{column}
-
-    \begin{column}{0.38\textwidth}
+    \begin{column}{0.42\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} FC Weight Magnitude per Lead}\\[0.2em]
+      {\small\Raleway\bfseries\color{aggieblue} Lead Importance}\\[0.2em]
       \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
         \centering
-        \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{lead_importance.png}
+        \includegraphics[width=0.98\textwidth,height=5.2cm,keepaspectratio]{lead_importance.png}
       \end{beamercolorbox}
     \end{column}
-
   \end{columns}
 
-  \vspace{0.2em}
+  \vspace{0.3em}
   \begin{columns}[T, onlytextwidth]
     \begin{column}{0.48\textwidth}
       \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
         \usebeamerfont{footline}\color{coolgray}
-        \centering Saliency peaks in \textbf{P-wave} and \textbf{QT-interval} regions
+        \centering Model activates on \textbf{inter-beat intervals} --- PE-associated changes in heart rate variability and repolarization timing
       \end{beamercolorbox}
     \end{column}
     \hfill
     \begin{column}{0.48\textwidth}
       \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
         \usebeamerfont{footline}\color{coolgray}
-        \centering \textbf{Lead aVL} highest differential saliency --- consistent with LV strain in PE
+        \centering \textbf{Lead aVL} largest PE vs Normal gap --- consistent with LV strain in preeclampsia
       \end{beamercolorbox}
     \end{column}
   \end{columns}
 \end{frame}
-
-% ---------- Conclusion Slide ----------
-{
-\setbeamertemplate{background canvas}{
-  \includegraphics[width=\paperwidth, height=\paperheight]{Conclusion.png}
-}
-\begin{frame}[plain]
-\end{frame}
-}
 
 % ---------- Future Work Slide ----------
 \begin{frame}{Future Work}
@@ -943,29 +804,31 @@
 
     % --- Right Column ---
     \begin{column}{0.58\textwidth}
-      \raggedright
+      \centering
 
-      % Top Section: Callout text and thermometer image
-      \begin{minipage}[c]{0.60\textwidth}
-        \raggedright
-        \small\Lato\color{black}\bfseries
-        End Goal: Make ECG-related diagnoses as easy and available to people as a thermometer is!
-      \end{minipage}
-      \hfill
-      \begin{minipage}[c]{0.36\textwidth}
+      \begin{minipage}[c]{0.40\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{thermometer.png}
+        \includegraphics[width=\textwidth,height=3.2cm,keepaspectratio]{biocare_ecg.jpg}
+      \end{minipage}
+      \hfill
+      \begin{minipage}[c]{0.12\textwidth}
+        \centering
+        \tikz{
+          \draw[-{Stealth[length=3mm]},line width=1.5pt,color=aggieblue] (0,0) -- (1.2,0);
+          \node[color=red,font=\Large\bfseries\sffamily] at (0.6,0) {X};
+        }
+      \end{minipage}
+      \hfill
+      \begin{minipage}[c]{0.40\textwidth}
+        \centering
+        \includegraphics[width=\textwidth,height=3.2cm,keepaspectratio]{978-3-319-95114-0_53_Fig1_HTML.jpg}
       \end{minipage}
 
-      \vspace{1.0em}
-
-      % Bottom Section: Bedside ECG machine print graphic
-      \begin{block}{}
-        \label{fig:ecg_print}
-        \includegraphics[width=0.95\textwidth]{ecg_printing.png}
-      \end{block}
-
-      \hfill
+      \vspace{0.5em}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+        \small\Lato\color{coolgray}\centering
+        Our goal: detect diseases earlier with widely available ECG instead of dealing with complications and life support
+      \end{beamercolorbox}
     \end{column}
 
   \end{columns}
