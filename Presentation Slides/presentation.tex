@@ -188,7 +188,7 @@
 \subsection{Individual vs.\ Ensemble Performance}
 \section{Neural Network Modeling}
 \subsection{PerLeadCNN Architecture}
-\subsection{Preprocessing \& Training}
+\subsection{Training}
 \subsection{Autonomous Architecture Search}
 \subsection{30-Split Validation}
 \subsection{Model Performance}
@@ -227,9 +227,9 @@
 
       % Main Bullets
       \begin{itemize}
-        \item Cannot be cured until birth
-        \item Can progress to severe at a quick rate
-        \item Leading cause of maternal and infant illness and death
+        \item Hypertensive disorder of pregnancy
+        \item Definitive treatment is delivery
+        \item Can progress to eclampsia (seizures) at a quick rate
       \end{itemize}
 
       \vspace{0.5em}
@@ -238,7 +238,7 @@
       \setbeamercolor{boxblue}{bg=aggieblue,fg=white}
       \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.7em,rightskip=0.7em,sep=0.6em]{boxblue}
         \scriptsize\Lato\bfseries\color{white}
-        Current goal: predict the risk of Preeclampsia using Decision Tree Modeling and Neural Network Modeling
+        We aim to predict the risk of Preeclampsia using Decision Tree Modeling and Neural Network Modeling
       \end{beamercolorbox}
 
       \vspace{0.8em}
@@ -251,7 +251,7 @@
       \hfill
       \begin{minipage}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{bed.png}
+        \includegraphics[width=\textwidth]{depositphotos_ecg.png}
       \end{minipage}
     \end{column}
 
@@ -263,7 +263,7 @@
       \vspace{-1em}
       {\footnotesize\Raleway\color{aggieblue} Precordial Leads}\\[0.2em]
       \begin{center}
-        \includegraphics[width=0.80\textwidth]{pregnant.png}
+        \includegraphics[width=0.30\textwidth]{Photo-7-Female-Frontal.jpg}
       \end{center}
 
       \vspace{0.2em}
@@ -584,65 +584,63 @@
 
 % ---------- Subsection Slide: PerLeadCNN Architecture ----------
 \begin{frame}{Neural Network Modeling --- PerLeadCNN Architecture}
-  \begin{columns}[c]
+  \vspace{-0.5em}
+  \begin{columns}[T]
 
-    \begin{column}{0.35\textwidth}
+    \begin{column}{0.38\textwidth}
       \centering
       \begin{tikzpicture}[
-        x=1cm, y=1cm,
-        block/.style={rounded corners=2pt, minimum width=2.6cm, minimum height=0.24cm,
-          font=\fontsize{4}{5}\selectfont, inner sep=1.5pt, align=center},
-        convblock/.style={block, fill=aggieblue!12!white, draw=aggieblue!60!black, text=aggieblue!30!black},
-        otherblock/.style={block, fill=gray!8!white, draw=gray!40!black, text=gray!50!black},
-        fusionblock/.style={block, fill=aggiegold!20!white, draw=aggiegold!60!black, text=aggiegold!30!black,
-          minimum width=2.6cm},
-        arr/.style={-{Stealth[length=2pt]}, coolgray, thick},
+        node distance=0.8mm and 0mm,
+        block/.style={rounded corners=3pt, minimum width=3.2cm, minimum height=3.8mm,
+          font=\fontsize{5.5}{6.5}\selectfont, inner sep=2pt, align=center},
+        convblock/.style={block, fill=aggieblue!12!white, draw=aggieblue!60!black,
+          text=aggieblue!30!black, line width=0.5pt},
+        otherblock/.style={block, fill=gray!8!white, draw=gray!40!black,
+          text=gray!50!black, line width=0.5pt},
+        fusionblock/.style={block, fill=aggiegold!20!white, draw=aggiegold!60!black,
+          text=aggiegold!30!black, minimum width=3.2cm, line width=0.5pt},
+        arr/.style={-{Stealth[length=2.5pt]}, coolgray, semithick},
+        lbl/.style={font=\fontsize{4.5}{5.5}\selectfont, text=coolgray},
       ]
-        \node[font=\fontsize{5}{6}\selectfont\bfseries, text=aggieblue] at (0, 5.9) {12 $\times$ 2500};
-        \node[font=\fontsize{3}{3.5}\selectfont, text=coolgray] at (0, 5.7) {(per lead, shared weights)};
-        \draw[arr] (0, 5.55) -- (0, 5.42);
+        \node[font=\fontsize{6.5}{7.5}\selectfont\bfseries, text=aggieblue] (input) {12 $\times$ 2500};
+        \node[lbl, below=0.5mm of input] (inputlbl) {(per lead, shared weights)};
 
-        \node[convblock] (s1) at (0, 5.25) {Conv1d($1 \to 16$, $k\!=\!31$, $s\!=\!2$)};
-        \node[otherblock] (b1) at (0, 4.97) {BatchNorm $\to$ Mish};
-        \draw[arr] (0, 4.82) -- (0, 4.68);
+        \node[convblock, below=1.5mm of inputlbl] (s1) {Conv1d($1 \to 16$, $k\!=\!31$, $s\!=\!2$)};
+        \node[otherblock, below=of s1] (b1) {BatchNorm $\to$ Mish};
 
-        \node[convblock] (s2) at (0, 4.52) {Conv1d($16 \to 32$, $k\!=\!21$, $s\!=\!2$)};
-        \node[otherblock] (b2) at (0, 4.24) {BatchNorm $\to$ Mish};
-        \draw[arr] (0, 4.09) -- (0, 3.95);
+        \node[convblock, below=1.5mm of b1] (s2) {Conv1d($16 \to 32$, $k\!=\!21$, $s\!=\!2$)};
+        \node[otherblock, below=of s2] (b2) {BatchNorm $\to$ Mish};
 
-        \node[convblock] (s3) at (0, 3.79) {Conv1d($32 \to 48$, $k\!=\!11$, $s\!=\!2$)};
-        \node[otherblock] (b3) at (0, 3.51) {BatchNorm $\to$ Mish};
-        \draw[arr] (0, 3.36) -- (0, 3.22);
+        \node[convblock, below=1.5mm of b2] (s3) {Conv1d($32 \to 48$, $k\!=\!11$, $s\!=\!2$)};
+        \node[otherblock, below=of s3] (b3) {BatchNorm $\to$ Mish};
 
-        \node[otherblock] (gap) at (0, 3.05) {AdaptiveAvgPool1d(1)};
-        \node[font=\fontsize{3}{3.5}\selectfont, text=coolgray] at (0, 2.85) {48-dim per lead};
-        \draw[arr] (0, 2.72) -- (0, 2.58);
+        \node[otherblock, below=1.5mm of b3] (gap) {AdaptiveAvgPool1d(1)};
 
-        \node[fusionblock] (cat) at (0, 2.42) {Concatenate 12 leads};
-        \node[font=\fontsize{3}{3.5}\selectfont, text=coolgray] at (0, 2.22) {$12 \times 48 = 576$-dim};
-        \draw[arr] (0, 2.08) -- (0, 1.95);
+        \node[fusionblock, below=1.5mm of gap] (cat) {Concatenate 12 leads};
+        \node[lbl, below=0.3mm of cat] (catlbl) {$12 \times 48 = 576$-dim};
 
-        \node[otherblock] (drop) at (0, 1.78) {Dropout(0.15)};
-        \node[convblock] (fc)  at (0, 1.50) {Linear($576 \to 2$)};
-        \draw[arr] (0, 1.35) -- (0, 1.2);
+        \node[otherblock, below=1.5mm of catlbl] (drop) {Dropout(0.15)};
+        \node[convblock, below=of drop] (fc) {Linear($576 \to 2$)};
 
-        \node[font=\fontsize{5}{6}\selectfont\bfseries, text=aggieblue] at (0, 1.02) {PE / No PE};
-        \node[font=\fontsize{3.5}{4}\selectfont\bfseries, text=coolgray] at (0, 0.72) {29{,}490 parameters};
+        \node[font=\fontsize{6.5}{7.5}\selectfont\bfseries, text=aggieblue, below=1.5mm of fc] (out) {PE / No PE};
+        \node[font=\fontsize{5}{6}\selectfont\bfseries, text=coolgray, below=0.3mm of out] (params) {29{,}490 params};
+
+        \foreach \a/\b in {inputlbl/s1, s1/b1, b1/s2, s2/b2, b2/s3, s3/b3, b3/gap, gap/cat, catlbl/drop, drop/fc, fc/out}
+          \draw[arr] (\a) -- (\b);
       \end{tikzpicture}
     \end{column}
 
-    \begin{column}{0.60\textwidth}
+    \begin{column}{0.58\textwidth}
+      \vspace{0.5em}
       \begin{large}
       \begin{itemize}
-        \setlength{\itemsep}{1.2em}
+        \setlength{\itemsep}{1.8em}
 
-        \item Each of the \textbf{12 leads} processed independently through a \textbf{shared-weight} 3-stage CNN
+        \item \textbf{12 leads} processed independently through a \textbf{shared-weight} 3-stage CNN
 
-        \item Channel-independent activations \textbf{pooled} and \textbf{concatenated} into a single 576-dim activation map
+        \item Channel-independent activations \textbf{pooled} and \textbf{concatenated} into a 576-dim activation vector
 
-        \item Single \textbf{fully connected layer} reduces the fused representation down to \textbf{class logits} (PE / Normal)
-
-        \item Selected from \textbf{250 autonomous experiments} --- simpler architectures consistently outperformed complex ones
+        \item \textbf{Fully connected layer} reduces activation map to \textbf{class logits}
 
       \end{itemize}
       \end{large}
@@ -651,80 +649,37 @@
   \end{columns}
 \end{frame}
 
-% ---------- Subsection Slide: Preprocessing & Training ----------
-\begin{frame}{Neural Network Modeling --- Preprocessing \& Training}
-  \begin{columns}[T]
+% ---------- Subsection Slide: Training ----------
+\begin{frame}{Neural Network Modeling --- Training}
 
-    \begin{column}{0.48\textwidth}
-      \centering
-      {\small\Raleway\bfseries\color{aggieblue} Signal Preprocessing}\\[0.3em]
-      \usebeamerfont{footline}\color{coolgray}
-      Three steps applied per-lead in order:
-      \begin{enumerate}\setlength{\itemsep}{0pt}
-        \item \textbf{Baseline Wander Removal:} 4th-order Butterworth high-pass at 0.5~Hz
-        \item \textbf{Powerline Interference:} 60~Hz IIR notch filter ($Q=30$)
-        \item \textbf{Z-Score Normalization:} Per-lead $\frac{x - \mu_\ell}{\sigma_\ell + \epsilon}$
-      \end{enumerate}
-    \end{column}
+  \begin{large}
+  \begin{itemize}
+    \setlength{\itemsep}{1.0em}
 
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Training Configuration}\\[0.3em]
-      \usebeamerfont{footline}\color{coolgray}
-      \begin{itemize}\setlength{\itemsep}{0pt}
-        \item \textbf{AdamW} + cosine annealing (lr $= 1.2\!\times\!10^{-3}$)
-        \item Dropout 0.15, weight decay $5\!\times\!10^{-3}$
-        \item Focal loss ($\gamma = 1.0$) + label smoothing 0.05
-        \item Early stop on val AUROC, patience 20, 80 epochs
-        \item \textbf{30-split} patient-grouped validation (80/20)
-      \end{itemize}
-    \end{column}
+    \item \textbf{80/20 dev-test split} with StratifiedGroupKFold --- preserves clinical prevalence, no patient leakage
 
-  \end{columns}
+    \item \textbf{AdamW} with cosine annealing --- early epochs explore, late epochs refine; early stop on val AUROC (patience 20)
 
-  \vspace{0.4em}
-  {\small\Raleway\bfseries\color{aggieblue}\centering 7-Transform On-the-Fly Augmentation\par}\vspace{0.2em}
-  \resizebox{0.7\textwidth}{!}{%
-    \begin{tabular}{lll}
-      \toprule
-      \textbf{Transform} & \textbf{Prob.} & \textbf{Range} \\
-      \midrule
-      Gaussian Noise & 50\% & $\sigma \in [0.01, 0.05]$ \\
-      Amplitude Scale & 50\% & $\pm 15\%$ \\
-      Time Shift & 30\% & $\pm 150$ samples \\
-      Lead Dropout & 10\% & 12\% per lead \\
-      Cutout & 25\% & 50--200 samples \\
-      Baseline Wander & 20\% & 0.05--0.5~Hz \\
-      Speed Perturb & 10\% & $\pm 5\%$ \\
-      \bottomrule
-    \end{tabular}
-  }%
+    \item \textbf{7 on-the-fly augmentations} --- noise, scaling, time shift, lead dropout, cutout, baseline wander, speed perturbation
+
+    \item \textbf{Per-lead preprocessing:} 0.5~Hz high-pass, 60~Hz notch filter, z-score normalization
+
+  \end{itemize}
+  \end{large}
+
 \end{frame}
 
 % ---------- Subsection Slide: Autonomous Architecture Search ----------
 \begin{frame}{Neural Network Modeling --- Autonomous Architecture Search}
   \centering
 
-  {\small\Raleway\bfseries\color{aggieblue} 250 LLM-Driven Experiments (Karpathy's autoresearch)}\par\vspace{0.2em}
   \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,shadow=false,sep=0.2em]{boxgray}
     \centering
-    \includegraphics[width=0.98\textwidth,height=3.2cm,keepaspectratio]{round_evolution.png}
+    \includegraphics[width=0.98\textwidth,height=5.4cm,keepaspectratio]{autoresearch_progress.png}
   \end{beamercolorbox}
 
-  \vspace{0.2em}
-  \begin{columns}[c]
-    \begin{column}{0.48\textwidth}
-      \centering
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
-        \includegraphics[width=0.96\textwidth,height=2.4cm,keepaspectratio]{arch_family_comparison.png}
-      \end{beamercolorbox}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \centering
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
-        \includegraphics[width=0.96\textwidth,height=2.4cm,keepaspectratio]{auroc_vs_params.png}
-      \end{beamercolorbox}
-    \end{column}
-  \end{columns}
+  \vspace{0.3em}
+  {\large Karpathy's \textit{auto research} --- agentic AI research paradigm running indefinitely, git committing improvements and git resetting failures}
 \end{frame}
 
 % ---------- Subsection Slide: 30-Split Validation ----------
@@ -765,6 +720,7 @@
   \end{columns}
 \end{frame}
 
+
 % ---------- Subsection Slide: Model Performance ----------
 \begin{frame}{Neural Network Modeling --- Model Performance (30-Split)}
   \centering
@@ -791,9 +747,9 @@
       \toprule
       & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Sens.} & \textbf{Spec.} & \textbf{NPV} & \textbf{F1} \\
       \midrule
-      Threshold-free         & $0.702 \pm 0.043$ & $0.321 \pm 0.066$ & --- & --- & --- & --- \\
-      Screening (Sens $\geq 0.80$)  & --- & --- & $80.7 \pm 0.7\%$ & $47.2 \pm 8.1\%$ & $92.8 \pm 1.9\%$ & $0.348 \pm 0.056$ \\
-      Youden's J             & --- & --- & $70.0 \pm 10.3\%$ & $64.5 \pm 9.8\%$ & $92.2 \pm 2.4\%$ & $0.388 \pm 0.052$ \\
+      Threshold-free         & $0.709 \pm 0.049$ & $0.342 \pm 0.075$ & --- & --- & --- & --- \\
+      Screening (Sens $\geq 0.80$)  & --- & --- & $80.7 \pm 0.5\%$ & $49.6 \pm 8.9\%$ & $92.7 \pm 1.9\%$ & $0.367 \pm 0.061$ \\
+      Youden's J             & --- & --- & $73.0 \pm 9.2\%$ & $62.7 \pm 12.6\%$ & $92.4 \pm 2.3\%$ & $0.404 \pm 0.069$ \\
       \bottomrule
     \end{tabular}
   }%
@@ -810,6 +766,56 @@
       \centering
       \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
         \includegraphics[width=0.96\textwidth,height=2.0cm,keepaspectratio]{perlead_architecture.png}
+      \end{beamercolorbox}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ---------- Subsection Slide: Best Split Performance ----------
+\begin{frame}{Neural Network Modeling --- Best Split Performance}
+  \centering
+  \vspace{-0.3em}
+
+  \begin{columns}[c]
+    \begin{column}{0.55\textwidth}
+      \centering
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \includegraphics[width=0.98\textwidth,height=3.6cm,keepaspectratio]{best_roc_pr.png}
+      \end{beamercolorbox}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \includegraphics[width=0.98\textwidth,height=3.6cm,keepaspectratio]{best_pred_dist.png}
+      \end{beamercolorbox}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.3em}
+  \resizebox{0.92\textwidth}{!}{%
+    \begin{tabular}{lcccccc}
+      \toprule
+      & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Sens.} & \textbf{Spec.} & \textbf{NPV} & \textbf{F1} \\
+      \midrule
+      Mean (30-Split)  & $0.709 \pm 0.049$ & $0.342 \pm 0.075$ & $73.0 \pm 9.2\%$ & $62.7 \pm 12.6\%$ & $92.4 \pm 2.3\%$ & $0.404 \pm 0.069$ \\
+      \textbf{Best Model}  & $\mathbf{0.858}$ & $\mathbf{0.598}$ & $\mathbf{75.3\%}$ & $\mathbf{88.4\%}$ & $\mathbf{94.7\%}$ & $\mathbf{0.647}$ \\
+      \bottomrule
+    \end{tabular}
+  }%
+
+  \vspace{0.3em}
+  \begin{columns}[T, onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+        \usebeamerfont{footline}\color{coolgray}
+        \centering Best model achieves \textbf{0.858} AUROC and \textbf{0.598} AUPRC
+      \end{beamercolorbox}
+    \end{column}
+    \hfill
+    \begin{column}{0.48\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+        \usebeamerfont{footline}\color{coolgray}
+        \centering High specificity (\textbf{88.4\%}) at Youden's J with \textbf{94.7\%} NPV
       \end{beamercolorbox}
     \end{column}
   \end{columns}
