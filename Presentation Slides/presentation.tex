@@ -184,7 +184,7 @@
 \subsection{Dataset Profile}
 \subsection{Feature Extraction}
 \subsection{Feature Importance}
-\subsection{Feature Selection Matrix}
+\subsection{Lead Significance}
 \subsection{Individual vs.\ Ensemble Performance}
 \section{Neural Network Modeling}
 \subsection{Preprocessing \& Training}
@@ -214,52 +214,63 @@
   \tableofcontents
 \end{frame}
 
-% ---------- Introduction Slide ----------
-\begin{frame}{Introduction}
+% ---------- Preeclampsia Introduction Slide ----------
+
+\begin{frame}{Preeclampsia Introduction}
   \begin{columns}[T]
 
+    % --- Left Column: Definition, Goal, Infographic, and Clinical ECG Setup ---
     \begin{column}{0.52\textwidth}
       \usebeamerfont{footline}\color{coolgray}
-      {\small\Raleway\bfseries\color{aggieblue} What is Preeclampsia?}\\[0.3em]
+
+      % Main Bullets
       \begin{itemize}
-        \item Pregnancy complication with dangerously high blood pressure and organ stress
-        \item Typically develops after 20 weeks of gestation
-        \item Can damage kidneys, liver, and brain --- may progress to eclampsia (seizures and coma)
-        \item Currently diagnosed by symptoms that appear \textbf{late} (elevated BP, proteinuria)
+        \item Cannot be cured until birth
+        \item Can progress to severe at a quick rate
+        \item Leading cause of maternal and infant illness and death
       \end{itemize}
 
-      \vspace{0.6em}
-      {\small\Raleway\bfseries\color{aggieblue} Why ECG?}\\[0.3em]
-      \begin{itemize}
-        \item PE increases cardiac afterload --- leaves traces in the ECG waveform
-        \item 12-lead ECG is routine, cheap, and already collected in prenatal care
-        \item Goal: detect PE risk from the ECG \textbf{before} symptoms appear
-      \end{itemize}
+      \vspace{0.5em}
+
+      % Blue Goal Highlight Box
+      \setbeamercolor{boxblue}{bg=aggieblue,fg=white}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.7em,rightskip=0.7em,sep=0.6em]{boxblue}
+        \scriptsize\Lato\bfseries\color{white}
+        Current goal: predict the risk of Preeclampsia using Decision Tree Modeling and Neural Network Modeling
+      \end{beamercolorbox}
+
+      \vspace{0.8em}
+
+      % Side-by-Side Images at the bottom of the left column
+      \begin{minipage}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{preeclampsia_infographic.png}
+      \end{minipage}
+      \hfill
+      \begin{minipage}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{bed.png}
+      \end{minipage}
     \end{column}
 
+    % --- Right Column: Electrode Positioning Diagrams Stacked with Headers ---
     \begin{column}{0.44\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Our Approach}\\[0.3em]
-      \usebeamerfont{footline}\color{coolgray}
-      Two parallel modeling strategies on 2{,}178 ECG recordings (335 PE+, 1{,}843 PE$-$):\\[0.3em]
+      \centering
 
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.4em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        \textbf{1.\ Decision-Tree Modeling}\\
-        Handcrafted features (NeuroKit + MUSE) $\rightarrow$ feature selection $\rightarrow$ Random Forest \& ensemble classifiers
-      \end{beamercolorbox}
+      % Top Image: Precordial Leads
+      \vspace{-1em}
+      {\footnotesize\Raleway\color{aggieblue} Precordial Leads}\\[0.2em]
+      \begin{center}
+        \includegraphics[width=0.80\textwidth]{pregnant.png}
+      \end{center}
 
-      \vspace{0.4em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.4em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        \textbf{2.\ Neural Network Modeling}\\
-        Raw 12-lead waveform $\rightarrow$ PerLeadCNN (per-lead shared-weight CNN, 29K params, selected from 250 autonomous experiments)
-      \end{beamercolorbox}
+      \vspace{0.2em}
 
-      \vspace{0.4em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        \textbf{Evaluation:} Patient-grouped cross-validation, StratifiedGroupKFold, 80/20 dev-test split
-      \end{beamercolorbox}
+      % Bottom Image: Limb Leads
+      {\footnotesize\Raleway\color{aggieblue} Limb Leads}\\[0.2em]
+      \begin{center}
+        \includegraphics[width=0.75\textwidth]{limb_leads.png}
+      \end{center}
     \end{column}
 
   \end{columns}
@@ -283,46 +294,50 @@
 % ---------- Subsection Slide: Dataset Profile ----------
 \begin{frame}{Decision-Tree Modeling --- Dataset Profile}
   \begin{columns}[T]
-    
-    % Left Column: Cohort Breakdown Table & Details
-    \begin{column}{0.50\textwidth}
+
+    % Left Column: Reduced width to give signals more room
+    \begin{column}{0.42\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} ECG Dataset}\\[0.4em]
+      {\small\Raleway\bfseries\color{aggieblue} ECG Dataset Breakdown}\\[1.5em]
+
+      \renewcommand{\arraystretch}{1.8}
       \resizebox{\textwidth}{!}{%
         \begin{tabular}{lccc}
           \toprule
-          \textbf{Dataset} & \textbf{\shortstack{Original Total\\(Preeclamptic/Normal)}} & \textbf{\shortstack{Dropped ECGs\\(Preeclamptic/Normal)}} & \textbf{\shortstack{Final Total\\(Preeclamptic/Normal)}} \\
+          \textbf{Dataset} & \textbf{\shortstack{Original Total\\(P/N)}} & \textbf{\shortstack{Dropped ECGs\\(P/N)}} & \textbf{\shortstack{Final Total\\(P/N)}} \\
           \midrule
           Unbalanced & 337 / 1854 & 8 / 24 & 329 / 1830 \\
           Balanced   & 187 / 182  & 6 / 1  & 181 / 181 \\
           \bottomrule
         \end{tabular}
-      }%
-      
-      \vspace{0.8em}
+      }
+      \vspace{0.3em}
       \begin{flushleft}
-        \usebeamerfont{footline}\color{coolgray}
-        \textbf{MUSE Diagnostics:} This dataset includes a structured metadata CSV containing \textbf{656 distinct features}.
-        
-        \vspace{0.4em}
-        \textbf{Exclusion Criteria:} Samples dropped due to:
-        \begin{itemize}
-          \item Delineation issues using certain cleaning methods for each lead within \textbf{NeuroKit} framework.
-          \item Empty data within a lead.
-        \end{itemize}
+      \usebeamerfont{footline}\color{coolgray}
+       Each ECG sample includes \textbf{656 distinct MUSE metadata features}\\[0.8em]
+
+      \textbf{Cross-Validation Strategy:}
+      \begin{itemize}
+        \item \textbf{StratifiedGroupKFold} with 5 folds grouped by the Patient's MRN
+        \item \textbf{RandomForest} with \textbf{RandomUnderSampler} inside the folds
+      \end{itemize}
       \end{flushleft}
     \end{column}
-    
-    % Right Column: Preprocessed Lead Signal Image
-    \begin{column}{0.46\textwidth}
+
+    % Right Column: Increased width
+    \begin{column}{0.54\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} Lead Visualizations}\\[0.4em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,leftskip=0.2em,rightskip=0.2em,sep=0.2em]{boxgray}
+      {\small\Raleway\bfseries\color{aggieblue} Signal Preprocessing}\\[1.0em]
+
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.2em]{boxgray}
         \centering
-        \includegraphics[width=0.96\textwidth,height=3.8cm,keepaspectratio]{4leadsexample.png}
+        \includegraphics[width=1\textwidth,height=2.3cm]{v3_pre.png}
+
+        \vspace{0.4em}
+
+        \includegraphics[width=1\textwidth,height=2.3cm]{v3_filter.png}
       \end{beamercolorbox}
-      \vspace{0.3em}
-      {\scriptsize\Lato\color{coolgray} Representative trace behavior of select isolated signal leads (e.g., I, II, III, aVR) after preprocessing filters are applied.}
+
     \end{column}
 
   \end{columns}
@@ -330,66 +345,33 @@
 
 % ---------- Subsection Slide: Feature Extraction ----------
 \begin{frame}{Decision-Tree Modeling --- Feature Extraction}
-  \begin{columns}[T]
-    
-    % Left Column: Neurokit Feature Pipeline
-    \begin{column}{0.48\textwidth}
+  \begin{columns}[c]
+
+    % Left Column: Image
+    \begin{column}{0.45\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} Neurokit ECG Features}\\[0.4em]
-      \resizebox{\textwidth}{!}{%
-        \begin{tabular}{ll}
-          \toprule
-          \textbf{Feature} & \textbf{Equation} \\
-          \midrule
-          $P_{\max}$ & $\max_{\ell \in \mathcal{L}}(P_{\text{off}}^{\ell} - P_{\text{on}}^{\ell})$ \\
-          $P_{\min}$ & $\min_{\ell \in \mathcal{L}}(P_{\text{off}}^{\ell} - P_{\text{on}}^{\ell})$ \\
-          P-Wave Disp. & $P_{\max} - P_{\min}$ \\
-          QT Dispersion & $QT_{\max} - QT_{\min}$ \\
-          $T_{pe}$ Interval & $\text{mean}(T_{\text{off}} - T_{\text{peak}})$ \\
-          $T_{pe}/\text{QT}$ & $T_{pe} \text{ Interval} / \text{mean}(T_{\text{off}} - R_{\text{on}})$ \\
-          $T_{pe}/\text{QTc}$ & $(T_{pe}/\text{QT}) / \sqrt{\text{mean}(\Delta R_{\text{peak}})}$ \\
-          ST Elevation & $\boldsymbol{1} \text{ if } > 50\%\text{ elevated, } \boldsymbol{0}\text{ otherwise}$ \\
-          ST Depression & $\boldsymbol{1} \text{ if } > 50\%\text{ depressed, } \boldsymbol{0}\text{ otherwise}$ \\
-          Avg. Amp. Diff. & $\text{mean}(A_{\text{ST}} - A_{\text{PR}})$ \\
-          Med. Amp. Diff. & $\text{med}(A_{\text{ST}} - A_{\text{PR}})$ \\
-          Max. Amp. Diff. & $\max(A_{\text{ST}} - A_{\text{PR}})$ \\
-          Min. Amp. Diff. & $\min(A_{\text{ST}} - A_{\text{PR}})$ \\
-          Frontal QRS-T & $|\text{QRS Axis} - \text{T Axis}|$ \\
-          \bottomrule
-        \end{tabular}
-      }%
+      \includegraphics[width=\textwidth]{featurization.png}
     \end{column}
-    
-    % Right Column: MUSE Feature Pipeline + Footnote Text (Clean & Compact)
-    \begin{column}{0.48\textwidth}
-      \centering
-      {\small\Raleway\bfseries\color{aggieblue} MUSE-derived Features}\\[0.4em]
-      \resizebox{\textwidth}{!}{%
-        \begin{tabular}{ll}
-          \toprule
-          \textbf{Feature} & \textbf{Equation} \\
-          \midrule
-          $P_{\max}$ & $\max(\text{P\_Duration for 12 leads})$ \\
-          $P_{\min}$ & $\min(\text{P\_Duration for 12 leads})$ \\
-          P-Wave Disp. & $P_{\max} - P_{\min}$ \\
-          QT Dispersion & $QT = \sum \text{comp. durations} + \frac{1}{8}RR; \, \max(QT) - \min(QT)$ \\
-          $T_{pe}$ Interval & $\text{T\_Duration} + \text{T\_PrimeDuration} - \text{STEtoTPeak}$ \\
-          $T_{pe}/\text{QT}$ & $T_{pe} \text{ Interval} / \text{QT}$ \\
-          $T_{pe}/\text{QTc}$ & $T_{pe}/\text{QT} \cdot \sqrt{RR}$ \\
-          ST Elevation & $(\text{BITFLGS} \ \& \ 8) \neq 0$ \\
-          ST Depression & $(\text{BITFLGS} \ \& \ 4) \neq 0$ \\
-          QRS Axis & $\text{RAxis from metadata}$ \\
-          T Axis & $\text{TAxis from metadata}$ \\
-          Frontal QRS-T & $|\text{QRS Axis} - \text{T Axis}|$ \\
-          \bottomrule
-        \end{tabular}
-      }%
-      
-      \vspace{1.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,leftskip=0.6em,rightskip=0.6em,sep=0.4em]{boxgray}
-        \usebeamerfont{footline}\color{coolgray}
-        \textbf{Implementation Note:} We extracted QRS and T Axis in Neurokit, though we do not have a definite equation.
-      \end{beamercolorbox}
+
+    % Right Column: Content
+    \begin{column}{0.50\textwidth}
+      \vspace{-3.5em}
+
+      \begin{large}
+      \begin{itemize}
+        \setlength{\itemsep}{1.2em}
+
+        \item \textbf{Feature Extraction:}
+        \vspace{0.6em}
+        \begin{itemize}
+          \setlength{\itemsep}{0.6em}
+          \item \textbf{NeuroKit}
+          \item \textbf{MUSE-derived}
+        \end{itemize}
+
+      \end{itemize}
+      \end{large}
+
     \end{column}
 
   \end{columns}
@@ -399,7 +381,7 @@
 \begin{frame}{Decision-Tree Modeling --- Feature Importance}
   \centering
   {\small\Raleway\bfseries\color{aggieblue} Random Forest Performance}\\[0.3em]
-  
+
   \resizebox{0.95\textwidth}{!}{%
     \begin{tabular}{lcccccccc}
       \toprule
@@ -407,140 +389,76 @@
       \midrule
       Original & 723 & $69.93 \pm 3.30$ & $32.55 \pm 3.71$ & $73.74 \pm 3.26$ & $56.12 \pm 8.60$ & $64.93 \pm 3.71$ & $27.97 \pm 2.62$ & $37.20 \pm 3.89$ \\
       Pearson Corr. & 363 & $70.97 \pm 3.86$ & $35.14 \pm 7.29$ & $74.57 \pm 4.37$ & $54.89 \pm 3.83$ & $64.73 \pm 2.62$ & $28.64 \pm 4.02$ & $37.45 \pm 3.48$ \\
-      \textbf{ANOVA} & \textbf{191} & $\mathbf{74.54 \pm 3.88}$ & $\mathbf{37.71 \pm 5.03}$ & $74.15 \pm 3.08$ & $\mathbf{62.04 \pm 10.59}$ & $\mathbf{68.10 \pm 4.37}$ & $\mathbf{30.08 \pm 2.62}$ & $\mathbf{40.36 \pm 4.10}$ \\
-      RFECV & 175 & $73.31 \pm 3.77$ & $38.12 \pm 6.08$ & $74.48 \pm 2.73$ & $59.32 \pm 10.49$ & $66.90 \pm 3.96$ & $29.30 \pm 1.61$ & $39.08 \pm 3.60$ \\
+      ANOVA & 191 & ${74.54 \pm 3.88}$ & ${37.71 \pm 5.03}$ & $74.15 \pm 3.08$ & ${62.04 \pm 10.59}$ & ${68.10 \pm 4.37}$ & ${30.08 \pm 2.62}$ & ${40.36 \pm 4.10}$ \\
+      \textbf{RFECV} & 175 & $73.31 \pm 3.77$ & $38.12 \pm 6.08$ & $74.48 \pm 2.73$ & $59.32 \pm 10.49$ & $66.90 \pm 3.96$ & $29.30 \pm 1.61$ & $39.08 \pm 3.60$ \\
       \midrule
       Intersection & 176 & $73.09 \pm 4.43$ & $36.58 \pm 7.34$ & $73.06 \pm 4.90$ & $61.15 \pm 14.82$ & $71.24 \pm 2.02$ & $28.75 \pm 1.54$ & $38.76 \pm 4.25$ \\
       \bottomrule
     \end{tabular}
   }%
 
-  \vspace{0.6em}
-  \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,sep=0.4em]{boxgray}
-    \usebeamerfont{footline}\color{coolgray}
-    \textbf{Performance Insight:} Features chosen \textbf{sequentially} yielded stronger performance results compared to doing the importances \textbf{individually} and intersecting the common features.
-  \end{beamercolorbox}
 \end{frame}
 
 % ---------- Subsection Slide: Feature Importance Breakdown ----------
-\begin{frame}{Decision-Tree Modeling --- Feature Importance}
-  \begin{columns}[T]
-    
-    % Left Column: Methodological Framework details
-    \begin{column}{0.42\textwidth}
-      \usebeamerfont{footline}\color{coolgray}
-      \textbf{Cross-Validation Strategy:}
-      \begin{itemize}
-        \item\textbf{StratifiedGroupKFold} with 5 folds grouped by the Patient's MRN
-        \item\textbf{RandomForest} with \textbf{RandomUnderSampler} inside the folds
-      \end{itemize}
+\begin{frame}{Decision-Tree Modeling --- Lead Significance}
 
-      \vspace{0.2em}
-      \textbf{Feature Selection:}
-      \begin{itemize}
-        \item \textbf{Pearson Correlation:} Drops one feature out of colinear pairs sharing a correlation value $> 0.85$.
-        \item \textbf{ANOVA (Analysis of Variance):} Keeps features with $p < 0.05$.
-        \item \textbf{RFECV:} Used roc\_auc scoring to recursively remove features
-      \end{itemize}
-      
-      \vspace{0.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
-        \scriptsize\Lato\color{coolgray}
-        \textbf{Hindsight Note:} Evaluating RFECV on \textit{average\_precision} or \textit{balanced\_accuracy} may have been better for the primary goal of detecting preeclampsia.
-      \end{beamercolorbox}
-    \end{column}
-    
-    % Right Column: Lead distribution chart
-    \begin{column}{0.54\textwidth}
-      \centering
-      {\small\Raleway\bfseries\color{aggieblue} Feature Counts Across Leads}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=0.98\textwidth,height=4.2cm,keepaspectratio]{leadimportance.png}
-      \end{beamercolorbox}
-      \vspace{0.4em}
-      \begin{flushleft}
-        \usebeamerfont{footline}\color{coolgray}
-        \textbf{Lead Significance:} Graph maps feature distribution counts across different leads, showing which leads may be more important.
-      \end{flushleft}
-    \end{column}
-
-  \end{columns}
-\end{frame}
-
-% ---------- Subsection Slide: Feature Selection Matrix ----------
-\begin{frame}{Decision-Tree Modeling --- Multi-Metric Selection Matrix}
-  
-  % [onlytextwidth] removes outer margins to give the wide heatmap maximum breathing room
-  \begin{columns}[c, onlytextwidth] 
-    
-    % Left Column: Maximized Heatmap Allocation (82% width)
-    \begin{column}{0.82\textwidth}
-      \centering
-      {\small\Raleway\bfseries\color{aggieblue} Feature Selection by Methods --- 12 Leads}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=\textwidth,height=4.2cm,keepaspectratio]{Heatmap12lead2.png}
-      \end{beamercolorbox}
-    \end{column}
-    
-    % Right Column: Downsized Legend Allocation (15% width)
-    \begin{column}{0.15\textwidth}
-      \centering
-      \vspace{1.2em} % Subtle vertical alignment adjustment
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=\textwidth,keepaspectratio]{heatmaplegend.png}
-      \end{beamercolorbox}
-    \end{column}
-
-  \end{columns}
-
-  \vspace{0.6em}
-  \rule{\textwidth}{0.4pt}
-
-  % Contextual Breakdown spanning beneath the images
-  \begin{columns}[T, onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      \usebeamerfont{footline}\color{coolgray}
-      \textbf{Feature Selection Methods:} Previous Pearson, ANOVA, and RFECV (roc\_auc), but now includes RFECV (balanced\_accuracy and average\_precision)
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \usebeamerfont{footline}\color{coolgray}
-      \textbf{Pipeline Constraint Note:} The additional balanced\_accuracy and average\_precision are not included for the future ensemble modeling as these were included afterwards. This heatmap is just a showing of how important overall features may be and can tell us whether a feature is universally important across leads.
-    \end{column}
-  \end{columns}
+  \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,shadow=false,sep=0.5em]{boxgray}
+    \centering
+    \includegraphics[width=0.98\textwidth,height=6.0cm,keepaspectratio]{leadimportance.png}
+  \end{beamercolorbox}
 \end{frame}
 
 % ---------- Subsection Slide: Final Sequential Feature Importance ----------
 \begin{frame}{Decision-Tree Modeling --- Final Feature Importance}
-  \begin{columns}[T]
-    
-    % Left Column: Deep Dive into the exact features you called out
-    \begin{column}{0.44\textwidth}
-      \usebeamerfont{footline}\color{coolgray}
-      \textbf{Key Predictor Breakdown:}
-      \begin{itemize}
-        \item \textbf{Highest seen Features:} \texttt{BITFLGS}, \texttt{QRS Intrinsicoid}, and \texttt{STEtoTPeak} were most frequent across the 12-lead array.
-        \item \textbf{NeuroKit Local Features:} The most critical lead-isolated extractors were \textbf{Tp-e}, \textbf{Tp-e/QT}, and \textbf{ST Depression}.
-        \item \textbf{Surviving Global Features:} Beyond individual leads, the non-isolated features that cleared selection were \textbf{$P_{\max}$}, \textbf{$P_{\min}$}, \textbf{T Axis}, and the \textbf{Frontal QRS-T Angle}.
-      \end{itemize}
-    \end{column}
-    
-    % Right Column: The Sequential Feature Importance Bar Chart
-    \begin{column}{0.54\textwidth}
-      \centering
-      {\small\Raleway\bfseries\color{aggieblue} Final Active Modeling Features}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \centering
-        % Generates the horizontal bar chart mapping counts/importance from sequential selection
-        \includegraphics[width=0.98\textwidth,height=3.8cm,keepaspectratio]{featureimportance.png}
-      \end{beamercolorbox}
-      \vspace{0.3em}
-      \begin{flushleft}
+  \centering
+  \vspace{-0.3em}
+  {\small\Raleway\bfseries\color{aggieblue} Final Active Modeling Features}\\[0.4em]
+
+  % Maximizes the bar chart to span the full width of the slide text block
+  \makebox[\textwidth][c]{%
+    \includegraphics[width=1.03\textwidth,height=3.8cm,keepaspectratio]{finalimportance.png}
+  }
+
+  \vspace{0.5em}
+
+  % Three separate structured boxes mapping the key predictors
+  \begin{columns}[T, onlytextwidth]
+
+    % Box 1: Highest Seen Features
+    \begin{column}{0.31\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
         \usebeamerfont{footline}\color{coolgray}
-        \textbf{This distribution} shows the final feature space pruned through the Pearson $\rightarrow$ ANOVA $\rightarrow$ RFECV sequential chain.
-      \end{flushleft}
+        \centering{\textbf{\color{aggieblue}Most Frequent}}\par
+        \vspace{0.4em}
+        \scriptsize
+        \textbf{BITFLGS}, QRS Intrinsicoid, and STEtoTPeak
+      \end{beamercolorbox}
+    \end{column}
+
+    \hfill
+
+    % Box 2: NeuroKit Local Features
+    \begin{column}{0.31\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
+        \usebeamerfont{footline}\color{coolgray}
+        \centering{\textbf{\color{aggieblue}NeuroKit -  Lead}}\par
+        \vspace{0.4em}
+        \scriptsize
+        Tp-e, Tp-e/QT, and ST Depression
+      \end{beamercolorbox}
+    \end{column}
+
+    \hfill
+
+    % Box 3: Surviving Global Features
+    \begin{column}{0.31\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
+        \usebeamerfont{footline}\color{coolgray}
+        \centering{\textbf{\color{aggieblue}NeuroKit - Global}}\par
+        \vspace{0.4em}
+        \scriptsize
+        $P_{\max}$, $P_{\min}$, T Axis, and Frontal QRS-T Angle
+      \end{beamercolorbox}
     \end{column}
 
   \end{columns}
@@ -549,74 +467,57 @@
 % ---------- Subsection Slide: Model Performance Comparison ----------
 \begin{frame}{Decision-Tree Modeling --- Individual vs. Ensemble Performance}
 
-  % Tighten padding slightly to give the text boxes maximum horizontal clearance
-  \setlength{\tabcolsep}{3.5pt}
+  % Tighten padding to give the wide table arrays maximum clearance
+  \setlength{\tabcolsep}{5pt}
+  \vspace{-0.5em}
 
-  \begin{columns}[T, onlytextwidth]
+  % Top Section: Wide horizontal commentary text box
+  \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
+    \begin{itemize}
+      \item \textbf{Weights:} based on AUPRC/sensitivity
+      \item\textbf{RandomizedSearchCV}
+    \end{itemize}
+  \end{beamercolorbox}
 
-    % Left Column: Custom Commentary Text Box Placeholder (34% width)
-    \begin{column}{0.34\textwidth}
-      \vspace{0.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.8em,rightskip=0.8em,sep=0.8em]{boxgray}
+  \vspace{0.4em}
 
-        \usebeamerfont{footline}\color{coolgray}
+  % Middle Section: Full-Width Standalone Base Models Table
+  \centering
+  {\scriptsize\Raleway\bfseries\color{aggieblue} Individual Tree-Based Classifiers}\\[0.2em]
+  \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+    \tiny
+    \resizebox{\textwidth}{!}{%
+      \begin{tabular}{lcccccc}
+        \textbf{Model} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Specificity} & \textbf{Sensitivity} & \textbf{Balanced Accuracy} & \textbf{F1-Score} \\
+        \hline
+        RandomForest & $74.49 \pm 3.77$ & $42.56 \pm 7.60$ & $74.37 \pm 3.20$ & $61.43 \pm 11.36$ & $67.90 \pm 4.30$ & $40.10 \pm 3.86$ \\
+        LightGBM     & $73.25 \pm 3.47$ & $37.30 \pm 7.47$ & $72.95 \pm 4.33$ & $59.62 \pm 9.49$  & $66.28 \pm 2.62$ & $38.24 \pm 1.88$ \\
+        XGBoost      & $74.84 \pm 4.50$ & $40.76 \pm 7.14$ & $74.26 \pm 3.76$ & $61.44 \pm 11.11$ & $67.85 \pm 4.28$ & $40.09 \pm 3.93$ \\
+        CatBoost     & $74.55 \pm 4.94$ & $42.24 \pm 8.67$ & $75.96 \pm 4.81$ & $60.53 \pm 13.37$ & $68.24 \pm 4.56$ & $41.70 \pm 3.90$ \\
+        AdaBoost     & $69.86 \pm 4.43$ & $33.91 \pm 7.71$ & $67.92 \pm 7.96$ & $59.90 \pm 13.17$ & $63.91 \pm 3.04$ & $35.14 \pm 2.44$ \\
+      \end{tabular}%
+    }
+  \end{beamercolorbox}
 
+  \vspace{0.4em}
 
-        \textbf{Model:}
-\begin{itemize}
-    \item \textbf{Unweighted Voting+} consists of: RandomForest, LightGBM, XGBoost, CatBoost, LogisticRegression, and SVM.
-    \item \textbf{Unweighted/Weighted Voting} consists of: RandomForest, LightGBM, XGBoost, CatBoost, and AdaBoost.
-    \item \textbf{Weights:} Votes are weighted [4, 2, 3, 4, 1] (respective to the models) based on AUPRC and sensitivity.
-    \item Each individual model is tuned on the 175 features using RandomizedSearchCV.
-\end{itemize}
+  % Bottom Section: Full-Width Ensemble Architectures Table
+  {\scriptsize\Raleway\bfseries\color{aggieblue} Multi-Model Ensemble}\\[0.2em]
+  \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+    \tiny
+    \resizebox{\textwidth}{!}{%
+      \begin{tabular}{lcccccc}
+        \textbf{Ensemble} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Specificity} & \textbf{Sensitivity} & \textbf{Balanced Accuracy} & \textbf{F1-Score} \\
+        \hline
+        Unweighted Voting  & $74.54 \pm 4.16$ & $41.81 \pm 7.86$ & $74.26 \pm 3.95$ & $59.32 \pm 10.70$ & $66.79 \pm 3.60$ & $38.94 \pm 2.99$ \\
+        Weighted Voting    & $74.75 \pm 4.35$ & $42.26 \pm 7.92$ & $74.75 \pm 4.48$ & $60.23 \pm 10.88$ & $67.49 \pm 3.45$ & $39.80 \pm 2.76$ \\
+        \textbf{Unweighted Voting+} & $\mathbf{75.72 \pm 3.94}$ & $41.58 \pm 8.03$ & $74.64 \pm 4.70$ & $\mathbf{62.35 \pm 10.93}$ & $\mathbf{68.50 \pm 3.22}$ & $40.85 \pm 2.24$ \\
+        Stacking           & $74.77 \pm 4.35$ & $42.43 \pm 7.59$ & $74.37 \pm 4.18$ & $59.62 \pm 10.80$ & $67.00 \pm 3.46$ & $39.17 \pm 2.79$ \\
+        Bagging CatBoost   & $74.81 \pm 4.98$ & $41.96 \pm 8.86$ & $74.70 \pm 4.68$ & $59.62 \pm 15.19$ & $67.16 \pm 5.59$ & $39.10 \pm 5.21$ \\
+      \end{tabular}%
+    }
+  \end{beamercolorbox}
 
-      \end{beamercolorbox}
-    \end{column}
-
-    % Right Column: Fixed Native LaTeX Performance Tables (63% width)
-    \begin{column}{0.63\textwidth}
-      \centering
-
-      % Top Section: Standalone Base Models Table
-      {\scriptsize\Raleway\bfseries\color{aggieblue} Standalone Tree-Based Classifiers}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
-        \tiny
-        % \resizebox ensures the table never clips past the gray container boundaries
-        \resizebox{\textwidth}{!}{
-          \begin{tabular}{lcccccc}
-            \textbf{Model} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Specificity} & \textbf{Sensitivity} & \textbf{Balanced Accuracy} & \textbf{F1-Score} \\
-            \hline
-            RandomForest & $74.49 \pm 3.77$ & $42.56 \pm 7.60$ & $74.37 \pm 3.20$ & $61.43 \pm 11.36$ & $67.90 \pm 4.30$ & $40.10 \pm 3.86$ \\
-            LightGBM     & $73.25 \pm 3.47$ & $37.30 \pm 7.47$ & $72.95 \pm 4.33$ & $59.62 \pm 9.49$  & $66.28 \pm 2.62$ & $38.24 \pm 1.88$ \\
-            XGBoost      & $74.84 \pm 4.50$ & $40.76 \pm 7.14$ & $74.26 \pm 3.76$ & $61.44 \pm 11.11$ & $67.85 \pm 4.28$ & $40.09 \pm 3.93$ \\
-            CatBoost     & $74.55 \pm 4.94$ & $42.24 \pm 8.67$ & $75.96 \pm 4.81$ & $60.53 \pm 13.37$ & $68.24 \pm 4.56$ & $41.70 \pm 3.90$ \\
-            AdaBoost     & $69.86 \pm 4.43$ & $33.91 \pm 7.71$ & $67.92 \pm 7.96$ & $59.90 \pm 13.17$ & $63.91 \pm 3.04$ & $35.14 \pm 2.44$ \\
-          \end{tabular}
-        }
-      \end{beamercolorbox}
-
-      \vspace{0.6em}
-
-      % Bottom Section: Ensemble Architectures Table
-      {\scriptsize\Raleway\bfseries\color{aggieblue} Multi-Model Ensemble Frameworks}\\[0.3em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
-        \tiny
-        \resizebox{\textwidth}{!}{
-          \begin{tabular}{lcccccc}
-            \textbf{Ensemble} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Specificity} & \textbf{Sensitivity} & \textbf{Balanced Accuracy} & \textbf{F1-Score} \\
-            \hline
-            Unweighted Voting  & $74.54 \pm 4.16$ & $41.81 \pm 7.86$ & $74.26 \pm 3.95$ & $59.32 \pm 10.70$ & $66.79 \pm 3.60$ & $38.94 \pm 2.99$ \\
-            Weighted Voting    & $74.75 \pm 4.35$ & $42.26 \pm 7.92$ & $74.75 \pm 4.48$ & $60.23 \pm 10.88$ & $67.49 \pm 3.45$ & $39.80 \pm 2.76$ \\
-            \textbf{Unweighted Voting+} & $\mathbf{75.72 \pm 3.94}$ & $41.58 \pm 8.03$ & $74.64 \pm 4.70$ & $\mathbf{62.35 \pm 10.93}$ & $\mathbf{68.50 \pm 3.22}$ & $40.85 \pm 2.24$ \\
-            Stacking           & $74.77 \pm 4.35$ & $42.43 \pm 7.59$ & $74.37 \pm 4.18$ & $59.62 \pm 10.80$ & $67.00 \pm 3.46$ & $39.17 \pm 2.79$ \\
-            Bagging CatBoost   & $74.81 \pm 4.98$ & $41.96 \pm 8.86$ & $74.70 \pm 4.68$ & $59.62 \pm 15.19$ & $67.16 \pm 5.59$ & $39.10 \pm 5.21$ \\
-          \end{tabular}
-        }
-      \end{beamercolorbox}
-
-    \end{column}
-
-  \end{columns}
 \end{frame}
 
 % ---------- Subsection Slide: 6 Lead Progression ----------
@@ -904,48 +805,66 @@
 \end{frame}
 
 % ---------- Conclusion Slide ----------
-\begin{frame}{Conclusion}
-  {\small\Raleway\bfseries\color{aggieblue} Key Findings}\par\vspace{0.3em}
-  \usebeamerfont{footline}\color{coolgray}
-  \begin{itemize}\setlength{\itemsep}{2pt}\setlength{\parskip}{0pt}
-    \item 12-lead ECGs contain a detectable \textbf{preeclampsia signal} --- both feature-engineered and neural approaches exceed chance on 30-split patient-grouped validation
-    \item Decision-tree ensemble (\textbf{Unweighted Voting+}): \textbf{AUROC $75.72 \pm 3.94$}, balanced accuracy $68.50 \pm 3.22$ --- stable baseline on 175 handcrafted features
-    \item PerLeadCNN: \textbf{AUROC $0.702 \pm 0.043$}, \textbf{80.7\% sensitivity}, \textbf{NPV 92.8\%} at screening threshold --- only \textbf{29{,}490 parameters} on raw waveforms
-    \item After 250 autonomous experiments, \textbf{simplicity dominated}: SE, attention, skip connections, and frequency-domain branches all failed to improve over a basic per-lead CNN
-    \item Grad-CAM highlights \textbf{lead aVL} and \textbf{P-wave / QT-interval} regions, consistent with PE-associated ECG changes in literature
-  \end{itemize}
-
-  \vspace{0.3em}
-  \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.5em,rightskip=0.5em,sep=0.3em]{boxgray}
-    \scriptsize\Lato\color{coolgray}
-    \textbf{Takeaway:} ECG-based PE screening is \textbf{feasible}. The $\sim$0.70 AUROC ceiling is data-limited ($n{=}335$ PE+), not model-limited --- larger, multi-site cohorts are the path to clinical utility.
-  \end{beamercolorbox}
+{
+\setbeamertemplate{background canvas}{
+  \includegraphics[width=\paperwidth, height=\paperheight]{Conclusion.png}
+}
+\begin{frame}[plain]
 \end{frame}
+}
 
 % ---------- Future Work Slide ----------
 \begin{frame}{Future Work}
   \begin{columns}[T]
 
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Data \& Validation}\\[0.4em]
-      \usebeamerfont{footline}\color{coolgray}
+    % --- Left Column ---
+    \begin{column}{0.38\textwidth}
+      \color{coolgray}
+
+      {\large\Raleway\bfseries\color{black} Data \& Validation}\\[0.6em]
       \begin{itemize}
-        \item \textbf{Larger, multi-site datasets} --- the $\sim$0.70 AUROC ceiling is data-limited, not model-limited; more PE+ cases would directly improve stability and discriminative power
-        \item \textbf{Prospective validation} on newly collected ECGs to test real-world performance
-        \item \textbf{Temporal analysis:} ECGs at multiple gestational time points to study when PE becomes detectable
-        \item \textbf{Beat-level features:} extract QTc, ST deviation, and T-wave morphology as auxiliary inputs alongside the raw waveform
+        \setlength{\itemsep}{0.4em}
+        \item Larger, multi-site datasets
+        \item Temporal analysis
+        \item Subgroup analysis
+      \end{itemize}
+
+      \vspace{1.5em}
+
+      {\large\Raleway\bfseries\color{black} Modeling \& Deployment}\\[0.6em]
+      \begin{itemize}
+        \setlength{\itemsep}{0.4em}
+        \item Hybrid ensemble
+        \item Clinical decisions support
+        \item Lightweight deployment and decreased number of leads
       \end{itemize}
     \end{column}
 
-    \begin{column}{0.48\textwidth}
-      {\small\Raleway\bfseries\color{aggieblue} Modeling \& Deployment}\\[0.4em]
-      \usebeamerfont{footline}\color{coolgray}
-      \begin{itemize}
-        \item \textbf{Hybrid ensemble:} combine handcrafted features with neural waveform representations for a single, stronger classifier
-        \item \textbf{Transfer learning:} pretrain on PTB-XL (22K 12-lead ECGs) before fine-tuning on PE task
-        \item \textbf{30-model ensemble:} average predictions across the 30 trained PerLeadCNN splits for a calibrated ensemble predictor
-        \item \textbf{Clinical decision support:} integrate Grad-CAM lead importance into physician-facing reports for explainable per-lead risk scores
-      \end{itemize}
+    % --- Right Column ---
+    \begin{column}{0.58\textwidth}
+      \raggedright
+
+      % Top Section: Callout text and thermometer image
+      \begin{minipage}[c]{0.60\textwidth}
+        \raggedright
+        \small\Lato\color{black}\bfseries
+        End Goal: Make ECG-related diagnoses as easy and available to people as a thermometer is!
+      \end{minipage}
+      \hfill
+      \begin{minipage}[c]{0.36\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{thermometer.png}
+      \end{minipage}
+
+      \vspace{1.0em}
+
+      % Bottom Section: Bedside ECG machine print graphic
+      \begin{block}{}
+        \label{fig:ecg_print}
+        \includegraphics[width=0.95\textwidth]{ecg_printing.png}
+      \end{block}
+
+      \hfill
     \end{column}
 
   \end{columns}
