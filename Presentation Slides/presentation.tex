@@ -191,6 +191,7 @@
 \subsection{Autonomous Architecture Search}
 \subsection{PerLeadCNN Architecture}
 \subsection{Model Performance}
+\subsection{Clinical Utility}
 \subsection{Interpretability}
 \section{Conclusion}
 \section{Future Work}
@@ -610,20 +611,20 @@
 
   \end{columns}
 
-  \vspace{0.3em}
+  \vspace{0.4em}
   {\small\Raleway\bfseries\color{aggieblue}\centering 7-Transform On-the-Fly Augmentation\par}\vspace{0.2em}
-  \resizebox{\textwidth}{!}{%
-    \begin{tabular}{lllp{8cm}}
+  \resizebox{0.7\textwidth}{!}{%
+    \begin{tabular}{lll}
       \toprule
-      \textbf{Transform} & \textbf{Prob.} & \textbf{Range} & \textbf{Description} \\
+      \textbf{Transform} & \textbf{Prob.} & \textbf{Range} \\
       \midrule
-      Gaussian Noise & 50\% & $\sigma \in [0.01, 0.05]$ & Simulates sensor/environmental noise \\
-      Amplitude Scale & 50\% & $\pm 15\%$ & Models gain variation across devices \\
-      Time Shift & 30\% & $\pm 150$ samples & Circular shift ($\pm$0.6\,s at 250\,Hz) \\
-      Lead Dropout & 10\% & 12\% per lead & Zeroes individual leads; forces cross-lead redundancy \\
-      Cutout & 25\% & 50--200 samples & Zeros a contiguous random segment \\
-      Baseline Wander & 20\% & 0.05--0.5~Hz & Injects low-frequency sinusoid \\
-      Speed Perturb & 10\% & $\pm 5\%$ & Resample to stretch/compress; models HR variability \\
+      Gaussian Noise & 50\% & $\sigma \in [0.01, 0.05]$ \\
+      Amplitude Scale & 50\% & $\pm 15\%$ \\
+      Time Shift & 30\% & $\pm 150$ samples \\
+      Lead Dropout & 10\% & 12\% per lead \\
+      Cutout & 25\% & 50--200 samples \\
+      Baseline Wander & 20\% & 0.05--0.5~Hz \\
+      Speed Perturb & 10\% & $\pm 5\%$ \\
       \bottomrule
     \end{tabular}
   }%
@@ -631,46 +632,28 @@
 
 % ---------- Subsection Slide: Autonomous Architecture Search ----------
 \begin{frame}{Neural Network Modeling --- Autonomous Architecture Search}
-  \begin{columns}[T]
+  \centering
 
-    \begin{column}{0.48\textwidth}
-      \usebeamerfont{footline}\color{coolgray}
-      {\small\Raleway\bfseries\color{aggieblue} LLM-Driven Experiment Loop}\\[0.3em]
-      An autonomous AI agent (Karpathy's \textit{autoresearch} framework) iteratively edited the model code, trained, and evaluated --- keeping improvements and discarding regressions:
-      \begin{enumerate}
-        \item Modify \texttt{train.py} with a new architectural idea
-        \item Train for up to 80 epochs (10-min wall-clock budget)
-        \item Evaluate on held-out validation split
-        \item If AUROC improves $\to$ keep; otherwise $\to$ discard
-        \item Repeat (250 experiments total)
-      \end{enumerate}
+  {\small\Raleway\bfseries\color{aggieblue} 250 LLM-Driven Experiments (Karpathy's autoresearch)}\par\vspace{0.2em}
+  \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,shadow=false,sep=0.2em]{boxgray}
+    \centering
+    \includegraphics[width=0.98\textwidth,height=3.2cm,keepaspectratio]{round_evolution.png}
+  \end{beamercolorbox}
 
-      \vspace{0.4em}
-      {\small\Raleway\bfseries\color{aggieblue} Architectures Explored}\\[0.2em]
-      \begin{itemize}
-        \item RepNet-SE (depthwise-sep + SE + cross-lead attention)
-        \item FlatCNN, PerLeadCNN, ResNet-style
-        \item Inception, SincNet, CWT dual-path
-        \item Dilated convolutions, LeadGroupCNN
-        \item TSConv (EEGNet-inspired, only 3{,}990 params)
-      \end{itemize}
-    \end{column}
-
+  \vspace{0.2em}
+  \begin{columns}[c]
     \begin{column}{0.48\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} Architecture Family Comparison (30-Split)}\\[0.2em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=0.96\textwidth,height=3.0cm,keepaspectratio]{arch_family_comparison.png}
-      \end{beamercolorbox}
-
-      \vspace{0.2em}
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \centering
-        \includegraphics[width=0.96\textwidth,height=2.2cm,keepaspectratio]{auroc_vs_params.png}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \includegraphics[width=0.96\textwidth,height=2.4cm,keepaspectratio]{arch_family_comparison.png}
       \end{beamercolorbox}
     \end{column}
-
+    \begin{column}{0.48\textwidth}
+      \centering
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \includegraphics[width=0.96\textwidth,height=2.4cm,keepaspectratio]{auroc_vs_params.png}
+      \end{beamercolorbox}
+    \end{column}
   \end{columns}
 \end{frame}
 
@@ -678,9 +661,8 @@
 \begin{frame}{Neural Network Modeling --- PerLeadCNN Architecture}
   \begin{columns}[T]
 
-    \begin{column}{0.38\textwidth}
+    \begin{column}{0.35\textwidth}
       \centering
-      {\small\Raleway\bfseries\color{aggieblue} Winning Architecture}\\[0.2em]
       \begin{tikzpicture}[
         x=1cm, y=1cm,
         block/.style={rounded corners=2pt, minimum width=2.6cm, minimum height=0.24cm,
@@ -724,22 +706,41 @@
       \end{tikzpicture}
     \end{column}
 
-    \begin{column}{0.58\textwidth}
-      \usebeamerfont{footline}\color{coolgray}
-      {\small\Raleway\bfseries\color{aggieblue} Design Rationale}\\[0.2em]
-      \begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
-        \item \textbf{Per-lead processing:} each lead passes through the \textit{same} shared CNN --- the classifier learns which leads carry diagnostic signal
-        \item \textbf{Large-to-small kernels} ($k = 31 \to 21 \to 11$): captures broad morphology first, refines to finer temporal features
-        \item \textbf{Weight sharing} across 12 leads acts as implicit regularizer, critical with only 335 positive cases
-        \item \textbf{No attention, no SE, no skip connections} --- every complex component failed to improve 30-split AUROC
-      \end{itemize}
-
-      \vspace{0.2em}
-      {\small\Raleway\bfseries\color{aggieblue} 30-Split Validation}\\[0.2em]
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
+    \begin{column}{0.61\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} 30-Split AUROC Distribution}\\[0.2em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
         \centering
-        \includegraphics[width=0.96\textwidth,height=2.6cm,keepaspectratio]{perlead_30split_distribution.png}
+        \includegraphics[width=0.96\textwidth,height=3.4cm,keepaspectratio]{perlead_30split_distribution.png}
       \end{beamercolorbox}
+
+      \vspace{0.3em}
+      \begin{columns}[T, onlytextwidth]
+        \begin{column}{0.32\textwidth}
+          \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
+            \usebeamerfont{footline}\color{coolgray}
+            \centering{\textbf{\color{aggieblue}Per-Lead Shared}}\par
+            \vspace{0.3em}
+            \scriptsize Same CNN for all 12 leads --- implicit regularizer
+          \end{beamercolorbox}
+        \end{column}
+        \begin{column}{0.32\textwidth}
+          \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
+            \usebeamerfont{footline}\color{coolgray}
+            \centering{\textbf{\color{aggieblue}Large$\to$Small $k$}}\par
+            \vspace{0.3em}
+            \scriptsize $31 \to 21 \to 11$: broad morphology first, then fine detail
+          \end{beamercolorbox}
+        \end{column}
+        \begin{column}{0.32\textwidth}
+          \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.4em]{boxgray}
+            \usebeamerfont{footline}\color{coolgray}
+            \centering{\textbf{\color{aggieblue}No Extras}}\par
+            \vspace{0.3em}
+            \scriptsize SE, attention, skip connections all failed to help
+          \end{beamercolorbox}
+        \end{column}
+      \end{columns}
     \end{column}
 
   \end{columns}
@@ -748,9 +749,24 @@
 % ---------- Subsection Slide: Model Performance ----------
 \begin{frame}{Neural Network Modeling --- Model Performance (30-Split)}
   \centering
+  \vspace{-0.3em}
 
-  {\small\Raleway\bfseries\color{aggieblue} PerLeadCNN --- 30-Split Patient-Grouped Validation (mean $\pm$ std)}\par\vspace{0.3em}
+  \begin{columns}[c]
+    \begin{column}{0.55\textwidth}
+      \centering
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \includegraphics[width=0.98\textwidth,height=3.6cm,keepaspectratio]{roc_pr_curves.png}
+      \end{beamercolorbox}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \includegraphics[width=0.98\textwidth,height=3.6cm,keepaspectratio]{prediction_distribution.png}
+      \end{beamercolorbox}
+    \end{column}
+  \end{columns}
 
+  \vspace{0.3em}
   \resizebox{0.85\textwidth}{!}{%
     \begin{tabular}{lcccccc}
       \toprule
@@ -767,41 +783,101 @@
   \begin{columns}[c]
     \begin{column}{0.48\textwidth}
       \centering
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \includegraphics[width=0.96\textwidth,height=2.6cm,keepaspectratio]{clinical_thresholds.png}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \includegraphics[width=0.96\textwidth,height=2.0cm,keepaspectratio]{clinical_thresholds.png}
       \end{beamercolorbox}
     \end{column}
     \begin{column}{0.48\textwidth}
       \centering
-      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-        \includegraphics[width=0.96\textwidth,height=2.6cm,keepaspectratio]{perlead_architecture.png}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \includegraphics[width=0.96\textwidth,height=2.0cm,keepaspectratio]{perlead_architecture.png}
       \end{beamercolorbox}
     \end{column}
   \end{columns}
+\end{frame}
+
+% ---------- Subsection Slide: Clinical Utility ----------
+\begin{frame}{Neural Network Modeling --- Clinical Utility}
+  \begin{columns}[c]
+
+    \begin{column}{0.55\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} Confusion Matrix (Best Split)}\\[0.2em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \centering
+        \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{confusion_matrix.png}
+      \end{beamercolorbox}
+    \end{column}
+
+    \begin{column}{0.42\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} Decision Curve Analysis}\\[0.2em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \centering
+        \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{decision_curve.png}
+      \end{beamercolorbox}
+    \end{column}
+
+  \end{columns}
 
   \vspace{0.2em}
-  \begin{itemize}\usebeamerfont{footline}\color{coolgray}
-    \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}
-    \item Screening threshold catches \textbf{81\% of PE+} with \textbf{NPV 93\%} --- a negative result is correct 93\% of the time
-    \item AUROC range: 0.627--0.796 across 30 splits ($n \approx 67$ PE+ per split)
-    \item As a \textbf{screening tool}, high sensitivity/NPV preferred --- false positives trigger workup, missed PE risks harm
-  \end{itemize}
+  \begin{columns}[T, onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+        \usebeamerfont{footline}\color{coolgray}
+        \centering \textbf{86\%} of PE+ patients correctly identified; only 8 missed
+      \end{beamercolorbox}
+    \end{column}
+    \hfill
+    \begin{column}{0.48\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+        \usebeamerfont{footline}\color{coolgray}
+        \centering Net benefit exceeds treat-all and treat-none across clinically relevant thresholds
+      \end{beamercolorbox}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 % ---------- Subsection Slide: Interpretability --- Grad-CAM ----------
-\begin{frame}{Neural Network Modeling --- Interpretability (Grad-CAM)}
-  \centering
-  \begin{beamercolorbox}[wd=0.95\textwidth,rounded=true,leftskip=0.1em,rightskip=0.1em,sep=0.1em]{boxgray}
-    \includegraphics[width=0.98\textwidth,height=4.2cm,keepaspectratio]{gradcam_aggregate.png}
-  \end{beamercolorbox}
+\begin{frame}{Neural Network Modeling --- Interpretability}
+  \begin{columns}[c]
+
+    \begin{column}{0.58\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} Grad-CAM Saliency (PE+ vs Normal)}\\[0.2em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \centering
+        \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{gradcam_aggregate.png}
+      \end{beamercolorbox}
+    \end{column}
+
+    \begin{column}{0.38\textwidth}
+      \centering
+      {\small\Raleway\bfseries\color{aggieblue} FC Weight Magnitude per Lead}\\[0.2em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.1em]{boxgray}
+        \centering
+        \includegraphics[width=0.98\textwidth,height=5.0cm,keepaspectratio]{lead_importance.png}
+      \end{beamercolorbox}
+    \end{column}
+
+  \end{columns}
 
   \vspace{0.2em}
-  \begin{itemize}\usebeamerfont{footline}\color{coolgray}
-    \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}
-    \item \textbf{Method:} Grad-CAM on final conv layer --- highlights temporal regions driving classification per lead
-    \item \textbf{Lead aVL} has highest differential saliency ($+$0.042), followed by \textbf{V3} and \textbf{I} --- left ventricular leads, consistent with LV strain in PE (Melchiorre et al.\ 2012)
-    \item Saliency peaks in \textbf{P-wave} and \textbf{QT-interval} regions, consistent with prolonged QT (Aboshady et al.\ 2025) and altered P-wave duration (Angeli et al.\ 2015)
-  \end{itemize}
+  \begin{columns}[T, onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+        \usebeamerfont{footline}\color{coolgray}
+        \centering Saliency peaks in \textbf{P-wave} and \textbf{QT-interval} regions
+      \end{beamercolorbox}
+    \end{column}
+    \hfill
+    \begin{column}{0.48\textwidth}
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=false,sep=0.3em]{boxgray}
+        \usebeamerfont{footline}\color{coolgray}
+        \centering \textbf{Lead aVL} highest differential saliency --- consistent with LV strain in PE
+      \end{beamercolorbox}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 % ---------- Conclusion Slide ----------
