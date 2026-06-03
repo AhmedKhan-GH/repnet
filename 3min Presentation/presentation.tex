@@ -355,6 +355,7 @@
 
     % Right Column: Text size increased, graphics scaled down to make room
     \begin{column}{0.51\textwidth}
+    \vspace{-0.4em}
       \raggedright 
 
       % Top Row: Callout text (bumped to \small) and thermometer
@@ -370,8 +371,23 @@
       \end{minipage}
 
       % Bottom Row: ECG machine print graphic
+      \vspace{0.6em}
       \centering
-      \includegraphics[width=0.85\textwidth]{ecg_printing.png}
+      {\scriptsize\Raleway\bfseries\color{aggieblue} 6 Lead Progression Results}\\[0.3em]
+      \begin{beamercolorbox}[wd=\textwidth,rounded=true,leftskip=0.2em,rightskip=0.2em,sep=0.4em]{boxgray}
+        \small
+        \resizebox{\textwidth}{!}{
+          \begin{tabular}{lcc}
+            \textbf{Metric} & \textbf{12 Leads} & \textbf{6 Leads} \\
+            \hline
+            Balanced Accuracy & $64.4\% \pm 11.3\%$ & $63.0\% \pm 7.7\%$ \\
+            Precision & $0.66 \pm 0.18$ & $0.64 \pm 0.13$ \\
+            Recall & $0.61 \pm 0.16$ & $0.60 \pm 0.13$ \\
+            F1 Score & $0.62 \pm 0.14$ & $0.61 \pm 0.11$ \\
+            ROC-AUC & $0.64 \pm 0.11$ & $0.63 \pm 0.08$ \\
+          \end{tabular}
+        }
+      \end{beamercolorbox}
       
     \end{column}
 
