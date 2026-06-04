@@ -72,9 +72,9 @@
 % Adjusted horizontal spacing to perfectly center the QR code inside the open visual gap
 \logoleft{%
   \makebox[0pt][l]{%
-    \vcenter{\hbox{\includegraphics[height=9cm]{logo.png}}}% Left RUbiNet Logo
+    \ensuremath{\vcenter{\hbox{\includegraphics[height=9cm]{logo.png}}}}% Left RUbiNet Logo
     \hspace*{5.8cm}% Fine-tuned spacing to position the QR code exactly in the middle of the gap
-    \vcenter{\hbox{\includegraphics[height=8.0cm]{qrcode.png}}}% Correct size-profile QR code
+    \ensuremath{\vcenter{\hbox{\includegraphics[height=8.0cm]{qrcode.png}}}}% Correct size-profile QR code
   }%
 }
 
@@ -82,7 +82,7 @@
 \logoright{%
   \setlength{\tabcolsep}{0pt}%
   \begin{tabular*}{\colwidth}{@{\extracolsep{\fill}} c c c}
-    & \vcenter{\hbox{\includegraphics[height=5.5cm]{ece_header_white_text.png}}} & \vcenter{\hbox{\color{white}\fontsize{80}{80}\selectfont\bfseries 117}}
+    & \ensuremath{\vcenter{\hbox{\includegraphics[height=5.5cm]{ece_header_white_text.png}}}} & \ensuremath{\vcenter{\hbox{\color{white}\fontsize{80}{80}\selectfont\bfseries 117}}}
   \end{tabular*}%
 }
 
@@ -103,15 +103,15 @@
 \begin{column}{\colwidth}
 
   \begin{block}{Introduction}
-    Preeclampsia is a hypertensive disorder of pregnancy that can occur after 20 weeks of gestation~\cite{mayoclinic_preeclampsia}. Butler et al.\ showed a ResNet CNN can detect preeclampsia from raw ECG waveforms~\cite{butler2024preeclampsia}. We present RepNet, a pair of machine-learning models for risk estimation of preeclampsia from 12-lead ECGs. RepNet-SE is a neural network RepNet-RF is a decision-tree ensemble trained on features extracted via NeuroKit2 and GE MUSE-reported measurements. We will use 2,178 clinical 12-lead ECGs (335 PreE+, 15.4\%) from 1,383 patients at UC Davis Health.
+    Preeclampsia is a hypertensive disorder of pregnancy that can occur after 20 weeks of gestation~\cite{mayoclinic_preeclampsia}. Butler et al.\ showed a ResNet CNN can detect preeclampsia from raw ECG waveforms~\cite{butler2024preeclampsia}. We present RepNet, a pair of machine-learning models for risk estimation of preeclampsia from 12-lead ECGs. RepNet-SE is a channel independent convolutional neural network and RepNet-RF is a decision-tree ensemble trained on features extracted via NeuroKit2 and GE MUSE-reported measurements. We used 2,178 clinical 12-lead ECGs (335 PreE+, 15.4\%) from 1,383 patients at UC Davis Health.
   \end{block}
 
   \begin{block}{RepNet-SE: Neural Network Methods}
-    RepNet-SE is a CNN with three stages of convolutions, squeeze-and-excitation blocks, and 4-head cross-lead multi-head attention, fused via per-lead global average pooling and a lead-attention gate.
+    RepNet-SE is a per-lead CNN: each of the 12 leads passes independently through a shared-weight 3-stage 1D convolutional backbone (kernels 31/21/11, Mish activations, strided downsampling). The pooled per-lead features are concatenated into a 576-dim vector and mapped to logits by a single linear layer (29,490 parameters).
 
     \begin{itemize}
-      \item \textbf{Preprocessing:} Baseline wander removal, notch filtering, and per-lead z-score normalization
-      \item \textbf{Training:} 5-model bagging with patient-grouped stratified splits, Adam optimizer, and class-weighted cross-entropy (20 random seeds with 80/20 patient-grouped splits)
+      \item \textbf{Preprocessing:} Per-lead 0.5\,Hz high-pass (baseline wander removal), 60\,Hz notch filtering, z-score normalization, and downsampling to 250\,Hz
+      \item \textbf{Training:} AdamW with cosine annealing and focal loss ($\gamma=1.0$) over a class-balanced sampler, early stopping on validation AUROC; evaluated across 30 patient-grouped 80/20 splits (no patient leakage)
     \end{itemize}
   \end{block}
 
@@ -119,15 +119,16 @@
     \begin{figure}
       \centering
       % ONLY THESE TWO PLOTS ARE SHRUNK TO PREVENT BOTTOM OVERFLOW
-      \includegraphics[width=0.80\colwidth]{roc_pr_curves.png}
+      \includegraphics[width=0.82\colwidth]{roc_pr_curves.png}
     \end{figure}
-    \vspace{-1em}
+    \vspace{-1.5em}
     \begin{figure}
       \centering
-      \includegraphics[width=0.80\colwidth]{pred_histogram.png}
+      \includegraphics[width=0.86\colwidth]{pred_histogram.png}
     \end{figure}
+    \vspace{-0.5em}
 
-    Best AUROC = 0.787, AUPRC = 0.362, Brier score = 0.275. The predicted probability distribution shows clear rightward shift for preeclamptic cases, with Youden's optimal threshold at $\tau = 0.621$.
+    Best split: AUROC = 0.779, AUPRC = 0.485 (test $n=446$, 15.7\% PE+). The model separates classes well (Youden's J = 0.439), though raw scores are skewed high (Brier = 0.483) with an optimal threshold at $\tau = 0.915$.
   \end{block}
 
 \end{column}
@@ -139,18 +140,30 @@
 % =========================================================
 \begin{column}{\colwidth}
 
+  \begin{table}
+    \centering
+    \footnotesize
+    \resizebox{0.95\colwidth}{!}{%
+    \begin{tabular}{l c c c c c c}
+      \toprule
+      \textbf{Operating Point} & \textbf{AUROC} & \textbf{AUPRC} & \textbf{Spec.} & \textbf{Sens.} & \textbf{Bal.\ Acc.} & \textbf{F1} \\
+      \midrule
+      Youden's J ($\tau\!=\!0.61$) & 70.9$\pm$4.9 & 34.2$\pm$7.5 & 62.7$\pm$12.6 & 73.0$\pm$9.2 & 67.9$\pm$3.8 & 40.4$\pm$6.9 \\
+      Sens.\ $\geq$ 80\% ($\tau\!=\!0.55$) & 70.9$\pm$4.9 & 34.2$\pm$7.5 & 49.6$\pm$8.9 & \textbf{80.7$\pm$0.5} & 65.1$\pm$4.4 & 36.7$\pm$6.1 \\
+      \bottomrule
+    \end{tabular}%
+    }
+  \end{table}
+  \vspace{0.5em}
+  {\small Mean $\pm$ std over 30 patient-grouped 80/20 splits (29{,}490 params).\par}
+
   \begin{block}{RepNet-SE: Model Interpretability}
     \begin{figure}
       \centering
-      \includegraphics[width=0.95\colwidth]{saliency_poster_lead_II.png}
-    \end{figure}
-    \vspace{-1em}
-    \begin{figure}
-      \centering
-      \includegraphics[width=0.95\colwidth]{crosslead_attention_stages.png}
+      \includegraphics[width=\colwidth]{saliency_poster_lead_II.png}
     \end{figure}
 
-    Grad-CAM saliency on Lead II highlights QRS and ST-segment regions for true positives, confirming the model focuses on clinically relevant morphology. Cross-lead attention shows increasing specialization across stages, with lateral and inferior leads receiving stronger weight. Vertical stripes indicate all query leads attend to the same informative keys.
+    Combined Integrated-Gradients and Grad-CAM saliency on Lead II concentrates on the QRS complexes and ST segments. True positives attribute toward PE (red) at these landmarks --- consistent with the cardiac effects of preeclampsia --- while true negatives attribute toward Normal (blue) at the same complexes.
   \end{block}
 
   \begin{block}{RepNet-RF: Decision-Tree Methods}
