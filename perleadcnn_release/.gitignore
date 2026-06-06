@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data is PHI — never commit it (see DATA.md)
+data/
+*.csv
+
+# Retrained outputs (the released run, multisplit_dbb6f49, is committed)
+results/multisplit_*/
+!results/multisplit_dbb6f49/
+
+.DS_Store
+.env

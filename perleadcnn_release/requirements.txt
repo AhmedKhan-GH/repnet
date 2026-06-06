@@ -1,0 +1,15 @@
+# Pinned to the versions used to produce AND verify the released results.
+#
+# scikit-learn is pinned deliberately: the patient-grouped split RNG
+# (StratifiedGroupKFold) must match exactly to reconstruct the same test
+# sets, so a different scikit-learn version can change which patients land
+# in each split and break exact reproduction.
+torch==2.11.0
+numpy==2.4.4
+scipy==1.17.1
+pandas==3.0.2
+scikit-learn==1.7.2
+matplotlib==3.10.9
+
+# Optional, for running the reproduction test suite:
+pytest==9.0.3
