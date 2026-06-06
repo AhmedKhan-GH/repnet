@@ -7,6 +7,10 @@ out
 *.out
 *.pdf
 *.synctex.gz
+*.fls
+*.fdb_latexmk
+*.xdv
+missfont.log
 .latexmkrc
 .env
 

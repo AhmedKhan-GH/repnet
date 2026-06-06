@@ -82,7 +82,7 @@
 \logoright{%
   \setlength{\tabcolsep}{0pt}%
   \begin{tabular*}{\colwidth}{@{\extracolsep{\fill}} c c c}
-    & \ensuremath{\vcenter{\hbox{\includegraphics[height=5.5cm]{ece_header_white_text.png}}}} & \ensuremath{\vcenter{\hbox{\color{white}\fontsize{80}{80}\selectfont\bfseries 117}}}
+    & \ensuremath{\vcenter{\hbox{\hspace*{1cm}\includegraphics[height=5.5cm]{ece_header_white_text.png}}}} & \ensuremath{\vcenter{\hbox{\color{white}\fontsize{80}{80}\selectfont\bfseries 117}}}
   \end{tabular*}%
 }
 
@@ -140,6 +140,8 @@
 % =========================================================
 \begin{column}{\colwidth}
 
+  \vspace{2.4cm}
+
   \begin{table}
     \centering
     \footnotesize
@@ -163,7 +165,7 @@
       \includegraphics[width=\colwidth]{saliency_poster_lead_II.png}
     \end{figure}
 
-    Combined Integrated-Gradients and Grad-CAM saliency on Lead II concentrates on the QRS complexes and ST segments. True positives attribute toward PE (red) at these landmarks --- consistent with the cardiac effects of preeclampsia --- while true negatives attribute toward Normal (blue) at the same complexes.
+    Combined Integrated-Gradients and Grad-CAM saliency on Lead II concentrates on the QRS complexes and ST segments. True positives attribute toward PE (red); true negatives attribute toward Normal (blue) at the same complexes.
   \end{block}
 
   \begin{block}{RepNet-RF: Decision-Tree Methods}
@@ -179,23 +181,24 @@
     % Native High-Performance Table Code containing the fixed formula configuration
     \begin{table}
   \centering
-  \small
-  \setlength{\tabcolsep}{12pt}
+  \normalsize
+  \setlength{\tabcolsep}{6pt}
   \renewcommand{\arraystretch}{1.3}
-  \resizebox{\colwidth}{!}{%
-  \begin{tabular}{ll | ll}
+  \begin{tabular*}{\colwidth}{@{\extracolsep{\fill}} l l | l l}
     \toprule
     \textbf{Feature} & \textbf{Equation} & \textbf{Feature} & \textbf{Equation} \\
     \midrule
-    $P_{\max}$ & $\max_{\ell}(P_{\text{off}}^{\ell} - P_{\text{on}}^{\ell})$ & $T_{pe}/\text{QT}$ & $T_{pe} / (T_{\text{off}} - R_{\text{on}})$ \\
-    $P_{\min}$ & $\min_{\ell}(P_{\text{off}}^{\ell} - P_{\text{on}}^{\ell})$ & $T_{pe}/\text{QTc}$ & $(T_{pe} / \text{QT}) \cdot \sqrt{\Delta R_{pk}}$ \\
-    P-Wave Disp. & $P_{\max} - P_{\min}$ & ST Elev./Dep. & $\mathbf{1}[>50\%\ \text{ST shift}]$ \\
-    QT Disp. & $\text{QT}_{\max} - \text{QT}_{\min}$ & Amp. Diff. & $A_{\text{ST}} - A_{\text{PR}}$ \\
-    $T_{pe}$ & $(T_{\text{off}} - T_{\text{pk}})$ & QRS-T Angle & $|\text{QRS Ax.} - \text{T Ax.}|$ \\
+    $P_{\max}$ & {\small $\max_{\ell}(P_{\text{off}}^{\ell} - P_{\text{on}}^{\ell})$} & $T_{pe}/\text{QT}$ & {\small $T_{pe} / (T_{\text{off}} - R_{\text{on}})$} \\
+    $P_{\min}$ & {\small $\min_{\ell}(P_{\text{off}}^{\ell} - P_{\text{on}}^{\ell})$} & $T_{pe}/\text{QTc}$ & {\small $(T_{pe} / \text{QT}) \cdot \sqrt{\Delta R_{pk}}$} \\
+    P-Wave Disp. & {\small $P_{\max} - P_{\min}$} & ST Elev./Dep. & {\small $\mathbf{1}[>50\%\ \text{ST shift}]$} \\
+    QT Disp. & {\small $\text{QT}_{\max} - \text{QT}_{\min}$} & Amp. Diff. & {\small $A_{\text{ST}} - A_{\text{PR}}$} \\
+    $T_{pe}$ & {\small $(T_{\text{off}} - T_{\text{pk}})$} & QRS-T Angle & {\small $|\text{QRS Ax.} - \text{T Ax.}|$} \\
+    QRS Axis & {\small $\perp\,\arg\min_{\ell}|\Sigma\,\text{QRS}^{\ell}|$} & T Axis & {\small $\perp\,\arg\min_{\ell}|\Sigma\,\text{T}^{\ell}|$} \\
     \bottomrule
-  \end{tabular}%
-  }
+  \end{tabular*}
 \end{table}
+    \vspace{-0.2em}
+    {\footnotesize Per-lead features ($T_{pe}$, $T_{pe}$/QT, $T_{pe}$/QTc, ST elev./dep.) are computed for all 12 leads.\par}
     \vspace{-0.5em}
   \end{block}
 
@@ -231,12 +234,12 @@
     
     \begin{figure}
       \centering
-      \includegraphics[width=0.95\colwidth]{leadimportance.png}
+      \includegraphics[width=0.86\colwidth]{leadimportance.png}
     \end{figure}
   \end{block}
 
   \begin{block}{Conclusion}
-    RepNet-SE achieves a best AUROC of 0.787 and RepNet-RF achieves 0.757, demonstrating that 12-lead ECGs contain discriminative signal for preeclampsia risk estimation despite 5.5:1 class imbalance. Both models independently converge on clinically relevant markers --- QRS morphology, ST-segment changes, $\mathnormal{T_{pe}}$ interval --- consistent with known cardiac effects of preeclampsia. Grad-CAM saliency and cross-lead attention confirm the neural network learns these patterns without explicit feature engineering. Broad ECG-based screening can enable early risk estimation of preeclampsia and improve maternal and fetal outcomes.
+    RepNet-SE achieves a mean AUROC of 0.709 and RepNet-RF a mean AUROC of 0.757 in patient-grouped cross-validation, demonstrating that 12-lead ECGs contain discriminative signal for preeclampsia risk estimation despite 5.5:1 class imbalance. Both models independently converge on clinically relevant markers --- QRS morphology, ST-segment changes, $\mathnormal{T_{pe}}$ interval --- consistent with known cardiac effects of preeclampsia. Integrated-Gradients and Grad-CAM saliency confirm the neural network learns these patterns without explicit feature engineering. Broad ECG-based screening can enable early risk estimation and improve maternal and fetal outcomes.
   \end{block}
 
   \begin{block}{Future Work}
