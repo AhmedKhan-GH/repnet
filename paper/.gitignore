@@ -1,0 +1,14 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.xdv
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+figures/texput.log
